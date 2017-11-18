@@ -1,0 +1,21 @@
+Package: hdcd
+Type: Package
+Title: High-dimensional Changepoint Detection
+Version: 0.1.0
+Author: Lorenz Haubner
+Maintainer: Lorenz Haubner <lorenz.haubner@gmail.com>
+Description: The hdcd package is meant to provide tools for the detection of changepoints in high-dimensional, sequential, not identical but independent data.
+License: Apache License Version 2.0
+Encoding: UTF-8
+LazyData: true
+Imports: MASS,
+    glasso,
+    glmnet,
+    clues,
+    huge,
+    data.tree,
+    doParallel,
+    foreach
+Suggests: testthat
+Depends: 
+RoxygenNote: 6.0.1
