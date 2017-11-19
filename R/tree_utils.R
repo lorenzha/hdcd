@@ -6,7 +6,6 @@
 #' than the loss of the base segment the node will be pruned from the tree. The tree will be pruned for the specified
 #' path of gamma and for each gamma value a set of changepoints is returned.
 #'
-#'
 #' @param tree An object of class \strong{bs_tree}
 #' @param gamma_max Upper limit of gamma. Range will be [0, gamma_max].
 #' @param gamma_length Number of equispaced points in the range.
@@ -22,19 +21,25 @@ PruneTreeGamma <- function(tree, gamma_max = 3, gamma_length = 50) {
   stopifnot(is(tree, "bs_tree"))
 
   cpts <- list()
-  if (gamma_length > 1)
-    gamma_seq <- seq(0, gamma_max, length.out = gamma_length)
-  else
-    gamma_seq <- gamma_max
+  if (gamma_length > 1) {
+    for (i in seq_along(gamma_seq)) {
+      gamma_seq <- seq(0, gamma_max, length.out = gamma_length)
+      FUN <- PenalizeSplitsFUN(gamma_seq[i])
 
-  for (i in seq_along(gamma_seq)) {
-    FUN <- PenalizeSplitsFUN(gamma_seq[i])
+      clone_tree <- data.tree::Clone(tree, pruneFun = FUN)
+
+      cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
+    }
+    list(cpts = cpts, gamma = gamma_seq)
+  }
+  else {
+    FUN <- PenalizeSplitsFUN(gamma_max)
 
     clone_tree <- data.tree::Clone(tree, pruneFun = FUN)
+    cpts[[1]] <- GetChangePointsFromLeafs(clone_tree) # to stay consistent with the cas for multiple gammas
 
-    cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
+    list(cpts = cpts, gamma = gamma_max, pruned_tree = clone_tree)
   }
-  list(cpts = cpts, gamma = gamma_seq)
 }
 
 #' GetChangePointsFromLeafs
