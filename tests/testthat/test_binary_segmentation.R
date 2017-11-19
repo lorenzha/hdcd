@@ -55,3 +55,45 @@ test_that("split function gets split correct", {
                              SegmentLossFUN = loss_fun)[["opt_split"]],
                44)
 })
+
+test_that("ternary search finds changepoints", {
+
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "glasso", use_ternary_search = T)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(45, 87, 131, 173, 216, 259))
+
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "summed_regression", use_ternary_search = T)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(44, 88, 173, 216, 259))
+
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "ratio_regression", use_ternary_search = T)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(44, 88, 130, 172, 216, 259))
+
+  tree <- BinarySegmentation(x=test_data, delta = 0.1, lambda = 0.01, penalize_diagonal = F,
+                             use_ternary_search = T, method = "nodewise_regression", p = 10)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(78, 179, 257))
+
+})
+
+test_that("ternary search with more than 3 intervals", {
+
+
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "summed_regression", use_ternary_search = T, intervals = 10)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(45, 130, 172, 259))
+
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "summed_regression", use_ternary_search = T, intervals = 5)
+
+  expect_equal(PruneTreeGamma(tree, gamma_max = 0.05, 1)[[1]][[1]],
+               c(45, 130, 172, 259))
+
+})
+
+
