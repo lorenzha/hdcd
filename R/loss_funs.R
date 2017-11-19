@@ -93,7 +93,7 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
       withCallingHandlers({
         glasso_output <- glasso::glasso(
         cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),  # should be sd instead of variance?
+        rho = lambda / sqrt(obs_share) * diag(cov_mat),
         approx = T,
         thr = threshold
       )$wi
@@ -119,7 +119,7 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
      withCallingHandlers({
        glasso_output <- glasso::glasso(
         cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),  # should be sd instead of variance?
+        rho = lambda / sqrt(obs_share) * diag(cov_mat),
         approx = T,
         thr = threshold
       )$wi
