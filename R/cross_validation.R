@@ -30,8 +30,12 @@ CrossValidation <- function(x, delta,
                             verbose = T) {
   n_obs <- nrow(x)
   n_p <- ncol(x)
+  n_lambdas <- length(lambda)
   mth <- match.arg(method)
+
+  # necessary because parser won't allow 'foreach' directly after a foreach object
   `%dopar%` <- foreach::`%dopar%`
+  `%:%` <- foreach::`%:%`
 
   if(is.null(gamma_max)){
     tree      <- BinarySegmentation(x = x, delta = delta, lambda = min(lambda), method = mth,
@@ -42,23 +46,22 @@ CrossValidation <- function(x, delta,
 
   folds <- seq_len(n_folds)
 
-  cv_results <- foreach::foreach(fold = folds, .inorder = F, .packages = "hdcd", .verbose = verbose) %dopar% {
-    if (verbose) cat("\n CV fold ",fold, " of ",n_folds,"\n")
+  cv_results <- foreach::foreach(fold = folds, .inorder = F, .packages = "hdcd", .verbose = F) %:%
+    foreach::foreach(lam = lambda, .inorder = T, .packages = "hdcd") %dopar% {
 
-    test_inds  <- seq(fold, n_obs, n_folds)
-    train_inds <- setdiff(1:n_obs, test_inds)
-    n_g <- length(test_inds)
-    fold_results <- list()
+      test_inds  <- seq(fold, n_obs, n_folds)
+      train_inds <- setdiff(1:n_obs, test_inds)
+      n_g <- length(test_inds)
 
-    for (lam in seq_along(lambda)){
-      tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lambda[lam],
-                                 method = mth, penalize_diagonal = penalize_diagonal, use_ternary_search = use_ternary_search)
+      tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lam,
+                                 method = mth, penalize_diagonal = penalize_diagonal,
+                                 use_ternary_search = use_ternary_search)
       res  <- PruneTreeGamma(tree, gamma_max)
-
+      rm(tree)
       rss_gamma <- numeric(length(res$gamma))
       cpts      <- list()
       for (gam in seq_along(res$gamma)){
-        fit <- FullRegression(x[train_inds, ], cpts = res$cpts[[gam]], lambda = lambda[lam])
+        fit <- FullRegression(x[train_inds, ], cpts = res$cpts[[gam]], lambda = lam)
 
         segment_bounds  <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
 
@@ -68,21 +71,36 @@ CrossValidation <- function(x, delta,
           wi <- fit$est_coefs[[seg]]
           intercepts <- fit$est_intercepts[[seg]]
 
-          segment_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
+          seg_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
 
-          if(length(segment_test_inds) == 0){warning("Segment had no test data. Consider reducing the number of folds."); next}
+          if(length(seg_test_inds) == 0){warning("Segment had no test data. Consider reducing the number of folds."); next}
 
-          rss <- rss +  sum(sapply(1:n_p, function(z) RSS(x[segment_test_inds, -z], x[segment_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
+          rss <- rss +
+            sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
         }
         rss_gamma[gam] <- rss / n_g
         cpts[[gam]]    <- segment_bounds[-c(1, length(segment_bounds))]
       }
-      fold_results[[lam]] <- list(rss = rss_gamma, gamma = res$gamma, cpts = cpts, tree = tree, lambda = lambda[lam])
+      g <- res$gamma
+      rm(res)
+      list(rss = rss_gamma, cpts = cpts, gamma = g, lambda = lam, fold = fold)
     }
-    fold_results
+  gc(verbose = F)
+  n_gammas <- length(cv_results[[1]][[1]][["gamma"]])
+  gamma_names  <- round(cv_results[[1]][[1]][["gamma"]], 3)
+
+  res <- array(data = NA, dim = c(2, n_folds, n_lambdas, n_gammas),
+               dimnames = list(type = c("rss", "n_cpts"), fold = seq_len(n_folds), lambda = lambda,
+                               gamma = gamma_names))
+
+  for (fold in seq_len(n_folds)){
+    for (lam in seq_len(n_lambdas)){
+      res["rss", fold, lam, ]    <- cv_results[[fold]][[lam]][["rss"]]
+      res["n_cpts", fold, lam, ] <- unlist(lapply(X = cv_results[[fold]][[lam]][["cpts"]], FUN = length))
+    }
   }
-  class(cv_results) <- "bs_cv"
-  cv_results
+  class(res) <- "bs_cv"
+  res
 }
 
 RSS <- function(x, y, beta, intercepts){
@@ -91,31 +109,36 @@ RSS <- function(x, y, beta, intercepts){
 
 #' plot.bs_cv
 #'
-#' S3 method for plotting the results of cross-validation. Ony works for a specific lambda value at the moment.
-#'
-#'EXPERIMENTAL
+#' S3 method for plotting the results of cross-validation.
 #'
 #' @param cv_results An object of class \strong{bs_cv}
 #'
 #' @export
 plot.bs_cv <- function(cv_results){
 
-  n_cpts <- sapply(cv_results, function(x) sapply(x[["cpts"]], function(y) length(y)))
-  gamma  <- cv_results[[1]][["gamma"]]
-  rss <- rowMeans(sapply(cv_results, function(x) x[["rss"]]))
-  sd  <- apply(sapply(cv_results, function(x) x[["rss"]]), 1, sd)
+  col.l <- heat.colors(100)
 
-  par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for z axis
-  plot (gamma, rss, ylim = c(0, 1.1*max(rss+sd)), col = "red", pch = 18, ylab = "rss / n_obs")
-  segments(gamma,rss-sd,gamma,rss+sd)
-  epsilon <- 0.0005
-  segments(gamma-epsilon,rss-sd,gamma+epsilon,rss-sd)
-  segments(gamma-epsilon,rss+sd,gamma+epsilon,rss+sd)
-  par(new = TRUE)
-  plot(gamma, n_cpts[, 1], type = "l", axes = FALSE, bty = "n", xlab = "", ylab = "", col = rgb(0,0,1,alpha=0.2))
-  for (i in 2:ncol(n_cpts)){
-    lines(gamma, n_cpts[, i], col = rgb(0,0,1,alpha=0.2))
-  }
-  axis(side=4, at = pretty(range(n_cpts[, 1])))
-  mtext("n_cpts", side=4, line=3)
+  lab <- dimnames(cv_results["rss", 1, ,])
+
+  gam <- as.numeric(lab$gamma)
+  gamma_ticks <- seq(gam[1], gam[length(gam)], length.out = 10)
+
+  lam <- as.numeric(lab$lambda)
+  lambda_ticks <- seq(lam[1], lam[length(lam)], length.out = 10)
+
+  cpts <- levelplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
+                    aspect = "xy",
+                    xlab = "Lambda",
+                    ylab = "Gamma",
+                    main = "Average number of changepoints",
+                    col.regions = col.l)
+  rss <- levelplot(apply(cv_results["rss", , ,], 2:3, mean),
+                   aspect = "xy",
+                   xlab = "Lambda",
+                   ylab = "Gamma",
+                   main = "Average RSS",
+                   col.regions = col.l)
+
+  print(cpts, split = c(1, 1, 2, 1), more=TRUE)
+  print(rss, split = c(2, 1, 2, 1))
 }
