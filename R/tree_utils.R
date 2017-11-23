@@ -22,8 +22,8 @@ PruneTreeGamma <- function(tree, gamma_max = 3, gamma_length = 50) {
 
   cpts <- list()
   if (gamma_length > 1) {
+    gamma_seq <- seq(0, gamma_max, length.out = gamma_length)
     for (i in seq_along(gamma_seq)) {
-      gamma_seq <- seq(0, gamma_max, length.out = gamma_length)
       FUN <- PenalizeSplitsFUN(gamma_seq[i])
 
       clone_tree <- data.tree::Clone(tree, pruneFun = FUN)
