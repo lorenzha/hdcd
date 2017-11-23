@@ -65,7 +65,7 @@ CrossValidation <- function(x, delta,
         rss <- 0
         for (seg in seq_along(fit[[1]])){
 
-          wi <- fit$est_coeffs[[seg]]
+          wi <- fit$est_coefs[[seg]]
           intercepts <- fit$est_intercepts[[seg]]
 
           segment_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
