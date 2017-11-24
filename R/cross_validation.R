@@ -85,7 +85,6 @@ CrossValidation <- function(x, delta,
       rm(res)
       list(rss = rss_gamma, cpts = cpts, gamma = g, lambda = lam, fold = fold)
     }
-  gc(verbose = F)
   n_gammas <- length(cv_results[[1]][[1]][["gamma"]])
   gamma_names  <- round(cv_results[[1]][[1]][["gamma"]], 3)
 
