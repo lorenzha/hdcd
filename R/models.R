@@ -23,14 +23,14 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5) {
     s_vec <- s_vec[perm_inds]
   }
 
-  cov_mat <- matrix(0, nrow = p, ncol = p)
+  icov_mat <- matrix(0, nrow = p, ncol = p)
 
   for(i in seq_len(p)) {
     for(j in seq_len(p)) {
-      cov_mat[i, j] <- exp(-a*abs(s_vec[i]- s_vec[j]))
+      icov_mat[i, j] <- exp(-a*abs(s_vec[i]- s_vec[j]))
     }
   }
-  cov_mat
+  icov_mat
 }
 
 #' HubNetwork
