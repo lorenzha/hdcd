@@ -125,13 +125,13 @@ plot.bs_cv <- function(cv_results){
   lam <- as.numeric(lab$lambda)
   lambda_ticks <- seq(lam[1], lam[length(lam)], length.out = 10)
 
-  cpts <- levelplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
+  cpts <- lattice::levelplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
                     aspect = "xy",
                     xlab = "Lambda",
                     ylab = "Gamma",
                     main = "Average number of changepoints",
                     col.regions = col.l)
-  rss <- levelplot(apply(cv_results["rss", , ,], 2:3, mean),
+  rss <- lattice::levelplot(apply(cv_results["rss", , ,], 2:3, mean),
                    aspect = "xy",
                    xlab = "Lambda",
                    ylab = "Gamma",

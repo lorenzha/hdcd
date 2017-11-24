@@ -15,7 +15,8 @@ Imports: MASS,
     huge,
     data.tree,
     doParallel,
-    foreach
+    foreach,
+    lattice
 Suggests: testthat
 Depends: 
 RoxygenNote: 6.0.1
