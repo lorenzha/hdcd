@@ -121,7 +121,6 @@ FindBestSplit <- function(x, delta, n_obs, use_ternary_search, SegmentLossFUN, i
 #' @param SegmentLossFUN A loss function is created by \code{\link{SegmentLoss}}
 #' @param intervals Number of intervals of the search grid
 TernarySearch <- function(split_candidates, left, right, x, SegmentLossFUN, intervals = 3) {
-  stopifnot(intervals <= length(split_candidates))
 
   # Stopping condition for recursion
   if (abs(left - right) < intervals) {
