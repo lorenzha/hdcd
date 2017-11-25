@@ -117,26 +117,24 @@ plot.bs_cv <- function(cv_results){
 
   col.l <- heat.colors(100)
 
-  lab <- dimnames(cv_results["rss", 1, ,])
+  #lab <- dimnames(cv_results["rss", 1, ,])
 
-  gam <- as.numeric(lab$gamma)
-  gamma_ticks <- seq(gam[1], gam[length(gam)], length.out = 10)
-
-  lam <- as.numeric(lab$lambda)
-  lambda_ticks <- seq(lam[1], lam[length(lam)], length.out = 10)
-
-  cpts <- lattice::levelplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
-                    aspect = "xy",
-                    xlab = "Lambda",
-                    ylab = "Gamma",
-                    main = "Average number of changepoints",
-                    col.regions = col.l)
-  rss <- lattice::levelplot(apply(cv_results["rss", , ,], 2:3, mean),
-                   aspect = "xy",
-                   xlab = "Lambda",
-                   ylab = "Gamma",
-                   main = "Average RSS",
-                   col.regions = col.l)
+  cpts <- lattice::contourplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
+                               aspect = "xy",
+                               xlab = "Lambda",
+                               ylab = "Gamma",
+                               main = "Average number of changepoints",
+                               col.regions = col.l,
+                               cuts = 20,
+                               region = T)
+  rss <- lattice::contourplot(apply(cv_results["rss", , ,], 2:3, mean),
+                              aspect = "xy",
+                              xlab = "Lambda",
+                              ylab = "Gamma",
+                              main = "Average RSS",
+                              col.regions = col.l,
+                              cuts = 20,
+                              region = T)
 
   print(cpts, split = c(1, 1, 2, 1), more=TRUE)
   print(rss, split = c(2, 1, 2, 1))
