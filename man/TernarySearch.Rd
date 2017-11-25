@@ -4,7 +4,7 @@
 \alias{TernarySearch}
 \title{TernarySearch}
 \usage{
-TernarySearch(split_candidates, left, right, x, SegmentLossFUN)
+TernarySearch(split_candidates, left, right, x, SegmentLossFUN, intervals = 3)
 }
 \arguments{
 \item{split_candidates}{A list of indices of possible split points}
@@ -16,7 +16,14 @@ TernarySearch(split_candidates, left, right, x, SegmentLossFUN)
 \item{x}{An n times p data matrix}
 
 \item{SegmentLossFUN}{A loss function is created by \code{\link{SegmentLoss}}}
+
+\item{intervals}{Number of intervals of the search grid}
 }
 \description{
 Use a ternary search technique to find a local minimum for the next split recursively.
+}
+\details{
+Besides the standard ternary approach where the segment is divided into three intervals adn evaluated at two points one
+can also define a more granular intervals until intervals = number of observations in which case all observations will
+be evaluated and we are in the case of searching for the minium exactly.
 }

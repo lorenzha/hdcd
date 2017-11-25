@@ -4,7 +4,7 @@
 \alias{ChainNetwork}
 \title{ChainNetwork}
 \usage{
-ChainNetwork(p, n_perm = p, a = 0.5)
+ChainNetwork(p, n_perm = p, a = 0.5, prec_mat = F)
 }
 \arguments{
 \item{p}{Positive integer.The desired number of dimensions.}
@@ -12,6 +12,8 @@ ChainNetwork(p, n_perm = p, a = 0.5)
 \item{n_perm}{Positive integer. The first n_perm dimensions will be permuted randomly.}
 
 \item{a}{Positive float between 0 and 1. Scale parameter for the elements of the covariance matrix}
+
+\item{cov_mat}{Should the precision matrix be returned? If false the covariance matrix will be returned (default).}
 }
 \value{
 A covariance matrix.

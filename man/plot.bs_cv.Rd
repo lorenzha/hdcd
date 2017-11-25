@@ -10,8 +10,5 @@
 \item{cv_results}{An object of class \strong{bs_cv}}
 }
 \description{
-S3 method for plotting the results of cross-validation. Ony works for a specific lambda value at the moment.
-}
-\details{
-EXPERIMENTAL
+S3 method for plotting the results of cross-validation.
 }

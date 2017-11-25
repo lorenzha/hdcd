@@ -15,7 +15,7 @@ FullRegression(x, cpts, lambda = 0.1)
 }
 \value{
 \describe{
-  \item{est_coeffs}{A p times p matrix of estimated coefficients.}
+  \item{est_coefs}{A p times p matrix of estimated coefficients.}
   \item{est_mean}{A p vector of estimated means.}
   \item{est_intercepts}{A p vector of estimated intercepts.}
 }

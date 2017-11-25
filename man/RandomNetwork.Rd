@@ -4,12 +4,16 @@
 \alias{RandomNetwork}
 \title{RandomNetwork}
 \usage{
-RandomNetwork(p, prob = 3/p)
+RandomNetwork(p, prob = min(1, 3/p), prec_mat = F, u = 0.1, v = 0.3)
 }
 \arguments{
 \item{p}{Positive integer.The desired number of dimensions.}
 
 \item{prob}{Probabilty that a pair of nodes have a common edge.}
+
+\item{u}{Constant added to the diagonal elements of the precision matrix for controlling the magnitude of partial correlations.}
+
+\item{v}{Constant added to the off diagonal of the precision matrix for controlling the magnitude of partial correlations.}
 }
 \value{
 A covariance matrix.

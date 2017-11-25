@@ -6,7 +6,8 @@
 \usage{
 BinarySegmentation(x, delta, lambda, method = c("glasso",
   "nodewise_regression", "summed_regression", "ratio_regression"),
-  threshold = 1e-07, penalize_diagonal = F, use_ternary_search = F, ...)
+  threshold = 1e-07, penalize_diagonal = F, use_ternary_search = F,
+  intervals = 3, ...)
 }
 \arguments{
 \item{x}{A n times p matrix for which to find the best splitting point.}
@@ -24,6 +25,8 @@ in the latter it controls the total objective value.}
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
 \item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMNETAL)}
+
+\item{intervals}{Number of intervals of the search grid}
 }
 \value{
 An object of class \strong{bs_tree}
