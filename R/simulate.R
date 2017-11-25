@@ -19,7 +19,7 @@ SimulateFromModel <- function(model) {
   for(i in seq_along(seg_lengths)){
     seg_start <- ifelse(i == 1, 1 ,sum(seg_lengths[(i-1):1]) + 1)
     seg_end   <- seg_start + seg_lengths[i] - 1
-    data[seg_start:seg_end, ] <- MASS::mvrnorm(seg_lengths[[i]], model[["segment_means"]][[i]], solve(model[["icov_mats"]][[i]]))
+    data[seg_start:seg_end, ] <- MASS::mvrnorm(seg_lengths[[i]], model[["segment_means"]][[i]], model[["cov_mats"]][[i]])
   }
   return(data)
 }
@@ -52,12 +52,12 @@ CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_zero = 
     segment_lengths   <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
   }
   segment_means      <- replicate(n_segments, rep(if(mean_zero) 0 else rnorm(1), p), simplify = F)
-  icov_mats          <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
+  cov_mats           <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
 
 
   list(segment_lengths = segment_lengths,
        segment_means = segment_means,
-       icov_mats = icov_mats,
+       cov_mats = cov_mats,
        true_changepoints = changepoints)
 }
 
