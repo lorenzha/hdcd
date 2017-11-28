@@ -14,7 +14,7 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #'
 #' This closure returns a function which calculates the loss for the given segment of the data.
 #'
-#' Depending on the desired method and the tuning paramtersa different loss function will be parametrized and returned.
+#' Depending on the desired method and the tuning parameters a different loss function will be parametrized and returned.
 #' If method \emph{nodewise_regression} is selected, additional argument \emph{p} can be supplied to determine on which node (dimension)
 #' it should be performed.
 #'
@@ -28,43 +28,45 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' lossFUN
 #' lossFUN(dat)
 SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
-                        method = c("glasso", "nodewise_regression", "summed_regression", "ratio_regression"),
+                        method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                         ...) {
   args <- list(...)
-  meth <- match.arg(method)
+  mth <- match.arg(method)
 
-  if (meth == "nodewise_regression") {
+  if (mth == "nodewise_regression") {
     p <- args[["p"]]
     stopifnot(length(p) == 1 && is.numeric(p))
   }
 
-  if (meth == "glasso") {
-    function(x) {
-      obs_count <- nrow(x)
-      obs_share <- obs_count / n_obs
+  if (mth == "glasso") {
+    # deprecated for now
 
-      # We need more than one observation to caclculate the covariance matrix
-      stopifnot(obs_count > 1)
-
-      n_p <- ncol(x)
-
-      cov_mat <- (obs_count - 1) / obs_count * cov(x)
-
-      glasso_output <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),
-        penalize.diagonal = penalize_diagonal,
-        thr = threshold
-      )
-
-      if (!penalize_diagonal) {
-        diag(glasso_output$wi) <- 0
-      }
-
-      ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-        - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
-    }
-  } else if (meth == "nodewise_regression") {
+    # function(x) {
+    #   obs_count <- nrow(x)
+    #   obs_share <- obs_count / n_obs
+    #
+    #   # We need more than one observation to caclculate the covariance matrix
+    #   stopifnot(obs_count > 1)
+    #
+    #   n_p <- ncol(x)
+    #
+    #   cov_mat <- (obs_count - 1) / obs_count * cov(x)
+    #
+    #   glasso_output <- glasso::glasso(
+    #     cov_mat,
+    #     rho = lambda / sqrt(obs_share) * diag(cov_mat),
+    #     penalize.diagonal = penalize_diagonal,
+    #     thr = threshold
+    #   )
+    #
+    #   if (!penalize_diagonal) {
+    #     diag(glasso_output$wi) <- 0
+    #   }
+    #
+    #   ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
+    #     - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
+    # }
+  } else if (mth == "nodewise_regression") {
     function(x) {
       obs_count <- nrow(x)
       obs_share <- obs_count / n_obs
@@ -80,7 +82,7 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
       )
       deviance(fit) / n_obs
     }
-  } else if (meth == "ratio_regression") {
+  } else if (mth == "ratio_regression") {
     function(x) {
       obs_count <- nrow(x)
       obs_share <- obs_count / n_obs
@@ -106,7 +108,7 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
 
       mean(loss / n_obs)
     }
-  } else if (meth == "summed_regression") {
+  } else if (mth == "summed_regression") {
     function(x) {
       obs_count <- nrow(x)
       obs_share <- obs_count / n_obs
