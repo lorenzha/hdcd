@@ -131,26 +131,24 @@ RSS <- function(x, y, beta, intercepts){
 #' @param cv_results An object of class \strong{bs_cv}
 #'
 #' @export
-plot.bs_cv <- function(cv_results){
+plot.bs_cv <- function(results){
 
-  col.l <- heat.colors(100)
+  res <- results[["cv_results"]]
 
-  #lab <- dimnames(cv_results["rss", 1, ,])
-
-  cpts <- lattice::contourplot(apply(cv_results["n_cpts", , ,], 2:3, mean),
+  cpts <- lattice::contourplot(apply(res["n_cpts", , ,], 2:3, mean),
                                aspect = "xy",
                                xlab = "Lambda",
                                ylab = "Gamma",
                                main = "Average number of changepoints",
-                               col.regions = col.l,
+                               col.regions = rainbow(20),
                                cuts = 20,
                                region = T)
-  rss <- lattice::contourplot(apply(cv_results["rss", , ,], 2:3, mean),
+  rss <- lattice::contourplot(apply(res["rss", , ,], 2:3, mean),
                               aspect = "xy",
                               xlab = "Lambda",
                               ylab = "Gamma",
                               main = "Average RSS",
-                              col.regions = col.l,
+                              col.regions = rev(heat.colors(100)),
                               cuts = 20,
                               region = T)
 
