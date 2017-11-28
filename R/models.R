@@ -88,7 +88,7 @@ RandomNetwork <- function(p, prob = min(1, 3/p), prec_mat = F, u = 0.1, v = 0.3)
 
 #' MoveEdges
 #'
-#' Radomly move a share of the edges in a graph
+#' Radomly move a share of the edges in a random graph
 #'
 #' In order to create a slightly different graph with the same level of sparsity
 #' the selected share of edges will be randomly moved to positions where no edge existed

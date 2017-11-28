@@ -12,7 +12,7 @@ MoveEdges(prec_mat, share_moves = 0.1)
 \item{mat}{A precision matrix}
 }
 \description{
-Radomly move a share of the edges in a graph
+Radomly move a share of the edges in a random graph
 }
 \details{
 In order to create a slightly different graph with the same level of sparsity

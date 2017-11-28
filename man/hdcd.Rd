@@ -4,15 +4,15 @@
 \alias{hdcd}
 \title{hdcd}
 \usage{
-hdcd(x, delta, lambda = NULL, gamma = NULL, method = c("glasso",
-  "nodewise_regression", "summed_regression", "ratio_regression"),
+hdcd(x, delta, lambda = NULL, gamma = NULL,
+  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
   threshold = 1e-07, penalize_diagonal = F, use_ternary_search = F,
-  cv_folds = 10, verbose = F, ...)
+  n_folds = 10, verbose = F, ...)
 }
 \arguments{
 \item{x}{A n times p matrix for which to find the best splitting point.}
 
-\item{delta}{Value between 0 and 1. Tuning param which determines the minimal segment size
+\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints. A good value to start with is 0.1.}
 
 \item{lambda}{Sparsity penality parameter in single lasso fits. If NULL k-fold cross-validation will be conducted.}
@@ -28,7 +28,7 @@ in the latter it controls the total objective value.}
 
 \item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMENTAL)}
 
-\item{cv_folds}{Number of folds in cross validation. Default is 10.}
+\item{n_folds}{Number of folds in cross validation. Default is 10.}
 
 \item{verbose}{Should additional information be printed?}
 

@@ -4,15 +4,15 @@
 \alias{CrossValidation}
 \title{CrossValidation}
 \usage{
-CrossValidation(x, delta, lambda = seq(0.01, 0.1, 0.01),
-  method = c("summed_regression", "ratio_regression"), threshold = 1e-04,
+CrossValidation(x, delta, lambda = NULL, method = c("nodewise_regression",
+  "summed_regression", "ratio_regression"), threshold = 1e-04,
   penalize_diagonal = F, use_ternary_search = F, n_folds = 10,
-  gamma_max = NULL, verbose = T)
+  gamma_max = NULL, verbose = T, ...)
 }
 \arguments{
-\item{x}{A n times p matrix for which to find the best splitting point.}
+\item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 1. Tuning param which determines the minimal segment size
+\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
@@ -24,7 +24,7 @@ in the latter it controls the total objective value.}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMNETAL)}
+\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
 
 \item{n_folds}{Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.}
 
@@ -38,12 +38,12 @@ A nested list with the cv results and the full fitted models for each gamm, lamb
 }
 \description{
 EXPERIMENTAL. Crossvalidation for the desired method and parameter combinations.
-Evalusate lambda values will refit the model whereas gamma values can be evaluted using a
+Evaluating different lambda values will lead to refitting the entire model whereas gamma values can be evaluted cheaply using a
 single fit.
 }
 \details{
-Will make use of a registered parallel backend over the folds. This will be changed to parallelize over lambdas
-in each fold to make use of all nodes if the number of folds is smaller than the number of nodes.
+Will make use of a registered parallel backend over the folds and lambda values. Therefore the whole cross-validation will make
+use even of a high number of compute nodes (up to number of folds times number of lambda values) efficiently.
 }
 \examples{
 dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))

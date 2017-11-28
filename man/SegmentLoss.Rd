@@ -5,8 +5,8 @@
 \title{SegmentLoss}
 \usage{
 SegmentLoss(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
-  method = c("glasso", "nodewise_regression", "summed_regression",
-  "ratio_regression"), ...)
+  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+  ...)
 }
 \arguments{
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
@@ -25,7 +25,7 @@ A parametrized loss function
 This closure returns a function which calculates the loss for the given segment of the data.
 }
 \details{
-Depending on the desired method and the tuning paramtersa different loss function will be parametrized and returned.
+Depending on the desired method and the tuning parameters a different loss function will be parametrized and returned.
 If method \emph{nodewise_regression} is selected, additional argument \emph{p} can be supplied to determine on which node (dimension)
 it should be performed.
 }
