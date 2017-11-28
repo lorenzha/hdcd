@@ -1,11 +1,11 @@
 #' CrossValidation
 #'
 #' EXPERIMENTAL. Crossvalidation for the desired method and parameter combinations.
-#' Evalusate lambda values will refit the model whereas gamma values can be evaluted using a
+#' Evaluating different lambda values will lead to refitting the entire model whereas gamma values can be evaluted cheaply using a
 #' single fit.
 #'
-#' Will make use of a registered parallel backend over the folds. This will be changed to parallelize over lambdas
-#' in each fold to make use of all nodes if the number of folds is smaller than the number of nodes.
+#' Will make use of a registered parallel backend over the folds and lambda values. Therefore the whole cross-validation will make
+#' use even of a high number of compute nodes (up to number of folds times number of lambda values) efficiently.
 #'
 #' @inheritParams BinarySegmentation
 #' @param n_folds Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.
@@ -20,34 +20,48 @@
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
 #' CrossValidation(dat, delta = 0.1, method = "summed_regression")
 CrossValidation <- function(x, delta,
-                            lambda = seq(0.01, 0.1, 0.01),
-                            method = c("summed_regression", "ratio_regression"),
+                            lambda = NULL,
+                            method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             threshold = 1e-4,
                             penalize_diagonal = F,
                             use_ternary_search = F,
                             n_folds = 10,
                             gamma_max = NULL,
-                            verbose = T) {
+                            verbose = T,
+                            ...) {
   n_obs <- nrow(x)
   n_p <- ncol(x)
-  n_lambdas <- length(lambda)
   mth <- match.arg(method)
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
-  `%dopar%` <- foreach::`%dopar%`
+  if (foreach::getDoParWorkers() == 1) {
+    cat("\n No parallel backend registered. Cross-validation will be performed using a single node and might take very long. \n See for instance https://cran.r-project.org/web/packages/doParallel/index.html \n")
+    `%hdcd_do%` <- foreach::`%do%`
+  } else {
+    `%hdcd_do%` <- foreach::`%dopar%`
+  }
   `%:%` <- foreach::`%:%`
 
+  # determine a range for gamma automatically
   if(is.null(gamma_max)){
     tree      <- BinarySegmentation(x = x, delta = delta, lambda = min(lambda), method = mth,
-                                    penalize_diagonal = penalize_diagonal, use_ternary_search = use_ternary_search)
+                                    penalize_diagonal = penalize_diagonal, use_ternary_search = use_ternary_search, ...)
     gamma_max <- tree$Get(function(x) abs(x$min_loss - x$segment_loss), filterFun = data.tree::isRoot)
     rm(tree)
   }
 
+  # determine a range for lambda, not sure how to pick it in a smarter way yet...
+  if(is.null(lambda)){
+    lambda <- seq(0.01, 0.15, 0.01)
+  }
+  n_lambdas <- length(lambda)
+
   folds <- seq_len(n_folds)
 
+  if (verbose) cat("\n")
+
   cv_results <- foreach::foreach(fold = folds, .inorder = F, .packages = "hdcd", .verbose = F) %:%
-    foreach::foreach(lam = lambda, .inorder = T, .packages = "hdcd") %dopar% {
+    foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
 
       test_inds  <- seq(fold, n_obs, n_folds)
       train_inds <- setdiff(1:n_obs, test_inds)
@@ -55,7 +69,7 @@ CrossValidation <- function(x, delta,
 
       tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lam,
                                  method = mth, penalize_diagonal = penalize_diagonal,
-                                 use_ternary_search = use_ternary_search)
+                                 use_ternary_search = use_ternary_search, ...)
       res  <- PruneTreeGamma(tree, gamma_max)
       rm(tree)
       rss_gamma <- numeric(length(res$gamma))
@@ -83,6 +97,7 @@ CrossValidation <- function(x, delta,
       }
       g <- res$gamma
       rm(res)
+      if (verbose) cat(paste(Sys.time(),"  FINISHED fit for fold ", fold, " and lambda value ", lam, " \n"))
       list(rss = rss_gamma, cpts = cpts, gamma = g, lambda = lam, fold = fold)
     }
   n_gammas <- length(cv_results[[1]][[1]][["gamma"]])
@@ -98,8 +113,11 @@ CrossValidation <- function(x, delta,
       res["n_cpts", fold, lam, ] <- unlist(lapply(X = cv_results[[fold]][[lam]][["cpts"]], FUN = length))
     }
   }
-  class(res) <- "bs_cv"
-  res
+
+  # Crude rule to determine final model, should use something like 1SE rule instead!
+  inds <- arrayInd(which.min(apply(res["rss", , ,], 2:3, mean)), .dim = c(n_lambdas, n_gammas))
+
+  list(cv_results = res, best_gamma = gamma_names[inds[2]], best_lambda = lambda[inds[1]])
 }
 
 RSS <- function(x, y, beta, intercepts){
