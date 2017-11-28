@@ -4,15 +4,14 @@
 \alias{BinarySegmentation}
 \title{BinarySegmentation}
 \usage{
-BinarySegmentation(x, delta, lambda, method = c("glasso",
-  "nodewise_regression", "summed_regression", "ratio_regression"),
-  threshold = 1e-07, penalize_diagonal = F, use_ternary_search = F,
-  intervals = 3, ...)
+BinarySegmentation(x, delta, lambda, method = c("nodewise_regression",
+  "summed_regression", "ratio_regression"), threshold = 1e-07,
+  penalize_diagonal = F, use_ternary_search = F, intervals = 3, ...)
 }
 \arguments{
-\item{x}{A n times p matrix for which to find the best splitting point.}
+\item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 1. Tuning param which determines the minimal segment size
+\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
@@ -24,9 +23,9 @@ in the latter it controls the total objective value.}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMNETAL)}
+\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
 
-\item{intervals}{Number of intervals of the search grid}
+\item{intervals}{Number of intervals of the search grid. Only used by ternary search.}
 }
 \value{
 An object of class \strong{bs_tree}

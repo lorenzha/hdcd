@@ -7,18 +7,19 @@
 FindBestSplit(x, delta, n_obs, use_ternary_search, SegmentLossFUN, intervals)
 }
 \arguments{
-\item{x}{A n times p matrix for which to find the best splitting point.}
+\item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 1. Tuning param which determines the minimal segment size
+\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMNETAL)}
+\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
 
-\item{SegmentLossFUN}{A loss function is created by \code{\link{SegmentLoss}}}
+\item{SegmentLossFUN}{A loss function as created by \code{\link{SegmentLoss}}}
 
-\item{intervals}{Number of intervals of the search grid}
+\item{intervals}{Number of intervals of the search grid. Only used by ternary search.}
 }
 \description{
-Uses the segment_loss function for each possible split into two segements and
-returns the best splitting index as well as the loss for each candidate.
+Uses the SegmentLossFUN function for each possible split on the given segment
+considering delta and returns the splitting index with the lowest loss
+as well as the loss for each candidate.
 }
