@@ -110,20 +110,24 @@ MoveEdges <- function(prec_mat, share_moves = 0.1){
 
   n_moves <- floor(share_moves * length(edges))
 
-  if(length(not_edges) <= length(n_moves)){
+  if(length(not_edges) <= n_moves){
     n_moves <- length(not_edges)
     warning("Cannot move edges because graph is not sparse enough. Will move as many as possible.")
   }
 
   d <- diag(prec_mat)
-  diag(prec_mat) <- 0
 
+  # ensure that matrix is not pd to begin with
+  diag(prec_mat) <- diag(prec_mat) - abs(min(eigen(prec_mat)$values)) - 0.1
+
+  # sample until matrix is pd again
   while (any(eigen(prec_mat)$values <= 0)){
 
     sel_edges <- sample(edges, n_moves)
     prec_mat[sample(not_edges, n_moves)] <- prec_mat[sel_edges]
     prec_mat[sel_edges] <- 0
 
+    # make symmetric again
     prec_mat[lower.tri(prec_mat)] <- t(prec_mat)[lower.tri(prec_mat)]
     diag(prec_mat) <- d
   }
