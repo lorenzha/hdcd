@@ -41,7 +41,7 @@ hdcd <- function(x, delta,
     cv <- TRUE
     if (verbose) cat("\n Performing ",n_folds,"- fold cross-validation...\n")
     cv_res <- CrossValidation(x = x_mat, delta = delta, method = mth, lambda = lambda,
-                              gamma_max = gamma, n_folds = n_folds,
+                              gamma = gamma, n_folds = n_folds,
                               use_ternary_search = use_ternary_search,
                               penalize_diagonal = penalize_diagonal,
                               verbose = verbose,
@@ -54,7 +54,7 @@ hdcd <- function(x, delta,
   tree <- BinarySegmentation(x = x_mat, delta = delta, lambda = lambda, method = mth,
                              threshold = threshold, penalize_diagonal = penalize_diagonal,
                              use_ternary_search = use_ternary_search, ...)
-  res <- PruneTreeGamma(tree, gamma_max = gamma, gamma_length = 1)
+  res <- PruneTreeGamma(tree, gamma)
   if (verbose){
     cat("\n Final tree for cross-validated gamma and lambda:\n \n")
     print(res[["pruned_tree"]])

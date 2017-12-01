@@ -26,7 +26,7 @@ CrossValidation <- function(x, delta,
                             penalize_diagonal = F,
                             use_ternary_search = F,
                             n_folds = 10,
-                            gamma_max = NULL,
+                            gamma = NULL,
                             verbose = T,
                             ...) {
   n_obs <- nrow(x)
@@ -35,32 +35,22 @@ CrossValidation <- function(x, delta,
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1) {
-    cat("\n No parallel backend registered. Cross-validation will be performed using a single node and might take very long. \n See for instance https://cran.r-project.org/web/packages/doParallel/index.html \n")
+    cat("\n No parallel backend registered. Cross-validation will be performed using a single node and might take very long. \n See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
     `%hdcd_do%` <- foreach::`%do%`
   } else {
     `%hdcd_do%` <- foreach::`%dopar%`
   }
   `%:%` <- foreach::`%:%`
 
-  # determine a range for gamma automatically
-  if(is.null(gamma_max)){
-    tree      <- BinarySegmentation(x = x, delta = delta, lambda = min(lambda), method = mth,
-                                    penalize_diagonal = penalize_diagonal, use_ternary_search = use_ternary_search, ...)
-    gamma_max <- tree$Get(function(x) abs(x$min_loss - x$segment_loss), filterFun = data.tree::isRoot)
-    rm(tree)
-  }
 
   # determine a range for lambda, not sure how to pick it in a smarter way yet...
   if(is.null(lambda)){
-    lambda <- seq(0.01, 0.15, 0.01)
+    lambda <- seq(0.01, 0.15, length.out = 20)
   }
   n_lambdas <- length(lambda)
 
-  folds <- seq_len(n_folds)
-
   if (verbose) cat("\n")
-
-  cv_results <- foreach::foreach(fold = folds, .inorder = F, .packages = "hdcd", .verbose = F) %:%
+  cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
 
       test_inds  <- seq(fold, n_obs, n_folds)
@@ -70,7 +60,13 @@ CrossValidation <- function(x, delta,
       tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lam,
                                  method = mth, penalize_diagonal = penalize_diagonal,
                                  use_ternary_search = use_ternary_search, ...)
-      res  <- PruneTreeGamma(tree, gamma_max)
+
+      if (is.null(gamma)){
+        gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
+        gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = 20)
+      }
+
+      res  <- PruneTreeGamma(tree, gamma)
       rm(tree)
       rss_gamma <- numeric(length(res$gamma))
       cpts      <- list()
@@ -97,7 +93,7 @@ CrossValidation <- function(x, delta,
       }
       g <- res$gamma
       rm(res)
-      if (verbose) cat(paste(Sys.time(),"  FINISHED fit for fold ", fold, " and lambda value ", lam, " \n"))
+      if (verbose) cat(paste(Sys.time(),"  FINISHED fit for fold ", fold, " and lambda value ", round(lam, 2), " \n"))
       list(rss = rss_gamma, cpts = cpts, gamma = g, lambda = lam, fold = fold)
     }
   n_gammas <- length(cv_results[[1]][[1]][["gamma"]])
@@ -114,7 +110,7 @@ CrossValidation <- function(x, delta,
     }
   }
 
-  # Crude rule to determine final model, should use something like 1SE rule instead!
+  # Crude rule to determine final model
   inds <- arrayInd(which.min(apply(res["rss", , ,], 2:3, mean)), .dim = c(n_lambdas, n_gammas))
 
   list(cv_results = res, best_gamma = gamma_names[inds[2]], best_lambda = lambda[inds[1]])

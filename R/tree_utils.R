@@ -17,29 +17,20 @@
 #' }
 #'
 #' @export
-PruneTreeGamma <- function(tree, gamma_max = 3, gamma_length = 50) {
+PruneTreeGamma <- function(tree, gamma = seq(0, 3, length.out = 50)) {
   stopifnot(is(tree, "bs_tree"))
 
   cpts <- list()
-  if (gamma_length > 1) {
-    gamma_seq <- seq(0, gamma_max, length.out = gamma_length)
-    for (i in seq_along(gamma_seq)) {
-      FUN <- PenalizeSplitsFUN(gamma_seq[i])
+  pruned_tree <- list()
+  for (i in seq_along(gamma)) {
+    FUN <- PenalizeSplitsFUN(gamma[i])
 
-      clone_tree <- data.tree::Clone(tree, pruneFun = FUN)
+    clone_tree <- data.tree::Clone(tree, pruneFun = FUN) # TODO: Check if copy can be avoided
 
-      cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
-    }
-    list(cpts = cpts, gamma = gamma_seq)
+    cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
+    pruned_tree[[i]] <- clone_tree
   }
-  else {
-    FUN <- PenalizeSplitsFUN(gamma_max)
-
-    clone_tree <- data.tree::Clone(tree, pruneFun = FUN)
-    cpts[[1]] <- GetChangePointsFromLeafs(clone_tree) # to stay consistent with the cas for multiple gammas
-
-    list(cpts = cpts, gamma = gamma_max, pruned_tree = clone_tree)
-  }
+  list(cpts = cpts, gamma = gamma, pruned_tree = pruned_tree)
 }
 
 #' GetChangePointsFromLeafs
