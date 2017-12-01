@@ -74,10 +74,11 @@ RandomNetwork <- function(p, prob = min(1, 3/p), prec_mat = F, u = 0.1, v = 0.3)
 
   tmp <- matrix(runif(p^2, 0, 0.5), p, p)
   tmp <- tmp + t(tmp)
-  theta[tmp < prob] = 1
+  theta[tmp < prob] <- 1
+  diag(theta) <- 0
 
   omega <- theta * v
-  diag(omega) <- abs(min(eigen(omega)$values)) + 0.1 + u
+  diag(omega) <- abs(min(eigen(omega)$values)) + u
 
   if (prec_mat)
     omega
