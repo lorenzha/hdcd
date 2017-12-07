@@ -42,10 +42,9 @@ CrossValidation <- function(x, delta,
   }
   `%:%` <- foreach::`%:%`
 
-
-  # determine a range for lambda, not sure how to pick it in a smarter way yet...
+  # choose lambda as grid around the asymptotic value
   if(is.null(lambda)){
-    lambda <- seq(0.01, 0.15, length.out = 20)
+    seq(0.1, 2, length.out = 20) * sqrt(log(n_p)/n_obs)
   }
   n_lambdas <- length(lambda)
 
