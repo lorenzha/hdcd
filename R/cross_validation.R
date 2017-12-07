@@ -19,23 +19,28 @@
 #'@examples
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
 #' CrossValidation(dat, delta = 0.1, method = "summed_regression")
-CrossValidation <- function(x, delta,
+CrossValidation <- function(x,
+                            delta = NULL,
                             lambda = NULL,
+                            gamma = NULL,
+                            n_folds = 10,
+                            grid_size = 20,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             threshold = 1e-4,
                             penalize_diagonal = F,
                             use_ternary_search = F,
-                            n_folds = 10,
-                            gamma = NULL,
                             verbose = T,
+                            parallel = T,
                             ...) {
   n_obs <- nrow(x)
   n_p <- ncol(x)
   mth <- match.arg(method)
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
-  if (foreach::getDoParWorkers() == 1) {
-    cat("\n No parallel backend registered. Cross-validation will be performed using a single node and might take very long. \n See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
+  if (foreach::getDoParWorkers() == 1 && parallel) {
+    cat("\n No parallel backend registered. \n\n Cross-validation will be performed using a single node and might take very long. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
+    `%hdcd_do%` <- foreach::`%do%`
+  } else if (!parallel){
     `%hdcd_do%` <- foreach::`%do%`
   } else {
     `%hdcd_do%` <- foreach::`%dopar%`
@@ -44,7 +49,7 @@ CrossValidation <- function(x, delta,
 
   # choose lambda as grid around the asymptotic value
   if(is.null(lambda)){
-    seq(0.1, 2, length.out = 20) * sqrt(log(n_p)/n_obs)
+    lambda <- seq(0.05, 1.5, length.out = grid_size) * sqrt(log(n_p)/n_obs)
   }
   n_lambdas <- length(lambda)
 
@@ -59,10 +64,9 @@ CrossValidation <- function(x, delta,
       tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lam,
                                  method = mth, penalize_diagonal = penalize_diagonal,
                                  use_ternary_search = use_ternary_search, ...)
-
       if (is.null(gamma)){
         gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
-        gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = 20)
+        gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
       }
 
       res  <- PruneTreeGamma(tree, gamma)
