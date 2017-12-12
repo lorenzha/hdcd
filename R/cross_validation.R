@@ -39,7 +39,7 @@ CrossValidation <- function(x,
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
-    cat("\n No parallel backend registered. \n\n Cross-validation will be performed using a single node and might take very long. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
+    cat("\nNo parallel backend registered. \n\nCross-validation will be performed using a single node and might take very long. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
     `%hdcd_do%` <- foreach::`%do%`
   } else if (!parallel){
     `%hdcd_do%` <- foreach::`%do%`
