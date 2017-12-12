@@ -30,8 +30,8 @@ CrossValidation <- function(x,
                             use_ternary_search = F,
                             standardize = T,
                             threshold = 1e-7,
-                            verbose = T,
                             parallel = T,
+                            verbose = T,
                             ...) {
   n_obs <- nrow(x)
   n_p   <- ncol(x)
@@ -54,6 +54,18 @@ CrossValidation <- function(x,
   }
   n_lambdas <- length(lambda)
 
+
+  if (is.null(gamma)){
+
+    tree <- BinarySegmentation(x = x, delta = delta, lambda = max(lambda),
+                               method = mth, penalize_diagonal = penalize_diagonal,
+                               use_ternary_search = use_ternary_search,
+                               threshold = threshold, standardize = standardize, ...)
+
+    gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
+    gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
+  }
+
   if (verbose) cat("\n")
   cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
@@ -64,18 +76,17 @@ CrossValidation <- function(x,
 
       tree <- BinarySegmentation(x = x[train_inds, ], delta = delta, lambda = lam,
                                  method = mth, penalize_diagonal = penalize_diagonal,
-                                 use_ternary_search = use_ternary_search, ...)
-      if (is.null(gamma)){
-        gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
-        gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
-      }
+                                 use_ternary_search = use_ternary_search,
+                                 threshold = threshold, standardize = standardize, ...)
 
       res  <- PruneTreeGamma(tree, gamma)
       rm(tree)
-      rss_gamma <- numeric(length(res$gamma))
+      rss_gamma <- numeric(length(gamma))
       cpts      <- list()
-      for (gam in seq_along(res$gamma)){
-        fit <- FullRegression(x[train_inds, ], cpts = res$cpts[[gam]], lambda = lam)
+      for (gam in seq_along(gamma)){
+        fit <- FullRegression(x[train_inds, ], cpts = res$cpts[[gam]],
+                              lambda = lam, standardize = standardize,
+                              threshold = threshold)
 
         segment_bounds  <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
 
@@ -95,17 +106,15 @@ CrossValidation <- function(x,
         rss_gamma[gam] <- rss / n_g
         cpts[[gam]]    <- segment_bounds[-c(1, length(segment_bounds))]
       }
-      g <- res$gamma
       rm(res)
-      if (verbose) cat(paste(Sys.time(),"  FINISHED fit for fold ", fold, " and lambda value ", round(lam, 2), " \n"))
-      list(rss = rss_gamma, cpts = cpts, gamma = g, lambda = lam, fold = fold)
+      if (verbose) cat(paste(Sys.time(),"  FINISHED fit for fold ", fold, " and lambda value ", round(lam, 3), " \n"))
+      list(rss = rss_gamma, cpts = cpts, gamma = gamma, lambda = lam, fold = fold)
     }
-  n_gammas <- length(cv_results[[1]][[1]][["gamma"]])
-  gamma_names  <- round(cv_results[[1]][[1]][["gamma"]], 3)
+  n_gammas <- length(gamma)
 
   res <- array(data = NA, dim = c(2, n_folds, n_lambdas, n_gammas),
                dimnames = list(type = c("rss", "n_cpts"), fold = seq_len(n_folds), lambda = lambda,
-                               gamma = gamma_names))
+                               gamma = gamma))
 
   for (fold in seq_len(n_folds)){
     for (lam in seq_len(n_lambdas)){
@@ -117,7 +126,7 @@ CrossValidation <- function(x,
   # Crude rule to determine final model
   inds <- arrayInd(which.min(apply(res["rss", , ,], 2:3, mean)), .dim = c(n_lambdas, n_gammas))
 
-  list(cv_results = res, best_gamma = gamma_names[inds[2]], best_lambda = lambda[inds[1]])
+  list(cv_results = res, best_gamma = round(gamma[inds[2]], 3), best_lambda = round(lambda[inds[1]], 3))
 }
 
 RSS <- function(x, y, beta, intercepts){
