@@ -22,7 +22,8 @@
 #' @examples
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
 #' hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
-hdcd <- function(x, delta,
+hdcd <- function(x,
+                 delta = 0.1,
                  lambda = NULL,
                  gamma = NULL,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
@@ -39,9 +40,9 @@ hdcd <- function(x, delta,
   x_mat <- as.matrix(x)
   mth   <- match.arg(method)
 
-  if(is.null(lambda) || is.null(gamma)){
+  if(is.null(lambda) || is.null(gamma) || is.null(delta)){
     cv <- TRUE
-    if (verbose) cat("\n Performing ",n_folds,"- fold cross-validation...\n")
+    if (verbose) cat("\nPerforming ",n_folds,"- fold cross-validation...\n")
     cv_res <- CrossValidation(x = x_mat, delta = delta, method = mth, lambda = lambda,
                               gamma = gamma, n_folds = n_folds,
                               use_ternary_search = use_ternary_search,
@@ -53,6 +54,7 @@ hdcd <- function(x, delta,
                               ...)
     lambda <- cv_res$best_lambda
     gamma  <- cv_res$best_gamma
+    delta  <- cv_res$best_delta
   }
 
   tree <- BinarySegmentation(x = x_mat, delta = delta, lambda = lambda, method = mth,
@@ -60,7 +62,7 @@ hdcd <- function(x, delta,
                              use_ternary_search = use_ternary_search, standardize = standardize, ...)
   res <- PruneTreeGamma(tree, gamma)
   if (verbose){
-    cat("\n Final tree for cross-validated gamma and lambda:\n \n")
+    cat("\nFinal tree for cross-validated gamma and lambda:\n \n")
     print(res[["pruned_tree"]])
   }
 
