@@ -32,6 +32,7 @@ hdcd <- function(x, delta,
                  threshold = 1e-7,
                  n_folds = 10,
                  verbose = F,
+                 parallel = T,
                  ...) {
 
   stopifnot(nrow(x) > 1)
@@ -47,6 +48,7 @@ hdcd <- function(x, delta,
                               standardize = standardize,
                               penalize_diagonal = penalize_diagonal,
                               verbose = verbose,
+                              parallel = parallel,
                               threshold = threshold,
                               ...)
     lambda <- cv_res$best_lambda
