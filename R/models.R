@@ -68,7 +68,7 @@ HubNetwork <- function(p, max_hubs = p/10) {
 #'
 #' @examples
 #' RandomNetwork(50)
-RandomNetwork <- function(p, prob = min(1, 3/p), prec_mat = F, u = 0.1, v = 0.3) {
+RandomNetwork <- function(p, prob = min(1, 5/p), prec_mat = F, u = 0.1, v = 0.3) {
 
   theta <- matrix(0, p, p)
 
