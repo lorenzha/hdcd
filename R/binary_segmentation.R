@@ -24,14 +24,15 @@
 #' print(res)
 BinarySegmentation <- function(x, delta, lambda,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-                               threshold = 1e-7,
                                penalize_diagonal = F,
                                use_ternary_search = F,
+                               standardize = T,
+                               threshold = 1e-7,
                                intervals = 3,
                                ...) {
   mth <- match.arg(method)
   SegmentLossFUN <- SegmentLoss(n_obs = nrow(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
-                                method = mth, threshold = threshold, ...)
+                                method = mth, standardize = standardize, threshold = threshold, ...)
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = nrow(x))
 

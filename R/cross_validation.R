@@ -26,15 +26,16 @@ CrossValidation <- function(x,
                             n_folds = 10,
                             grid_size = 20,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-                            threshold = 1e-4,
                             penalize_diagonal = F,
                             use_ternary_search = F,
+                            standardize = T,
+                            threshold = 1e-7,
                             verbose = T,
                             parallel = T,
                             ...) {
   n_obs <- nrow(x)
-  n_p <- ncol(x)
-  mth <- match.arg(method)
+  n_p   <- ncol(x)
+  mth   <- match.arg(method)
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {

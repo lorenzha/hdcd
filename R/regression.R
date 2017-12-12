@@ -11,7 +11,10 @@
 #'   \item{est_mean}{A p vector of estimated means.}
 #'   \item{est_intercepts}{A p vector of estimated intercepts.}
 #' }
-FullRegression <- function(x, cpts, lambda = 0.1) {
+FullRegression <- function(x, cpts,
+                           lambda = 0.1,
+                           standardize = T,
+                           threshold = 1e-7) {
   est_mean <- est_wi <- est_intercepts <- list()
   n_obs <- nrow(x)
 
@@ -29,9 +32,18 @@ FullRegression <- function(x, cpts, lambda = 0.1) {
     obs_share <- obs_count / n_obs
 
     cov_mat <- (obs_count - 1) / obs_count * cov(x[start:end, ])
+
+    if (standardize)
+      var_x <- diag(cov_mat)
+    else
+      var_x <- 1
+
     est_mean[[i]] <- colMeans(x[start:end, ])
     withCallingHandlers({
-    est_coefs[[i]] <- glasso::glasso(cov_mat, rho = lambda / sqrt(obs_share) * diag(cov_mat), approx = T)$wi
+    est_coefs[[i]] <- glasso::glasso(cov_mat,
+                                     rho = lambda / sqrt(obs_share) * var_x,
+                                     approx = T,
+                                     thr = threshold)$wi
     }, warning = HandleGlassoNaN)
     est_intercepts[[i]] <- est_mean[[i]] - colSums(est_coefs[[i]] * est_mean[[i]])
   }

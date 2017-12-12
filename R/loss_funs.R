@@ -27,7 +27,12 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' lossFUN <- SegmentLoss(100, 0.1, F, method = "summed_regression")
 #' lossFUN
 #' lossFUN(dat)
-SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
+SegmentLoss <- function(n_obs,
+                        lambda,
+                        penalize_diagonal = FALSE,
+                        intercept = TRUE,
+                        standardize = TRUE,
+                        threshold = 1e-07,
                         method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                         ...) {
   args <- list(...)
@@ -74,7 +79,11 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
       # We need more than one observation
       stopifnot(obs_count > 1)
 
-      s_dev_y <- sqrt((obs_count - 1) / obs_count * var(x[, p, drop = F]))
+      if(standardize)
+        s_dev_y <- sqrt((obs_count - 1) / obs_count * var(x[, p, drop = F]))
+      else
+        s_dev_y <- 1
+
       fit <- glmnet::glmnet(
         x[, -p, drop = F], x[, p, drop = F],
         alpha = 1, lambda = lambda / sqrt(obs_share) * s_dev_y,
@@ -92,10 +101,15 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x)
 
+      if (standardize)
+        var_x <- diag(cov_mat)
+      else
+        var_x <- 1
+
       withCallingHandlers({
         glasso_output <- glasso::glasso(
         cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),
+        rho = lambda / sqrt(obs_share) * var_x,
         approx = T,
         thr = threshold
       )$wi
@@ -118,10 +132,15 @@ SegmentLoss <- function(n_obs, lambda, penalize_diagonal, threshold = 1e-07,
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x)
 
+      if (standardize)
+        var_x <- diag(cov_mat)
+      else
+        var_x <- 1
+
      withCallingHandlers({
        glasso_output <- glasso::glasso(
         cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),
+        rho = lambda / sqrt(obs_share) * var_x,
         approx = T,
         thr = threshold
       )$wi

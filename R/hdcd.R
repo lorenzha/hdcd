@@ -26,16 +26,17 @@ hdcd <- function(x, delta,
                  lambda = NULL,
                  gamma = NULL,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-                 threshold = 1e-7,
                  penalize_diagonal = F,
                  use_ternary_search = F,
+                 standardize = T,
+                 threshold = 1e-7,
                  n_folds = 10,
                  verbose = F,
                  ...) {
 
   stopifnot(nrow(x) > 1)
   x_mat <- as.matrix(x)
-  mth <- match.arg(method)
+  mth   <- match.arg(method)
 
   if(is.null(lambda) || is.null(gamma)){
     cv <- TRUE
@@ -43,6 +44,7 @@ hdcd <- function(x, delta,
     cv_res <- CrossValidation(x = x_mat, delta = delta, method = mth, lambda = lambda,
                               gamma = gamma, n_folds = n_folds,
                               use_ternary_search = use_ternary_search,
+                              standardize = standardize,
                               penalize_diagonal = penalize_diagonal,
                               verbose = verbose,
                               threshold = threshold,
@@ -53,7 +55,7 @@ hdcd <- function(x, delta,
 
   tree <- BinarySegmentation(x = x_mat, delta = delta, lambda = lambda, method = mth,
                              threshold = threshold, penalize_diagonal = penalize_diagonal,
-                             use_ternary_search = use_ternary_search, ...)
+                             use_ternary_search = use_ternary_search, standardize = standardize, ...)
   res <- PruneTreeGamma(tree, gamma)
   if (verbose){
     cat("\n Final tree for cross-validated gamma and lambda:\n \n")
