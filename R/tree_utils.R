@@ -44,9 +44,11 @@ GetChangePointsFromLeafs <- function(tree) {
   stopifnot(is(tree, "bs_tree"))
 
   filter <- function(x)
-    if (x$name != "1" && x$name != "bs_tree") x$name
-  else
-    NA
+    if (x$name != "1" && x$name != "bs_tree") {
+      x$name
+    } else {
+      NA
+    }
 
   unname(sort(as.numeric(tree$Get(filter, filterFun = data.tree::isLeaf))))
 }
@@ -64,10 +66,11 @@ PenalizeSplitsFUN <- function(gamma) {
   function(node) {
     node <- data.tree::Navigate(node, "..") # We want to prune the parent tree where the split would've occured
 
-    if (is.null(node$min_loss) || is.null(node$segment_loss))
+    if (is.null(node$min_loss) || is.null(node$segment_loss)) {
       TRUE
-    else
+    } else {
       node$min_loss + gamma < node$segment_loss
+    }
   }
 }
 

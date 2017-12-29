@@ -33,17 +33,20 @@ FullRegression <- function(x, cpts,
 
     cov_mat <- (obs_count - 1) / obs_count * cov(x[start:end, ])
 
-    if (standardize)
+    if (standardize) {
       var_x <- diag(cov_mat)
-    else
+    } else {
       var_x <- 1
+    }
 
     est_mean[[i]] <- colMeans(x[start:end, ])
     withCallingHandlers({
-    est_coefs[[i]] <- glasso::glasso(cov_mat,
-                                     rho = lambda / sqrt(obs_share) * var_x,
-                                     approx = T,
-                                     thr = threshold)$wi
+      est_coefs[[i]] <- glasso::glasso(
+        cov_mat,
+        rho = lambda / sqrt(obs_share) * var_x,
+        approx = T,
+        thr = threshold
+      )$wi
     }, warning = HandleGlassoNaN)
     est_intercepts[[i]] <- est_mean[[i]] - colSums(est_coefs[[i]] * est_mean[[i]])
   }

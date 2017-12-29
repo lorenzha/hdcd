@@ -15,26 +15,26 @@
 ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F) {
   stopifnot(p >= n_perm)
   s_vec <- cumsum(runif(p, 0.5, 1))
-  if (!is.null(n_perm) && n_perm >= 0){
-
+  if (!is.null(n_perm) && n_perm >= 0) {
     perm_inds <- sample(1:n_perm, n_perm, replace = FALSE)
 
-    if(n_perm < p) perm_inds <- c(perm_inds, (n_perm + 1):p)
+    if (n_perm < p) perm_inds <- c(perm_inds, (n_perm + 1):p)
 
     s_vec <- s_vec[perm_inds]
   }
 
   icov_mat <- matrix(0, nrow = p, ncol = p)
 
-  for(i in seq_len(p)) {
-    for(j in seq_len(p)) {
-      icov_mat[i, j] <- exp(-a*abs(s_vec[i]- s_vec[j]))
+  for (i in seq_len(p)) {
+    for (j in seq_len(p)) {
+      icov_mat[i, j] <- exp(-a * abs(s_vec[i] - s_vec[j]))
     }
   }
-  if (prec_mat)
+  if (prec_mat) {
     icov_mat
-  else
+  } else {
     solve(icov_mat)
+  }
 }
 
 #' HubNetwork
@@ -49,7 +49,7 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F) {
 #'
 #' @examples
 #' HubNetwork(50)
-HubNetwork <- function(p, max_hubs = p/10) {
+HubNetwork <- function(p, max_hubs = p / 10) {
   n_hubs <- sample(seq_len(max_hubs), 1)
   huge::huge.generator(n = 2, d = p, graph = "hub", g = n_hubs, verbose = FALSE)$sigma
 }
@@ -68,11 +68,10 @@ HubNetwork <- function(p, max_hubs = p/10) {
 #'
 #' @examples
 #' RandomNetwork(50)
-RandomNetwork <- function(p, prob = min(1, 5/p), prec_mat = F, u = 0.1, v = 0.3) {
-
+RandomNetwork <- function(p, prob = min(1, 5 / p), prec_mat = F, u = 0.1, v = 0.3) {
   theta <- matrix(0, p, p)
 
-  tmp <- matrix(runif(p^2, 0, 0.5), p, p)
+  tmp <- matrix(runif(p ^ 2, 0, 0.5), p, p)
   tmp <- tmp + t(tmp)
   theta[tmp < prob] <- 1
   diag(theta) <- 0
@@ -80,10 +79,11 @@ RandomNetwork <- function(p, prob = min(1, 5/p), prec_mat = F, u = 0.1, v = 0.3)
   omega <- theta * v
   diag(omega) <- abs(min(eigen(omega)$values)) + u
 
-  if (prec_mat)
+  if (prec_mat) {
     omega
-  else
+  } else {
     solve(omega)
+  }
 }
 
 
@@ -102,8 +102,7 @@ RandomNetwork <- function(p, prob = min(1, 5/p), prec_mat = F, u = 0.1, v = 0.3)
 #' @export
 #'
 #' @examples
-MoveEdges <- function(prec_mat, share_moves = 0.1){
-
+MoveEdges <- function(prec_mat, share_moves = 0.1) {
   if (share_moves == 0) return(prec_mat)
 
   edges <- which(upper.tri(prec_mat) & prec_mat != 0)
@@ -111,7 +110,7 @@ MoveEdges <- function(prec_mat, share_moves = 0.1){
 
   n_moves <- floor(share_moves * length(edges))
 
-  if(length(not_edges) <= n_moves){
+  if (length(not_edges) <= n_moves) {
     n_moves <- length(not_edges)
     warning("Cannot move edges because graph is not sparse enough. Will move as many as possible.")
   }
@@ -122,8 +121,7 @@ MoveEdges <- function(prec_mat, share_moves = 0.1){
   diag(prec_mat) <- diag(prec_mat) - abs(min(eigen(prec_mat)$values)) - 0.1
 
   # sample until matrix is pd again
-  while (any(eigen(prec_mat)$values <= 0)){
-
+  while (any(eigen(prec_mat)$values <= 0)) {
     sel_edges <- sample(edges, n_moves)
     prec_mat[sample(not_edges, n_moves)] <- prec_mat[sel_edges]
     prec_mat[sel_edges] <- 0

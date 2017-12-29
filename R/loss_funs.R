@@ -6,8 +6,8 @@
 #'
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(x, split_point, SegmentLossFUN) {
-  SegmentLossFUN(x[1:(split_point-1),, drop = F]) +
-    SegmentLossFUN(x[split_point:nrow(x),, drop = F])
+  SegmentLossFUN(x[1:(split_point - 1), , drop = F]) +
+    SegmentLossFUN(x[split_point:nrow(x), , drop = F])
 }
 
 #' SegmentLoss
@@ -79,10 +79,11 @@ SegmentLoss <- function(n_obs,
       # We need more than one observation
       stopifnot(obs_count > 1)
 
-      if(standardize)
+      if (standardize) {
         s_dev_y <- sqrt((obs_count - 1) / obs_count * var(x[, p, drop = F]))
-      else
+      } else {
         s_dev_y <- 1
+      }
 
       fit <- glmnet::glmnet(
         x[, -p, drop = F], x[, p, drop = F],
@@ -101,18 +102,19 @@ SegmentLoss <- function(n_obs,
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x)
 
-      if (standardize)
+      if (standardize) {
         var_x <- diag(cov_mat)
-      else
+      } else {
         var_x <- 1
+      }
 
       withCallingHandlers({
         glasso_output <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share) * var_x,
-        approx = T,
-        thr = threshold
-      )$wi
+          cov_mat,
+          rho = lambda / sqrt(obs_share) * var_x,
+          approx = T,
+          thr = threshold
+        )$wi
       }, warning = HandleGlassoNaN)
 
       mean_vec <- colMeans(x)
@@ -132,19 +134,20 @@ SegmentLoss <- function(n_obs,
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x)
 
-      if (standardize)
+      if (standardize) {
         var_x <- diag(cov_mat)
-      else
+      } else {
         var_x <- 1
+      }
 
-     withCallingHandlers({
-       glasso_output <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share) * var_x,
-        approx = T,
-        thr = threshold
-      )$wi
-     }, warning = HandleGlassoNaN)
+      withCallingHandlers({
+        glasso_output <- glasso::glasso(
+          cov_mat,
+          rho = lambda / sqrt(obs_share) * var_x,
+          approx = T,
+          thr = threshold
+        )$wi
+      }, warning = HandleGlassoNaN)
 
       mean_vec <- colMeans(x)
       intercepts <- mean_vec - colSums(glasso_output * mean_vec)

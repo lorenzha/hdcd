@@ -11,14 +11,13 @@
 #' mod <- CreateModel(3, 100, 10, ChainNetwork)
 #' SimulateFromModel(mod)
 SimulateFromModel <- function(model) {
-
   seg_lengths <- model$segment_lengths
 
   data <- matrix(NA, nrow = sum(seg_lengths), ncol = length(model[["segment_means"]][[1]]))
 
-  for(i in seq_along(seg_lengths)){
-    seg_start <- ifelse(i == 1, 1 ,sum(seg_lengths[(i-1):1]) + 1)
-    seg_end   <- seg_start + seg_lengths[i] - 1
+  for (i in seq_along(seg_lengths)) {
+    seg_start <- ifelse(i == 1, 1, sum(seg_lengths[(i - 1):1]) + 1)
+    seg_end <- seg_start + seg_lengths[i] - 1
     data[seg_start:seg_end, ] <- MASS::mvrnorm(seg_lengths[[i]], model[["segment_means"]][[i]], model[["cov_mats"]][[i]])
   }
   return(data)
@@ -40,24 +39,24 @@ SimulateFromModel <- function(model) {
 #'
 #' @return An object to be used by \link{SimulateFromModel}
 #' @export
-CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_zero = T, ...){
-
+CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_zero = T, ...) {
   model_args <- list(...)
 
-  if (equispaced){
-    segment_lengths   <- c(rep(ceiling(n/n_segments), times = n_segments - 1), n - (n_segments - 1)* ceiling(n/n_segments))
-    changepoints      <- (cumsum(segment_lengths) + 1)[- length(segment_lengths)]
+  if (equispaced) {
+    segment_lengths <- c(rep(ceiling(n / n_segments), times = n_segments - 1), n - (n_segments - 1) * ceiling(n / n_segments))
+    changepoints <- (cumsum(segment_lengths) + 1)[-length(segment_lengths)]
   } else {
-    changepoints      <- sort(sample(2:(n-1), size = n_segments - 1, replace = F))
-    segment_lengths   <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
+    changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
+    segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
   }
-  segment_means      <- replicate(n_segments, rep(if(mean_zero) 0 else rnorm(1), p), simplify = F)
-  cov_mats           <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
+  segment_means <- replicate(n_segments, rep(if (mean_zero) 0 else rnorm(1), p), simplify = F)
+  cov_mats <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
 
 
-  list(segment_lengths = segment_lengths,
-       segment_means = segment_means,
-       cov_mats = cov_mats,
-       true_changepoints = changepoints)
+  list(
+    segment_lengths = segment_lengths,
+    segment_means = segment_means,
+    cov_mats = cov_mats,
+    true_changepoints = changepoints
+  )
 }
-

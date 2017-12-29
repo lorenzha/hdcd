@@ -8,7 +8,8 @@
 #' not pd.
 #'
 #' @param w Warning to be handled
-HandleGlassoNaN <- function(w){
-  if(any(grepl("NaNs produced", w)))
+HandleGlassoNaN <- function(w) {
+  if (any(grepl("NaNs produced", w))) {
     invokeRestart("muffleWarning")
+  }
 }

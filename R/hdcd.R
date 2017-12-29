@@ -27,39 +27,44 @@ hdcd <- function(x,
                  verbose = F,
                  parallel = T,
                  ...) {
-
   stopifnot(nrow(x) > 1)
   x_mat <- as.matrix(x)
 
-  if(is.null(lambda) || is.null(gamma) || is.null(delta)){
+  if (is.null(lambda) || is.null(gamma) || is.null(delta)) {
     cv <- TRUE
-    if (verbose) cat("\nPerforming ",n_folds,"- fold cross-validation...\n")
-    cv_res <- CrossValidation(x = x_mat, delta = delta, method = method, lambda = lambda,
-                              gamma = gamma, n_folds = n_folds,
-                              optimizer = optimizer,
-                              standardize = standardize,
-                              penalize_diagonal = penalize_diagonal,
-                              verbose = verbose,
-                              parallel = parallel,
-                              threshold = threshold,
-                              ...)
+    if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
+    cv_res <- CrossValidation(
+      x = x_mat, delta = delta, method = method, lambda = lambda,
+      gamma = gamma, n_folds = n_folds,
+      optimizer = optimizer,
+      standardize = standardize,
+      penalize_diagonal = penalize_diagonal,
+      verbose = verbose,
+      parallel = parallel,
+      threshold = threshold,
+      ...
+    )
     lambda <- cv_res$best_lambda
-    gamma  <- cv_res$best_gamma
-    delta  <- cv_res$best_delta
+    gamma <- cv_res$best_gamma
+    delta <- cv_res$best_delta
   }
 
-  tree <- BinarySegmentation(x = x_mat, delta = delta, lambda = lambda, method = method,
-                             threshold = threshold, penalize_diagonal = penalize_diagonal,
-                             optimizer = optimizer, standardize = standardize, ...)
+  tree <- BinarySegmentation(
+    x = x_mat, delta = delta, lambda = lambda, method = method,
+    threshold = threshold, penalize_diagonal = penalize_diagonal,
+    optimizer = optimizer, standardize = standardize, ...
+  )
   res <- PruneTreeGamma(tree, gamma)
-  if (verbose){
+  if (verbose) {
     cat("\nFinal tree for cross-validated gamma and lambda:\n \n")
     print(res[["pruned_tree"]])
   }
 
-  if (cv){
-    res <- list(changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
-                cv_gamma = gamma, cv_lambda = lambda)
+  if (cv) {
+    res <- list(
+      changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
+      cv_gamma = gamma, cv_lambda = lambda
+    )
     class(res) <- "bs_cv"
   } else {
     res <- list(changepoints = res[["cpts"]][[1]])

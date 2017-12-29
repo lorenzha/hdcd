@@ -29,9 +29,10 @@ BinarySegmentation <- function(x, delta, lambda,
                                standardize = T,
                                threshold = 1e-7,
                                ...) {
-
-  SegmentLossFUN <- SegmentLoss(n_obs = nrow(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
-                                method = method, standardize = standardize, threshold = threshold, ...)
+  SegmentLossFUN <- SegmentLoss(
+    n_obs = nrow(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
+    method = method, standardize = standardize, threshold = threshold, ...
+  )
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = nrow(x))
 
@@ -43,7 +44,7 @@ BinarySegmentation <- function(x, delta, lambda,
       res <- FindBestSplit(x, delta, n_obs, optimizer, SegmentLossFUN)
 
       node$min_loss <- min(res[["loss"]])
-      node$loss     <- res[["loss"]]
+      node$loss <- res[["loss"]]
       node$segment_loss <- res[["segment_loss"]]
       split_point <- res[["opt_split"]]
 
@@ -52,22 +53,32 @@ BinarySegmentation <- function(x, delta, lambda,
       } else {
         start <- node$start
 
-        child_left <- node$AddChild(as.character(start), start = start,
-                                    end = start + split_point - 1)
-        Rec(x[1:(split_point - 1),, drop = F], n_obs, delta,
-            SegmentLossFUN, child_left, optimizer)
+        child_left <- node$AddChild(
+          as.character(start), start = start,
+          end = start + split_point - 1
+        )
+        Rec(
+          x[1:(split_point - 1), , drop = F], n_obs, delta,
+          SegmentLossFUN, child_left, optimizer
+        )
 
-        child_right <- node$AddChild(as.character(start + split_point - 1), start = start + split_point - 1,
-                                     end = start + n_selected_obs - 1)
-        Rec(x[split_point:n_selected_obs,, drop = F], n_obs, delta,
-            SegmentLossFUN, child_right, optimizer)
+        child_right <- node$AddChild(
+          as.character(start + split_point - 1), start = start + split_point - 1,
+          end = start + n_selected_obs - 1
+        )
+        Rec(
+          x[split_point:n_selected_obs, , drop = F], n_obs, delta,
+          SegmentLossFUN, child_right, optimizer
+        )
       }
     } else {
       return(NA)
     }
   }
-  Rec(x = x, n_obs = nrow(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
-      optimizer = optimizer)
+  Rec(
+    x = x, n_obs = nrow(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
+    optimizer = optimizer
+  )
   class(tree) <- c("bs_tree", class(tree))
   tree
 }
@@ -86,8 +97,9 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
   obs_count <- nrow(x)
   min_seg_length <- ceiling(delta * n_obs)
 
-  if (obs_count < 2 * min_seg_length || obs_count < 4)
+  if (obs_count < 2 * min_seg_length || obs_count < 4) {
     return(list(opt_split = NA, loss = NA))
+  }
 
   split_candidates <- seq(
     max(3, min_seg_length + 1),
@@ -96,18 +108,26 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
 
   segment_loss <- SegmentLossFUN(x)
 
-  switch (opt,
-    "line_search" = {loss <- sapply(split_candidates, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN))
-      result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)},
+  switch(opt,
+    "line_search" = {
+      loss <- sapply(split_candidates, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN))
+      result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)
+    },
     "ternary_search" = {
-      result <- TernarySearch(split_candidates, 1, length(split_candidates), x, SegmentLossFUN)},
-    "section_search" = {rec    <- SectionSearch()
-      result <- rec(split_candidates, left = 1, right = length(split_candidates), x = x,
-                    SegmentLossFUN = SegmentLossFUN, RecFUN = rec)}
+      result <- TernarySearch(split_candidates, 1, length(split_candidates), x, SegmentLossFUN)
+    },
+    "section_search" = {
+      rec <- SectionSearch()
+      result <- rec(
+        split_candidates, left = 1, right = length(split_candidates), x = x,
+        SegmentLossFUN = SegmentLossFUN, RecFUN = rec
+      )
+    }
   )
 
-  if (round(min(result[["loss"]]), 15) >= round(segment_loss, 15))
+  if (round(min(result[["loss"]]), 15) >= round(segment_loss, 15)) {
     list(opt_split = NA, loss = result[["loss"]], segment_loss = segment_loss)
-    else
+  } else {
     list(opt_split = result[["opt_split"]], loss = result[["loss"]], segment_loss = segment_loss)
+  }
 }

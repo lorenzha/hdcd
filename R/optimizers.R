@@ -32,12 +32,14 @@ TernarySearch <- function(split_candidates, left, right, x, SegmentLossFUN, inte
 
   boundaries <- c(left, grid_points, right)
 
-  min_loss_ind <- which.min(grid_loss) + 1  # Add 1 because we padded the boundary vector
+  min_loss_ind <- which.min(grid_loss) + 1 # Add 1 because we padded the boundary vector
   # Discard outer segments with higher loss and do recursion for remaining variables
 
-  TernarySearch(split_candidates = split_candidates, left = boundaries[min_loss_ind - 1],
-                right = boundaries[min_loss_ind + 1], x = x, SegmentLossFUN = SegmentLossFUN,
-                intervals = intervals)
+  TernarySearch(
+    split_candidates = split_candidates, left = boundaries[min_loss_ind - 1],
+    right = boundaries[min_loss_ind + 1], x = x, SegmentLossFUN = SegmentLossFUN,
+    intervals = intervals
+  )
 }
 
 
@@ -55,7 +57,7 @@ TernarySearch <- function(split_candidates, left, right, x, SegmentLossFUN, inte
 #' Returns a function with arguments split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, stepsize
 #' where RecFun should always be set to the object name of the function has been assigned so the function can
 #' call itself recursively.
-SectionSearch <- function(){
+SectionSearch <- function() {
 
   # Implement cache for storing already calculated values
   cache <- NULL
@@ -83,8 +85,9 @@ SectionSearch <- function(){
     step <- (right - left) * stepsize
 
     # If no mid point is supplied start randomly left or right
-    if (missing(mid))
+    if (missing(mid)) {
       mid <- if (runif(1) <= 0.5) ceiling(right - step) else floor(left + step)
+    }
 
     # Stopping condition for recursion
     if (step < 1) {
@@ -97,40 +100,50 @@ SectionSearch <- function(){
     }
 
     # check if given index has already been computed before if not compute it and store in cache
-    f <- function(ind){
+    f <- function(ind) {
       key <- as.character(ind)
-      if (cache_has_key(key))
+      if (cache_has_key(key)) {
         cache_get(key)
-      else {
-        cache_set(key, SplitLoss(x = x, split_point = split_candidates[ind],
-                                 SegmentLossFUN = SegmentLossFUN))
+      } else {
+        cache_set(key, SplitLoss(
+          x = x, split_point = split_candidates[ind],
+          SegmentLossFUN = SegmentLossFUN
+        ))
         cache_get(key)
       }
     }
 
-    f_mid   <- f(mid)
+    f_mid <- f(mid)
 
-    if (mid - left < right - mid){
+    if (mid - left < right - mid) {
       new <- ceiling(right - step)
       f_new <- f(new)
-      if (f_new > f_mid)
-        RecFUN(split_candidates, left = left, mid = mid, right = new, x = x,
-               SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize)
-      else
-        RecFUN(split_candidates, left = mid, mid = new, right = right, x = x,
-               SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize)
+      if (f_new > f_mid) {
+        RecFUN(
+          split_candidates, left = left, mid = mid, right = new, x = x,
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+        )
+      } else {
+        RecFUN(
+          split_candidates, left = mid, mid = new, right = right, x = x,
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+        )
+      }
     }
-    else{
+    else {
       new <- floor(left + step)
       f_new <- f(new)
-      if (f_new > f_mid)
-        RecFUN(split_candidates, left = new, mid = mid, right = right, x = x,
-               SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize)
-      else
-        RecFUN(split_candidates, left = left, mid = new, right = mid, x = x,
-               SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize)
+      if (f_new > f_mid) {
+        RecFUN(
+          split_candidates, left = new, mid = mid, right = right, x = x,
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+        )
+      } else {
+        RecFUN(
+          split_candidates, left = left, mid = new, right = mid, x = x,
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+        )
+      }
     }
   }
 }
-
-

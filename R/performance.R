@@ -15,15 +15,13 @@
 #' @examples
 #' CompareChangepointsRand(c(20, 50), c(30, 70), 100)
 CompareChangepointsRand <- function(cpts_a, cpts_b, n) {
-
   cpts_a <- sort(cpts_a)[!duplicated(sort(cpts_a))]
   cpts_b <- sort(cpts_b)[!duplicated(sort(cpts_b))]
 
-  MarkGroupings <- function(cpts){
+  MarkGroupings <- function(cpts) {
     diffs <- c(cpts, n) - c(0, cpts)
     rep(1:length(diffs), diffs)
   }
 
   clues::adjustedRand(MarkGroupings(cpts_a), MarkGroupings(cpts_b))
 }
-
