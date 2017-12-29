@@ -15,7 +15,7 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' This closure returns a function which calculates the loss for the given segment of the data.
 #'
 #' Depending on the desired method and the tuning parameters a different loss function will be parametrized and returned.
-#' If method \emph{nodewise_regression} is selected, additional argument \emph{p} can be supplied to determine on which node (dimension)
+#' If method \emph{nodewise_regression} is selected, additional argument \emph{P} can be supplied to determine on which node (dimension)
 #' it should be performed.
 #'
 #' @inheritParams BinarySegmentation
@@ -39,7 +39,7 @@ SegmentLoss <- function(n_obs,
   mth <- match.arg(method)
 
   if (mth == "nodewise_regression") {
-    p <- args[["p"]]
+    p <- args[["P"]]
     stopifnot(length(p) == 1 && is.numeric(p))
   }
 

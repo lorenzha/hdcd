@@ -9,7 +9,7 @@
 #'
 #' @inheritParams BinarySegmentation
 #' @param n_folds Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.
-#' @param gamma_max If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
+#' @param gamma If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
 #' difference between the full segment loss and the loss of the first split.
 #' @param verbose If TRUE additional information will be printed.
 #'
@@ -27,7 +27,7 @@ CrossValidation <- function(x,
                             grid_size = 20,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             penalize_diagonal = F,
-                            use_ternary_search = F,
+                            optimizer = c("line_search", "ternary_search", "section_search"),
                             standardize = T,
                             threshold = 1e-7,
                             parallel = T,
@@ -35,11 +35,10 @@ CrossValidation <- function(x,
                             ...) {
   n_obs   <- nrow(x)
   n_p     <- ncol(x)
-  mth     <- match.arg(method)
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
-    cat("\nNo parallel backend registered. \n\nCross-validation will be performed using a single node and might take very long. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
+    cat("\nNo parallel backend registered. \n\nCross-validation will be performed using a single node and might take a very long time. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
     `%hdcd_do%` <- foreach::`%do%`
   } else if (!parallel){
     `%hdcd_do%` <- foreach::`%do%`
@@ -57,9 +56,9 @@ CrossValidation <- function(x,
   # Take smallest delta and largest lambda to have the broadest range of the loss
   if (is.null(gamma)){
     tree <- BinarySegmentation(x = x, delta = min(delta), lambda = max(lambda),
-                               method = mth, penalize_diagonal = penalize_diagonal,
-                               use_ternary_search = use_ternary_search,
-                               threshold = threshold, standardize = standardize, ...)
+                               method = method, penalize_diagonal = penalize_diagonal,
+                               optimizer = optimizer, threshold = threshold,
+                               standardize = standardize, ...)
     gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
     gamma  <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
   }
@@ -81,9 +80,9 @@ CrossValidation <- function(x,
       n_g        <- length(test_inds)
 
       tree <- BinarySegmentation(x = x[train_inds, ], delta = del, lambda = lam,
-                                 method = mth, penalize_diagonal = penalize_diagonal,
-                                 use_ternary_search = use_ternary_search,
-                                 threshold = threshold, standardize = standardize, ...)
+                                 method = method, penalize_diagonal = penalize_diagonal,
+                                 optimizer = optimizer, threshold = threshold,
+                                 standardize = standardize, ...)
 
       res  <- PruneTreeGamma(tree, gamma)
       rm(tree)
