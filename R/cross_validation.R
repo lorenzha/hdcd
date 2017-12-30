@@ -93,7 +93,7 @@ CrossValidation <- function(x,
       cpts <- list()
       for (gam in seq_along(gamma)) {
         fit <- FullRegression(
-          x[train_inds, ], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model?
+          x[train_inds, ], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
           lambda = lam, standardize = standardize,
           threshold = threshold
         )
@@ -111,7 +111,8 @@ CrossValidation <- function(x,
             warning("Segment had no test data. Consider reducing the number of folds.")
             next
           }
-
+          # TODO: Instead of calculating the RSS, we could take the likelihood ratio here again, can we store the loss for one segment per
+          # dimension before and reuse it here?
           rss <- rss +
             sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
         }
