@@ -66,7 +66,7 @@ hdcd <- function(x,
   if (cv) {
     res <- list(
       changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
-      cv_gamma = gamma, cv_lambda = lambda
+      cv_gamma = gamma, cv_lambda = lambda, cv_delta = delta
     )
     class(res) <- "bs_cv"
   } else {
