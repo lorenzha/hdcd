@@ -21,6 +21,7 @@ hdcd <- function(x,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                  penalize_diagonal = F,
                  optimizer = c("line_search", "ternary_search", "section_search"),
+                 control = NULL,
                  standardize = T,
                  threshold = 1e-7,
                  n_folds = 10,
@@ -37,6 +38,7 @@ hdcd <- function(x,
       x = x_mat, delta = delta, method = method, lambda = lambda,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
+      control = control,
       standardize = standardize,
       penalize_diagonal = penalize_diagonal,
       verbose = verbose,
@@ -52,7 +54,8 @@ hdcd <- function(x,
   tree <- BinarySegmentation(
     x = x_mat, delta = delta, lambda = lambda, method = method,
     threshold = threshold, penalize_diagonal = penalize_diagonal,
-    optimizer = optimizer, standardize = standardize, ...
+    optimizer = optimizer, control = control, standardize = standardize,
+    ...
   )
   res <- PruneTreeGamma(tree, gamma)
   if (verbose) {

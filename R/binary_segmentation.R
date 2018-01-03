@@ -14,6 +14,7 @@
 #' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
 #' in the latter it controls the total objective value.
 #' @param optimizer
+#' @param control
 #'
 #' @return An object of class \strong{bs_tree}
 #' @export
@@ -26,6 +27,7 @@ BinarySegmentation <- function(x, delta, lambda,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                penalize_diagonal = F,
                                optimizer = c("line_search", "ternary_search", "section_search"),
+                               control = NULL,
                                standardize = T,
                                threshold = 1e-7,
                                ...) {
@@ -41,7 +43,7 @@ BinarySegmentation <- function(x, delta, lambda,
 
     if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
 
-      res <- FindBestSplit(x, delta, n_obs, optimizer, SegmentLossFUN)
+      res <- FindBestSplit(x, delta, n_obs, optimizer, control, SegmentLossFUN)
 
       node$min_loss <- min(res[["loss"]])
       node$loss <- res[["loss"]]
@@ -91,7 +93,7 @@ BinarySegmentation <- function(x, delta, lambda,
 #'
 #' @inheritParams BinarySegmentation
 #' @param SegmentLossFUN A loss function as created by \code{\link{SegmentLoss}}
-FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary_search", "section_search"), SegmentLossFUN) {
+FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary_search", "section_search"), control, SegmentLossFUN) {
   opt <- match.arg(optimizer)
 
   obs_count <- nrow(x)
@@ -114,13 +116,21 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
       result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)
     },
     "ternary_search" = {
-      result <- TernarySearch(split_candidates, 1, length(split_candidates), x, SegmentLossFUN)
+      intervals <- control[["intervals"]]
+      if (is.null(intervals) || !all.equal(intervals, as.integer(intervals)))
+        intervals <- 3 # set default value if necessary
+      result <- TernarySearch(
+        split_candidates, 1, length(split_candidates), x, SegmentLossFUN, intervals
+        )
     },
     "section_search" = {
       rec <- SectionSearch()
+      stepsize <- control[["stepsize"]]
+      if (is.null(stepsize) || stepsize <= 0)
+        stepsize <- 0.1 # set default value if necessary
       result <- rec(
         split_candidates, left = 1, right = length(split_candidates), x = x,
-        SegmentLossFUN = SegmentLossFUN, RecFUN = rec
+        SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize
       )
     }
   )

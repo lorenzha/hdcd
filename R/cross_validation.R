@@ -28,6 +28,7 @@ CrossValidation <- function(x,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             penalize_diagonal = F,
                             optimizer = c("line_search", "ternary_search", "section_search"),
+                            control = NULL,
                             standardize = T,
                             threshold = 1e-7,
                             parallel = T,
@@ -58,8 +59,8 @@ CrossValidation <- function(x,
     tree <- BinarySegmentation(
       x = x, delta = min(delta), lambda = max(lambda),
       method = method, penalize_diagonal = penalize_diagonal,
-      optimizer = optimizer, threshold = threshold,
-      standardize = standardize, ...
+      optimizer = optimizer, control = control,
+      threshold = threshold, standardize = standardize, ...
     )
     gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
     gamma <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
@@ -83,7 +84,7 @@ CrossValidation <- function(x,
       tree <- BinarySegmentation(
         x = x[train_inds, ], delta = del, lambda = lam,
         method = method, penalize_diagonal = penalize_diagonal,
-        optimizer = optimizer, threshold = threshold,
+        optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, ...
       )
 
