@@ -88,7 +88,8 @@ SegmentLoss <- function(n_obs,
       fit <- glmnet::glmnet(
         x[, -p, drop = F], x[, p, drop = F],
         alpha = 1, lambda = lambda / sqrt(obs_share) * s_dev_y,
-        thresh = threshold
+        thresh = threshold,
+        standardize = FALSE
       )
       deviance(fit) / n_obs
     }
