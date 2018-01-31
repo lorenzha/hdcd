@@ -163,27 +163,51 @@ RSS <- function(x, y, beta, intercepts) {
 plot.bs_cv <- function(results) {
   res <- results[["cv_results"]]
 
-  cpts <- lattice::contourplot(
-    apply(res["n_cpts", , , ], 2:3, mean),
-    aspect = "xy",
-    xlab = "Lambda",
-    ylab = "Gamma",
-    main = "Average number of changepoints",
-    col.regions = rainbow(20),
-    cuts = 20,
-    region = T
-  )
-  rss <- lattice::contourplot(
-    apply(res["rss", , , ], 2:3, mean),
-    aspect = "xy",
-    xlab = "Lambda",
-    ylab = "Gamma",
-    main = "Average RSS",
-    col.regions = rev(heat.colors(100)),
-    cuts = 20,
-    region = T
-  )
+  gam_names <- round(as.numeric(dimnames(res)$gamma),3)
+  lam_names <- round(as.numeric(dimnames(res)$lambda),3)
+  del_names <- round(as.numeric(dimnames(res)$delta),3)
 
-  print(cpts, split = c(1, 1, 2, 1), more = TRUE)
-  print(rss, split = c(2, 1, 2, 1))
+  n_delta <- length(del_names)
+
+  for (delta in seq_len(n_delta)){
+
+    if(delta == 1) {
+      main_cpts <-  "Average number of changepoints"
+      main_rss <-  "Average RSS"
+    } else {
+      main_cpts <-  NULL
+      main_rss <- NULL
+    }
+
+    cpts <- lattice::contourplot(
+      apply(res["n_cpts", , delta, , ], 2:3, mean),
+      aspect = "xy",
+      xlab = "Lambda",
+      xlab.top = paste("Delta:", del_names[delta]),
+      ylab = "Gamma",
+      main = main_cpts,
+      col.regions = rainbow(20),
+      cuts = 20,
+      region = T,
+      scales = list(y = list(label = gam_names),
+                    x = list(label = lam_names, rot = 90))
+    )
+    rss <- lattice::contourplot(
+      apply(res["rss", , delta, , ], 2:3, mean),
+      aspect = "xy",
+      xlab = "Lambda",
+      xlab.top = paste("Delta:", del_names[delta]),
+      ylab = "Gamma",
+      main = main_rss,
+      col.regions = rev(heat.colors(100)),
+      cuts = 20,
+      region = T,
+      scales = list(y = list(label = gam_names),
+                    x = list(label = lam_names, rot = 90))
+    )
+
+    if (delta == n_delta) m <- FALSE else m <- TRUE
+    print(cpts, split = c(1 , delta, 2, n_delta), more = TRUE)
+    print(rss, split = c(2, delta, 2, n_delta),  more = m)
+  }
 }
