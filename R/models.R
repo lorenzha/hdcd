@@ -5,14 +5,15 @@
 #' @param p Positive integer.The desired number of dimensions.
 #' @param n_perm Positive integer. The first n_perm dimensions will be permuted randomly.
 #' @param a Positive float between 0 and 1. Scale parameter for the elements of the covariance matrix
-#' @param cov_mat Should the precision matrix be returned? If false the covariance matrix will be returned (default).
+#' @param prec_mat Should the precision matrix be returned? If false the covariance matrix will be returned (default).
+#' @param scaled If TRUE the created precision matrix will be inverted and scaled to a correlation matrix.
 #'
-#' @return A covariance matrix.
+#' @return A covariance or precision matrix.
 #' @export
 #'
 #' @examples
 #' ChainNetwork(50)
-ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F) {
+ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T) {
   stopifnot(p >= n_perm)
   s_vec <- cumsum(runif(p, 0.5, 1))
   if (!is.null(n_perm) && n_perm >= 0) {
@@ -23,35 +24,76 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F) {
     s_vec <- s_vec[perm_inds]
   }
 
-  icov_mat <- matrix(0, nrow = p, ncol = p)
+  omega <- matrix(0, nrow = p, ncol = p)
 
   for (i in seq_len(p)) {
     for (j in seq_len(p)) {
-      icov_mat[i, j] <- exp(-a * abs(s_vec[i] - s_vec[j]))
+      omega[i, j] <- exp(-a * abs(s_vec[i] - s_vec[j]))
     }
   }
-  if (prec_mat) {
-    icov_mat
+
+  if (scaled){
+    sigma <- cov2cor(solve(omega))
+    if (prec_mat)
+      solve(sigma)
+    else
+      sigma
   } else {
-    solve(icov_mat)
+    if (prec_mat)
+      omega
+    else
+      solve(omega)
   }
 }
 
-#' HubNetwork
+#' ScaleNetwork
 #'
 #' Spawn a hub network covariance matrix
 #'
 #' @inheritParams ChainNetwork
-#' @param n_hubs Number of hubs in the network
+#' @inheritParams RandomNetwork
+#' @param preferential_power Power coefficient $\alpha$ for weighting of degree number as $k^\alpha$ in prefential attachment mechanism.
 #'
-#' @return A covariance matrix.
+#' @return A covariance or precision matrix.
 #' @export
 #'
 #' @examples
-#' HubNetwork(50)
-HubNetwork <- function(p, max_hubs = p / 10) {
-  n_hubs <- sample(seq_len(max_hubs), 1)
-  huge::huge.generator(n = 2, d = p, graph = "hub", g = n_hubs, verbose = FALSE)$sigma
+#' ScaleNetwork(50)
+ScaleNetwork <- function(p, preferential_power = 1,  u = 0.1, v = 0.3, prec_mat = T, scaled = F) {
+
+  theta   <- matrix(0, p, p)
+  probs   <- numeric(p)
+
+  theta[1,2] <- theta[2,1] <- TRUE
+
+  for (i in seq(3, p)){
+
+    probs <- colSums(theta)^preferential_power
+    probs <- probs / sum(probs)
+
+    edges <- sample.int(i-1, 1, prob = probs[1:(i-1)])
+
+    theta[edges, i] <- theta[i, edges]  <- TRUE
+  }
+
+  diag(theta) <- 0
+
+  omega <- theta * v
+
+  diag(omega) <- abs(min(eigen(omega)$values)) + u
+
+  if (scaled){
+    sigma <- cov2cor(solve(omega))
+    if (prec_mat)
+      solve(sigma)
+    else
+      sigma
+  } else {
+    if (prec_mat)
+      omega
+    else
+      solve(omega)
+  }
 }
 
 #' RandomNetwork
@@ -68,7 +110,7 @@ HubNetwork <- function(p, max_hubs = p / 10) {
 #'
 #' @examples
 #' RandomNetwork(50)
-RandomNetwork <- function(p, prob = min(1, 5 / p), prec_mat = F, u = 0.1, v = 0.3) {
+RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = F, scaled = F) {
   theta <- matrix(0, p, p)
 
   tmp <- matrix(runif(p ^ 2, 0, 0.5), p, p)
@@ -79,10 +121,17 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), prec_mat = F, u = 0.1, v = 0.
   omega <- theta * v
   diag(omega) <- abs(min(eigen(omega)$values)) + u
 
-  if (prec_mat) {
-    omega
+  if (scaled){
+    sigma <- cov2cor(solve(omega))
+    if (prec_mat)
+      solve(sigma)
+    else
+      sigma
   } else {
-    solve(omega)
+    if (prec_mat)
+      omega
+    else
+      solve(omega)
   }
 }
 
@@ -102,10 +151,10 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), prec_mat = F, u = 0.1, v = 0.
 #' @export
 #'
 #' @examples
-MoveEdges <- function(prec_mat, share_moves = 0.1) {
+MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
   if (share_moves == 0) return(prec_mat)
 
-  edges <- which(upper.tri(prec_mat) & prec_mat != 0)
+  edges <- which(upper.tri(prec_mat) & abs(prec_mat) >= tol)
   not_edges <- which(upper.tri(prec_mat) & prec_mat == 0)
 
   n_moves <- floor(share_moves * length(edges))
@@ -131,4 +180,60 @@ MoveEdges <- function(prec_mat, share_moves = 0.1) {
     diag(prec_mat) <- d
   }
   prec_mat
+}
+
+
+#' RegrowNetwork
+#'
+#' Prune graph and regrow edges according of scale-free network
+#'
+#' Note that v and preferential_power agruments need to be equal to the ones which
+#' initially created omega.
+#'
+#' @param omega A precision matrix as created by ScaleNetwork
+#' @param n_nodes Number of nodes to prune and regrow. Default is 10% of all nodes.
+#' @inheritParams ScaleNetwork
+#' @inheritParams RandomNetwork
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' omega <- ScaleNetwork(20, v = 1)
+#' omega_hat <- RegrowNetwork(omega, v = 1)
+#' omega
+#' omega_hat
+RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power = 1, v = 0.3){
+
+  d <- diag(omega)
+  diag(omega) <- 0
+
+  p <- ncol(omega)
+
+  # prune
+  pruned <- numeric(n_nodes)
+  for (i in seq(1, n_nodes)){
+    candidates <- which(colSums(omega != 0) == 1)
+    if (length(candidates) == 0) stop("Not enough nodes to prune from graph!")
+    pruned[i]  <- sample(candidates, 1)
+    omega[, pruned[i]] <- omega[pruned[i], ] <- 0
+  }
+
+  # regrow
+  pruned <- rev(pruned)
+  probs   <- numeric(p)
+
+  while (any(eigen(omega)$values <= 0)) {
+    for (i in seq(1, n_nodes)){
+
+    probs <- colSums(omega != 0)^preferential_power
+    probs <- probs / sum(probs)
+
+    edges <- sample.int(p, 1, prob = probs)
+
+    omega[edges, pruned[i]] <- omega[pruned[i], edges]  <- v
+    }
+    diag(omega) <- d
+  }
+  omega
 }
