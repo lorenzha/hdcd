@@ -4,10 +4,12 @@
 \alias{CrossValidation}
 \title{CrossValidation}
 \usage{
-CrossValidation(x, delta, lambda = NULL, method = c("nodewise_regression",
-  "summed_regression", "ratio_regression"), threshold = 1e-04,
-  penalize_diagonal = F, use_ternary_search = F, n_folds = 10,
-  gamma_max = NULL, verbose = T, ...)
+CrossValidation(x, delta = c(0.1, 0.25), lambda = NULL, gamma = NULL,
+  n_folds = 10, grid_size = 20, method = c("nodewise_regression",
+  "summed_regression", "ratio_regression"), penalize_diagonal = F,
+  optimizer = c("line_search", "ternary_search", "section_search"),
+  control = NULL, standardize = T, threshold = 1e-07, parallel = T,
+  verbose = T, ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
@@ -17,19 +19,19 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
 
-\item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
-
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
-
-\item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
-
-\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
+\item{gamma}{If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
+difference between the full segment loss and the loss of the first split.}
 
 \item{n_folds}{Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.}
 
-\item{gamma_max}{If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
-difference between the full segment loss and the loss of the first split.}
+\item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
+
+\item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
+
+\item{control}{}
+
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
+in the latter it controls the total objective value.}
 
 \item{verbose}{If TRUE additional information will be printed.}
 }

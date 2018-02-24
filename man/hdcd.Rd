@@ -4,29 +4,30 @@
 \alias{hdcd}
 \title{hdcd}
 \usage{
-hdcd(x, delta, lambda = NULL, gamma = NULL,
+hdcd(x, delta = 0.1, lambda = NULL, gamma = NULL,
   method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-  threshold = 1e-07, penalize_diagonal = F, use_ternary_search = F,
-  n_folds = 10, verbose = F, ...)
+  penalize_diagonal = F, optimizer = c("line_search", "ternary_search",
+  "section_search"), control = NULL, standardize = T, threshold = 1e-07,
+  n_folds = 10, verbose = F, parallel = T, ...)
 }
 \arguments{
-\item{x}{A n times p matrix for which to find the best splitting point.}
+\item{x}{A n times p data matrix.}
 
 \item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
-proportional to the size of the dataset and hence an upper bound for the number of changepoints. A good value to start with is 0.1.}
+proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{lambda}{Sparsity penality parameter in single lasso fits. If NULL k-fold cross-validation will be conducted.}
+\item{lambda}{Sparsity penality parameter in single lasso fits.}
 
 \item{gamma}{Split penalty parameter for pruning the tree. If NULL k-fold cross-validation will be conducted.}
 
 \item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
-
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{use_ternary_search}{Use a ternary search algorithm in each level of the recursion to find a local optimum (EXPERIMENTAL)}
+\item{control}{}
+
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
+in the latter it controls the total objective value.}
 
 \item{n_folds}{Number of folds in cross validation. Default is 10.}
 

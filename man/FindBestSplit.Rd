@@ -4,7 +4,8 @@
 \alias{FindBestSplit}
 \title{FindBestSplit}
 \usage{
-FindBestSplit(x, delta, n_obs, use_ternary_search, SegmentLossFUN, intervals)
+FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "ternary_search",
+  "section_search"), control, SegmentLossFUN)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
@@ -12,11 +13,9 @@ FindBestSplit(x, delta, n_obs, use_ternary_search, SegmentLossFUN, intervals)
 \item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
+\item{control}{}
 
 \item{SegmentLossFUN}{A loss function as created by \code{\link{SegmentLoss}}}
-
-\item{intervals}{Number of intervals of the search grid. Only used by ternary search.}
 }
 \description{
 Uses the SegmentLossFUN function for each possible split on the given segment

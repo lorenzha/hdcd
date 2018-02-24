@@ -4,7 +4,7 @@
 \alias{PruneTreeGamma}
 \title{PruneTreeGamma}
 \usage{
-PruneTreeGamma(tree, gamma_max = 3, gamma_length = 50)
+PruneTreeGamma(tree, gamma = seq(0, 3, length.out = 50))
 }
 \arguments{
 \item{tree}{An object of class \strong{bs_tree}}

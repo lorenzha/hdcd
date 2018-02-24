@@ -4,7 +4,7 @@
 \alias{ChainNetwork}
 \title{ChainNetwork}
 \usage{
-ChainNetwork(p, n_perm = p, a = 0.5, prec_mat = F)
+ChainNetwork(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T)
 }
 \arguments{
 \item{p}{Positive integer.The desired number of dimensions.}
@@ -13,10 +13,12 @@ ChainNetwork(p, n_perm = p, a = 0.5, prec_mat = F)
 
 \item{a}{Positive float between 0 and 1. Scale parameter for the elements of the covariance matrix}
 
-\item{cov_mat}{Should the precision matrix be returned? If false the covariance matrix will be returned (default).}
+\item{prec_mat}{Should the precision matrix be returned? If false the covariance matrix will be returned (default).}
+
+\item{scaled}{If TRUE the created precision matrix will be inverted and scaled to a correlation matrix.}
 }
 \value{
-A covariance matrix.
+A covariance or precision matrix.
 }
 \description{
 Spawn a chain network covariance matrix

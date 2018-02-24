@@ -4,7 +4,7 @@
 \alias{FullRegression}
 \title{FullRegression}
 \usage{
-FullRegression(x, cpts, lambda = 0.1)
+FullRegression(x, cpts, lambda = 0.1, standardize = T, threshold = 1e-07)
 }
 \arguments{
 \item{x}{A n times p data matrix}

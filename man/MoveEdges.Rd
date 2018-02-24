@@ -4,7 +4,7 @@
 \alias{MoveEdges}
 \title{MoveEdges}
 \usage{
-MoveEdges(prec_mat, share_moves = 0.1)
+MoveEdges(prec_mat, share_moves = 0.1, tol = 1e-16)
 }
 \arguments{
 \item{share_moves}{Share of edges to be moved.}

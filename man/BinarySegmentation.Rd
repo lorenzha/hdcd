@@ -5,8 +5,9 @@
 \title{BinarySegmentation}
 \usage{
 BinarySegmentation(x, delta, lambda, method = c("nodewise_regression",
-  "summed_regression", "ratio_regression"), threshold = 1e-07,
-  penalize_diagonal = F, use_ternary_search = F, intervals = 3, ...)
+  "summed_regression", "ratio_regression"), penalize_diagonal = F,
+  optimizer = c("line_search", "ternary_search", "section_search"),
+  control = NULL, standardize = T, threshold = 1e-07, ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
@@ -18,14 +19,12 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
-
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{use_ternary_search}{Use ternary search in each level of the recursion to find a local optimum (EXPERIMENTAL).}
+\item{control}{}
 
-\item{intervals}{Number of intervals of the search grid. Only used by ternary search.}
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
+in the latter it controls the total objective value.}
 }
 \value{
 An object of class \strong{bs_tree}
