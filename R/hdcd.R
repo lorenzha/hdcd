@@ -30,6 +30,7 @@ hdcd <- function(x,
                  ...) {
   stopifnot(nrow(x) > 1)
   x_mat <- as.matrix(x)
+  cv <- FALSE
 
   if (is.null(lambda) || is.null(gamma) || is.null(delta)) {
     cv <- TRUE
