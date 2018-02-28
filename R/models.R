@@ -52,7 +52,7 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T) {
 #'
 #' @inheritParams ChainNetwork
 #' @inheritParams RandomNetwork
-#' @param preferential_power Power coefficient $\alpha$ for weighting of degree number as $k^\alpha$ in prefential attachment mechanism.
+#' @param preferential_power Power coefficient alpha for weighting of degree number as alpha in prefential attachment mechanism.
 #'
 #' @return A covariance or precision matrix.
 #' @export
