@@ -32,7 +32,7 @@ hdcd <- function(x,
   x_mat <- as.matrix(x)
   cv <- FALSE
 
-  if (is.null(lambda) || is.null(gamma) || is.null(delta)) {
+  if ((is.null(lambda) || is.null(gamma) || is.null(delta)) | length(c(gamma, lambda, delta)) > 3) {
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
