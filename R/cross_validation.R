@@ -54,6 +54,12 @@ CrossValidation <- function(x,
   }
   n_lambdas <- length(lambda)
 
+  # choose three sensible values for delta
+  if (is.null(delta)) {
+    delta <- c(0.05, 0.1, 0.25)
+  }
+  n_delta <- length(delta)
+
   # Take smallest delta and largest lambda to have the broadest range of the loss
   if (is.null(gamma)) {
     tree <- BinarySegmentation(
@@ -66,12 +72,6 @@ CrossValidation <- function(x,
     gamma <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
   }
   n_gammas <- length(gamma)
-
-  # choose three sensible values for delta
-  if (is.null(delta)) {
-    delta <- c(0.05, 0.1, 0.25)
-  }
-  n_delta <- length(delta)
 
   if (verbose) cat("\n")
   cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
@@ -144,7 +144,7 @@ CrossValidation <- function(x,
   }
 
   # Crude rule to determine final model
-  inds <- arrayInd(which.min(apply(res["rss", , , , , drop = FALSE], 2:4, mean)), .dim = c(n_delta, n_lambdas, n_gammas))
+  inds <- arrayInd(which.min(apply(res["rss", , , , , drop = FALSE], 3:5, mean)), .dim = c(n_delta, n_lambdas, n_gammas))
 
   list(cv_results = res, best_delta = delta[inds[1]], best_gamma = gamma[inds[3]], best_lambda = lambda[inds[2]])
 }
