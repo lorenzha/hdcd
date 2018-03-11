@@ -71,7 +71,7 @@ hdcd <- function(x,
     )
     class(res) <- "bs_cv"
   } else {
-    res <- list(changepoints = res[["cpts"]][[1]])
+    res <- list(changepoints = res[["cpts"]][[1]], tree = tree)
     class(res) <- "bs"
   }
   res
