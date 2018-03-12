@@ -69,7 +69,7 @@ CrossValidation <- function(x,
       threshold = threshold, standardize = standardize, ...
     )
     gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
-    gamma <- seq(min(gamma_diff, na.rm = T), max(gamma_diff, na.rm = T), length.out = grid_size)
+    gamma <- seq(0, max(gamma_diff, na.rm = T), length.out = grid_size)
   }
   n_gammas <- length(gamma)
 
