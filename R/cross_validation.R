@@ -22,6 +22,7 @@
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
+                            lambda_gamma = NULL,
                             gamma = NULL,
                             n_folds = 10,
                             grid_size = 20,
@@ -60,10 +61,11 @@ CrossValidation <- function(x,
   }
   n_delta <- length(delta)
 
-  # Take smallest delta and largest lambda to have the broadest range of the loss
+  # Take smallest delta and specific or median lambda to have the broadest range of the loss
   if (is.null(gamma)) {
+    l <- ifelse(!is.null(lambda_gamma), lambda_gamma, median(lambda))
     tree <- BinarySegmentation(
-      x = x, delta = min(delta), lambda = max(lambda),
+      x = x, delta = min(delta), lambda = l,
       method = method, penalize_diagonal = penalize_diagonal,
       optimizer = optimizer, control = control,
       threshold = threshold, standardize = standardize, ...

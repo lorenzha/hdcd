@@ -17,6 +17,7 @@
 hdcd <- function(x,
                  delta = 0.1,
                  lambda = NULL,
+                 lambda_gamma = NULL,
                  gamma = NULL,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                  penalize_diagonal = F,
@@ -37,6 +38,7 @@ hdcd <- function(x,
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
       x = x_mat, delta = delta, method = method, lambda = lambda,
+      lambda_gamma = lambda_gamma,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
       control = control,
