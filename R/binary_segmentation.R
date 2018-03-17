@@ -30,6 +30,7 @@ BinarySegmentation <- function(x, delta, lambda,
                                control = NULL,
                                standardize = T,
                                threshold = 1e-7,
+                               verbose = FALSE,
                                ...) {
   SegmentLossFUN <- SegmentLoss(
     n_obs = nrow(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
@@ -37,9 +38,13 @@ BinarySegmentation <- function(x, delta, lambda,
   )
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = nrow(x))
+  class(tree) <- c("bs_tree", class(tree))
+
 
   Rec <- function(x, n_obs, delta, SegmentLossFUN, node, optimizer) {
     n_selected_obs <- nrow(x)
+
+    if (verbose) print(tree)
 
     if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
 
@@ -81,7 +86,6 @@ BinarySegmentation <- function(x, delta, lambda,
     x = x, n_obs = nrow(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
     optimizer = optimizer
   )
-  class(tree) <- c("bs_tree", class(tree))
   tree
 }
 
