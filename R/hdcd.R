@@ -78,3 +78,10 @@ hdcd <- function(x,
   }
   res
 }
+
+print.bs_cv <- function(res){
+  cat("\nBest params:\n\n")
+  cat("-> Lambda: ", res$cv_lambda, "\n")
+  cat("-> Delta : ", res$cv_delta, "\n")
+  cat("-> Gamma : ", res$cv_gamma, "\n")
+  cat("\nFound changepoints: \n\n", res$changepoints, "\n")
