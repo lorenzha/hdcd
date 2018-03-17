@@ -61,20 +61,6 @@ CrossValidation <- function(x,
   }
   n_delta <- length(delta)
 
-  # Take smallest delta and specific or median lambda to have the broadest range of the loss
-  if (is.null(gamma)) {
-    l <- ifelse(!is.null(lambda_gamma), lambda_gamma, median(lambda))
-    tree <- BinarySegmentation(
-      x = x, delta = min(delta), lambda = l,
-      method = method, penalize_diagonal = penalize_diagonal,
-      optimizer = optimizer, control = control,
-      threshold = threshold, standardize = standardize, ...
-    )
-    gamma_diff <- abs(tree$Get("segment_loss") - tree$Get("min_loss"))
-    gamma <- seq(0, max(gamma_diff, na.rm = T), length.out = grid_size)
-  }
-  n_gammas <- length(gamma)
-
   if (verbose) cat("\n")
   cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(del = delta, .inorder = T) %:%
@@ -89,6 +75,9 @@ CrossValidation <- function(x,
         optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, ...
       )
+
+      gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
+      gamma <- gamma[which(gamma >= 0)]
 
       res <- PruneTreeGamma(tree, gamma)
       rm(tree)
@@ -121,39 +110,39 @@ CrossValidation <- function(x,
         }
         rss_gamma[gam] <- rss / n_g
         cpts[[gam]] <- segment_bounds[-c(1, length(segment_bounds))]
+        if (length(cpts[[gam]]) == 0) cpts[[gam]] <- NA
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
-      list(rss = rss_gamma, cpts = cpts)
+      list(fold = fold, lambda = lam, delta = del, gamma = gamma, rss = rss_gamma, cpts = cpts)
     }
 
-
-  res <- array(
-    data = NA, dim = c(2, n_folds, n_delta, n_lambdas, n_gammas),
-    dimnames = list(
-      type = c("rss", "n_cpts"), fold = seq_len(n_folds),
-      delta = delta, lambda = lambda, gamma = gamma
-    )
-  )
-
+  res <- data.frame()
   for (fold in seq_len(n_folds)) {
     for (lam in seq_len(n_lambdas)) {
       for (del in seq_len(n_delta)) {
-        res["rss", fold, del, lam, ] <- cv_results[[fold]][[del]][[lam]][["rss"]]
-        res["n_cpts", fold, del, lam, ] <- unlist(lapply(X = cv_results[[fold]][[del]][[lam]][["cpts"]], FUN = length))
+        r <- cv_results[[fold]][[del]][[lam]]
+        new_res <- data.frame(fold = r[["fold"]],
+                              lambda = r[["lambda"]],
+                              delta = r[["delta"]],
+                              gamma = r[["gamma"]],
+                              rss = r[["rss"]])
+        # Need to assign those separately since it is a list
+        new_res$cpts <- r[["cpts"]]
+        res <- rbind(res, new_res)
       }
     }
   }
 
-  # Crude rule to determine final model
-  inds <- arrayInd(which.min(apply(res["rss", , , , , drop = FALSE], 3:5, mean)), .dim = c(n_delta, n_lambdas, n_gammas))
+  single <- split(res, f = list(res$lambda, res$delta), drop = T)
 
-  list(cv_results = res, best_delta = delta[inds[1]], best_gamma = gamma[inds[3]], best_lambda = lambda[inds[2]])
+  results <- lapply(single, SolutionPaths)
+
+  opt <- do.call(rbind,lapply(results, GetOpt))
+
+  list(opt = opt[which.min(opt$rss),, drop = TRUE], cv_results = results)
 }
 
-RSS <- function(x, y, beta, intercepts) {
-  sum((y - x %*% beta - intercepts) ^ 2)
-}
 
 #' plot.bs_cv
 #'
@@ -165,51 +154,66 @@ RSS <- function(x, y, beta, intercepts) {
 plot.bs_cv <- function(results) {
   res <- results[["cv_results"]]
 
-  gam_names <- round(as.numeric(dimnames(res)$gamma),3)
-  lam_names <- round(as.numeric(dimnames(res)$lambda),3)
-  del_names <- round(as.numeric(dimnames(res)$delta),3)
 
-  n_delta <- length(del_names)
+  res_long <- do.call(rbind,
+                      lapply(res,
+                             function(x) data.frame(delta = x[["delta"]],
+                                                    lambda = x[["lambda"]],
+                                                    gamma = x[["rss"]][,1],
+                                                    rss = rowMeans(x[["rss"]][,-1]),
+                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1], 2, function(x) sapply(x, length))),
+                                                    key = paste(x[["delta"]], x[["lambda"]]))))
+  levs <- levels(res_long$key)
+  cols <- rainbow(length(levs))
 
-  for (delta in seq_len(n_delta)){
-
-    if(delta == 1) {
-      main_cpts <-  "Average number of changepoints"
-      main_rss <-  "Average RSS"
-    } else {
-      main_cpts <-  NULL
-      main_rss <- NULL
-    }
-
-    cpts <- lattice::contourplot(
-      apply(res["n_cpts", , delta, , ], 2:3, mean),
-      aspect = "xy",
-      xlab = "Lambda",
-      xlab.top = paste("Delta:", del_names[delta]),
-      ylab = "Gamma",
-      main = main_cpts,
-      col.regions = rainbow(20),
-      cuts = 20,
-      region = T,
-      scales = list(y = list(label = gam_names),
-                    x = list(label = lam_names, rot = 90))
-    )
-    rss <- lattice::contourplot(
-      apply(res["rss", , delta, , ], 2:3, mean),
-      aspect = "xy",
-      xlab = "Lambda",
-      xlab.top = paste("Delta:", del_names[delta]),
-      ylab = "Gamma",
-      main = main_rss,
-      col.regions = rev(heat.colors(100)),
-      cuts = 20,
-      region = T,
-      scales = list(y = list(label = gam_names),
-                    x = list(label = lam_names, rot = 90))
-    )
-
-    if (delta == n_delta) m <- FALSE else m <- TRUE
-    print(cpts, split = c(1 , delta, 2, n_delta), more = TRUE)
-    print(rss, split = c(2, delta, 2, n_delta),  more = m)
+  op <- par(mfrow = c(2,1))
+  plot(res_long$gamma, res_long$rss, type = "n")
+  for (i in seq_along(levs)){
+    plot_dat <- res_long[res_long$key == levs[i], ]
+    lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s")
   }
+
+  plot(res_long$gamma, res_long$n_cpts, type = "n")
+  for (i in seq_along(levs)){
+    plot_dat <- res_long[res_long$key == levs[i], ]
+    lines(plot_dat[, "gamma"], plot_dat[, "n_cpts"], col = cols[i], type = "s")
+  }
+  par(op)
+}
+
+
+SolutionPaths <- function(dat){
+  dat <- dat[order(dat$gamma), ]
+  list(lambda = dat$lambda[1], delta = dat$delta[1],
+       rss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "rss")),
+       cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA)))
+}
+
+ImputeMatrix <- function(mat, cols = seq(2, ncol(mat))){
+  temp_mat <- mat[,cols]
+  for (i in seq(2, nrow(temp_mat))) {
+    for (j in seq_len(ncol(temp_mat))){
+      if (anyNA(temp_mat[i,j][[1]]) | is.null(temp_mat[i,j][[1]]))
+        temp_mat[i,j][[1]] <- temp_mat[i - 1,j]
+
+    }
+  }
+  mat[, cols] <- temp_mat
+  mat
+}
+
+RSS <- function(x, y, beta, intercepts) {
+  sum((y - x %*% beta - intercepts) ^ 2)
+}
+
+GetOpt <- function(param_res){
+
+  avg_rss <- rowMeans(param_res$rss[,-1])
+  opt <- which.min(avg_rss)
+
+  data.frame(lambda = param_res$lambda,
+             delta = param_res$delta,
+             gamma = param_res$rss[opt, 1],
+             rss = avg_rss[opt])
+
 }

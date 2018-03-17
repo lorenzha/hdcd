@@ -49,9 +49,9 @@ hdcd <- function(x,
       threshold = threshold,
       ...
     )
-    lambda <- cv_res$best_lambda
-    gamma <- cv_res$best_gamma
-    delta <- cv_res$best_delta
+    lambda <- cv_res$opt$lambda
+    gamma <- cv_res$opt$gamma
+    delta <- cv_res$opt$delta
   }
 
   tree <- BinarySegmentation(
@@ -85,3 +85,4 @@ print.bs_cv <- function(res){
   cat("-> Delta : ", res$cv_delta, "\n")
   cat("-> Gamma : ", res$cv_gamma, "\n")
   cat("\nFound changepoints: \n\n", res$changepoints, "\n")
+}
