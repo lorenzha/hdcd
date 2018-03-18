@@ -157,11 +157,19 @@ plot.bs_cv <- function(results) {
 
   res_long <- do.call(rbind,
                       lapply(res,
-                             function(x) data.frame(delta = x[["delta"]],
+                             function(x) if (nrow(x[["cpts"]]) == 1)
+                               data.frame(delta = x[["delta"]],
+                                          lambda = x[["lambda"]],
+                                          gamma = x[["rss"]][,1],
+                                          rss = rowMeans(x[["rss"]][,-1]),
+                                          n_cpts = 0,
+                                          key = paste(x[["delta"]], x[["lambda"]]))
+                             else
+                              data.frame(delta = x[["delta"]],
                                                     lambda = x[["lambda"]],
                                                     gamma = x[["rss"]][,1],
                                                     rss = rowMeans(x[["rss"]][,-1]),
-                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1], 2, function(x) sapply(x, length))),
+                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length))),
                                                     key = paste(x[["delta"]], x[["lambda"]]))))
   levs <- levels(res_long$key)
   cols <- rainbow(length(levs))
