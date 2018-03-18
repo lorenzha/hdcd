@@ -194,7 +194,7 @@ ImputeMatrix <- function(mat, cols = seq(2, ncol(mat))){
   for (i in seq(2, nrow(temp_mat))) {
     for (j in seq_len(ncol(temp_mat))){
       if (anyNA(temp_mat[i,j][[1]]) | is.null(temp_mat[i,j][[1]]))
-        temp_mat[i,j][[1]] <- temp_mat[i - 1,j]
+        temp_mat[i,j][[1]] <- ifelse((is.null(temp_mat[i - 1,j]) | length(temp_mat[i - 1,j]) < 1), NA, temp_mat[i - 1,j])
 
     }
   }
