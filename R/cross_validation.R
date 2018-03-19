@@ -22,7 +22,6 @@
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
-                            lambda_gamma = NULL,
                             gamma = NULL,
                             n_folds = 10,
                             grid_size = 20,
