@@ -10,7 +10,7 @@ ScaleNetwork(p, preferential_power = 1, u = 0.1, v = 0.3, prec_mat = T,
 \arguments{
 \item{p}{Positive integer.The desired number of dimensions.}
 
-\item{preferential_power}{Power coefficient $\alpha$ for weighting of degree number as $k^\alpha$ in prefential attachment mechanism.}
+\item{preferential_power}{Power coefficient alpha for weighting of degree number as alpha in prefential attachment mechanism.}
 
 \item{u}{Constant added to the diagonal elements of the precision matrix for controlling the magnitude of partial correlations.}
 

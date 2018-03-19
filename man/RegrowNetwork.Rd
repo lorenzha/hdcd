@@ -12,7 +12,7 @@ RegrowNetwork(omega, n_nodes = ncol(omega) * 0.1, preferential_power = 1,
 
 \item{n_nodes}{Number of nodes to prune and regrow. Default is 10% of all nodes.}
 
-\item{preferential_power}{Power coefficient $\alpha$ for weighting of degree number as $k^\alpha$ in prefential attachment mechanism.}
+\item{preferential_power}{Power coefficient alpha for weighting of degree number as alpha in prefential attachment mechanism.}
 
 \item{v}{Constant added to the off diagonal of the precision matrix for controlling the magnitude of partial correlations.}
 }

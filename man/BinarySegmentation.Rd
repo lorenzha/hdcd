@@ -7,7 +7,8 @@
 BinarySegmentation(x, delta, lambda, method = c("nodewise_regression",
   "summed_regression", "ratio_regression"), penalize_diagonal = F,
   optimizer = c("line_search", "ternary_search", "section_search"),
-  control = NULL, standardize = T, threshold = 1e-07, ...)
+  control = NULL, standardize = T, threshold = 1e-07, verbose = FALSE,
+  ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
