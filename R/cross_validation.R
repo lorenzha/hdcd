@@ -163,30 +163,38 @@ plot.bs_cv <- function(results) {
                                           gamma = x[["rss"]][,1],
                                           rss = rowMeans(x[["rss"]][,-1]),
                                           n_cpts = 0,
-                                          key = paste(x[["delta"]], x[["lambda"]]))
+                                          key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2)))
                              else
                               data.frame(delta = x[["delta"]],
                                                     lambda = x[["lambda"]],
                                                     gamma = x[["rss"]][,1],
                                                     rss = rowMeans(x[["rss"]][,-1]),
                                                     n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length))),
-                                                    key = paste(x[["delta"]], x[["lambda"]]))))
+                                                    key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2)))))
   levs <- levels(res_long$key)
   cols <- rainbow(length(levs))
 
-  op <- par(mfrow = c(2,1))
-  plot(res_long$gamma, res_long$rss, type = "n")
+  op <- par(mfrow = c(2,1), mar = c(4,5,4,2))
+  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "Average loss", xlab ="Gamma")
+  axis(side = 2)
+  axis(side = 1)
   for (i in seq_along(levs)){
     plot_dat <- res_long[res_long$key == levs[i], ]
     lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s")
   }
 
-  plot(res_long$gamma, res_long$n_cpts, type = "n")
+  par(mar = c(6,5,2,2))
+  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "Average # of changepoints", xlab ="")
+  axis(side = 2)
+  axis(side = 1)
   for (i in seq_along(levs)){
     plot_dat <- res_long[res_long$key == levs[i], ]
     lines(plot_dat[, "gamma"], plot_dat[, "n_cpts"], col = cols[i], type = "s")
   }
-  par(op)
+  par(fig = c(0, 1, 0, 1), mar = c(0,0,0,0), new = TRUE)
+  plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
+  legend("bottom",levs, xpd = TRUE, ncol = 5,
+         lty = 1, bty = "n", col = cols, cex = 0.8)
 }
 
 
