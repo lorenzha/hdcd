@@ -108,8 +108,7 @@ CrossValidation <- function(x,
             sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
         }
         rss_gamma[gam] <- rss / n_g
-        cpts[[gam]] <- segment_bounds[-c(1, length(segment_bounds))]
-        if (length(cpts[[gam]]) == 0) cpts[[gam]] <- NA
+        cpts[[gam]] <- segment_bounds
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
@@ -150,7 +149,7 @@ CrossValidation <- function(x,
 #' @param cv_results An object of class \strong{bs_cv}
 #'
 #' @export
-plot.bs_cv <- function(results) {
+plot.bs_cv <- function(results, ...) {
   res <- results[["cv_results"]]
 
 
@@ -168,31 +167,33 @@ plot.bs_cv <- function(results) {
                                                     lambda = x[["lambda"]],
                                                     gamma = x[["rss"]][,1],
                                                     rss = rowMeans(x[["rss"]][,-1]),
-                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length))),
+                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2)), #substract first and last segment boundary
                                                     key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2)))))
   levs <- levels(res_long$key)
   cols <- rainbow(length(levs))
 
   op <- par(mfrow = c(2,1), mar = c(4,5,4,2))
-  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "Average loss", xlab ="Gamma")
+  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "Average loss", xlab ="Gamma", ...)
   axis(side = 2)
   axis(side = 1)
+  box()
   for (i in seq_along(levs)){
     plot_dat <- res_long[res_long$key == levs[i], ]
-    lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s")
+    lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s", xlim = c(min(plot_dat[, "gamma"]), max(plot_dat[, "gamma"])))
   }
 
   par(mar = c(6,5,2,2))
-  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "Average # of changepoints", xlab ="")
+  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "Average # of changepoints", xlab ="", ...)
   axis(side = 2)
   axis(side = 1)
+  box()
   for (i in seq_along(levs)){
     plot_dat <- res_long[res_long$key == levs[i], ]
     lines(plot_dat[, "gamma"], plot_dat[, "n_cpts"], col = cols[i], type = "s")
   }
   par(fig = c(0, 1, 0, 1), mar = c(0,0,0,0), new = TRUE)
   plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
-  legend("bottom",levs, xpd = TRUE, ncol = 5,
+  legend("bottom", legend = levels(factor(formatC(res_long$lambda, format = "e", digits = 2))), xpd = TRUE, ncol = ceiling(length(levs)/3),
          lty = 1, bty = "n", col = cols, cex = 0.8)
 }
 
