@@ -30,10 +30,9 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 SegmentLoss <- function(n_obs,
                         lambda,
                         penalize_diagonal = FALSE,
-                        intercept = TRUE,
                         standardize = TRUE,
                         threshold = 1e-07,
-                        method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+                        method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso"),
                         ...) {
   args <- list(...)
   mth <- match.arg(method)
@@ -44,33 +43,32 @@ SegmentLoss <- function(n_obs,
   }
 
   if (mth == "glasso") {
-    # deprecated for now
 
-    # function(x) {
-    #   obs_count <- nrow(x)
-    #   obs_share <- obs_count / n_obs
-    #
-    #   # We need more than one observation to caclculate the covariance matrix
-    #   stopifnot(obs_count > 1)
-    #
-    #   n_p <- ncol(x)
-    #
-    #   cov_mat <- (obs_count - 1) / obs_count * cov(x)
-    #
-    #   glasso_output <- glasso::glasso(
-    #     cov_mat,
-    #     rho = lambda / sqrt(obs_share) * diag(cov_mat),
-    #     penalize.diagonal = penalize_diagonal,
-    #     thr = threshold
-    #   )
-    #
-    #   if (!penalize_diagonal) {
-    #     diag(glasso_output$wi) <- 0
-    #   }
-    #
-    #   ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-    #     - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
-    # }
+    function(x) {
+      obs_count <- nrow(x)
+      obs_share <- obs_count / n_obs
+
+      # We need more than one observation to caclculate the covariance matrix
+      stopifnot(obs_count > 1)
+
+      n_p <- ncol(x)
+
+      cov_mat <- (obs_count - 1) / obs_count * cov(x)
+
+      glasso_output <- glasso::glasso(
+        cov_mat,
+        rho = lambda / sqrt(obs_share) * diag(cov_mat),
+        penalize.diagonal = penalize_diagonal,
+        thr = threshold
+      )
+
+      if (!penalize_diagonal) {
+        diag(glasso_output$wi) <- 0
+      }
+
+      ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
+        - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
+    }
   } else if (mth == "nodewise_regression") {
     function(x) {
       obs_count <- nrow(x)
