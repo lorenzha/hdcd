@@ -78,14 +78,18 @@ CrossValidation <- function(x,
         standardize = standardize, ...
       )
 
-      gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
-      gamma <- gamma[which(gamma >= 0)]
+      if(is.null(gamma)){
+        final_gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
+        final_gamma <- final_gamma[which(final_gamma >= 0)]
+      } else {
+        final_gamma <- gamma
+      }
 
-      res <- PruneTreeGamma(tree, gamma)
+      res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
-      rss_gamma <- numeric(length(gamma))
+      rss_gamma <- numeric(length(final_gamma))
       cpts <- list()
-      for (gam in seq_along(gamma)) {
+      for (gam in seq_along(final_gamma)) {
         fit <- FullRegression(
           x[train_inds, ], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
           lambda = lam, standardize = standardize,
@@ -115,7 +119,7 @@ CrossValidation <- function(x,
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
-      list(fold = fold, lambda = lam, delta = del, gamma = gamma, rss = rss_gamma, cpts = cpts)
+      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, rss = rss_gamma, cpts = cpts)
     }
 
   res <- data.frame()
