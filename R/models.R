@@ -191,7 +191,7 @@ MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
 #' initially created omega.
 #'
 #' @param omega A precision matrix as created by ScaleNetwork
-#' @param n_nodes Number of nodes to prune and regrow. Default is 10% of all nodes.
+#' @param n_nodes Number of nodes to prune and regrow. Default is 0.1 of all nodes.
 #' @inheritParams ScaleNetwork
 #' @inheritParams RandomNetwork
 #'
