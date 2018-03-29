@@ -22,7 +22,7 @@
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
-                            lambda_min = 0.001,
+                            lambda_min = 0.01,
                             lambda_grid_size = 10,
                             gamma = NULL,
                             n_folds = 10,
@@ -59,7 +59,7 @@ CrossValidation <- function(x,
 
   # choose three sensible values for delta
   if (is.null(delta)) {
-    delta <- c(0.05, 0.1, 0.25)
+    delta <- c(0.05, 0.1, 0.2)
   }
   n_delta <- length(delta)
 
@@ -156,7 +156,7 @@ CrossValidation <- function(x,
 #' @param cv_results An object of class \strong{bs_cv}
 #'
 #' @export
-plot.bs_cv <- function(results, ...) {
+plot.bs_cv <- function(results, show_legend = T, ...) {
   res <- results[["cv_results"]]
 
 
@@ -168,29 +168,35 @@ plot.bs_cv <- function(results, ...) {
                                           gamma = x[["rss"]][,1],
                                           rss = rowMeans(x[["rss"]][,-1]),
                                           n_cpts = 0,
-                                          key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2)))
+                                          key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2), sep = "/"))
                              else
                               data.frame(delta = x[["delta"]],
                                                     lambda = x[["lambda"]],
                                                     gamma = x[["rss"]][,1],
                                                     rss = rowMeans(x[["rss"]][,-1]),
                                                     n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2)), #substract first and last segment boundary
-                                                    key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2)))))
+                                                    key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2), sep = "/"))))
   levs <- levels(res_long$key)
   cols <- rainbow(length(levs))
 
-  op <- par(mfrow = c(2,1), mar = c(4,5,4,2))
-  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "Average loss", xlab ="Gamma", ...)
+  leg <- formatC(res_long$lambda, format = "e", digits = 2)
+
+  op <- par(mfrow = c(2,1), xpd=TRUE)
+  par(mar = c(1,5,4,2))
+  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "loss", xlab ="", ...)
   axis(side = 2)
-  axis(side = 1)
+  if(show_legend){
+    legend("top", legend = levs, ncol = ceiling(length(levs)/4), inset = c(0, - 0.3),
+            lty = 1, bty = "n", col = cols, cex = 0.8)
+  }
   box()
   for (i in seq_along(levs)){
     plot_dat <- res_long[res_long$key == levs[i], ]
     lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s", xlim = c(min(plot_dat[, "gamma"]), max(plot_dat[, "gamma"])))
   }
 
-  par(mar = c(6,5,2,2))
-  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "Average # of changepoints", xlab ="", ...)
+  par(mar = c(5,5,0,2))
+  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "# of changepoints", xlab = expression(gamma), ...)
   axis(side = 2)
   axis(side = 1)
   box()
@@ -198,10 +204,6 @@ plot.bs_cv <- function(results, ...) {
     plot_dat <- res_long[res_long$key == levs[i], ]
     lines(plot_dat[, "gamma"], plot_dat[, "n_cpts"], col = cols[i], type = "s")
   }
-  par(fig = c(0, 1, 0, 1), mar = c(0,0,0,0), new = TRUE)
-  plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
-  legend("bottom", legend = levels(factor(formatC(res_long$lambda, format = "e", digits = 2))), xpd = TRUE, ncol = ceiling(length(levs)/3),
-         lty = 1, bty = "n", col = cols, cex = 0.8)
 }
 
 
@@ -243,3 +245,4 @@ GetOpt <- function(param_res){
 
 LogSpace <- function(from, to, length.out) {
   exp(seq(log(from), log(to), length.out = length.out))
+}
