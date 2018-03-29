@@ -22,9 +22,10 @@
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
+                            lambda_min = 0.001,
+                            lambda_grid_size = 10,
                             gamma = NULL,
                             n_folds = 10,
-                            grid_size = 20,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             penalize_diagonal = F,
                             optimizer = c("line_search", "ternary_search", "section_search"),
@@ -50,7 +51,9 @@ CrossValidation <- function(x,
 
   # choose lambda as grid around the asymptotic value
   if (is.null(lambda)) {
-    lambda <- seq(0.05, 1.5, length.out = grid_size) * sqrt(log(n_p) / n_obs)
+    cov_mat <- cov(x)
+    lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
+    lambda <- LogSpace(lambda_min, lambda_max, length.out = lambda_grid_size)
   }
   n_lambdas <- length(lambda)
 
