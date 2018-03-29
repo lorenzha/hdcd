@@ -240,3 +240,6 @@ GetOpt <- function(param_res){
              rss = avg_rss[opt])
 
 }
+
+LogSpace <- function(from, to, length.out) {
+  exp(seq(log(from), log(to), length.out = length.out))
