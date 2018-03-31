@@ -4,7 +4,7 @@
 \alias{plot.bs_cv}
 \title{plot.bs_cv}
 \usage{
-\method{plot}{bs_cv}(results)
+\method{plot}{bs_cv}(results, show_legend = T)
 }
 \arguments{
 \item{cv_results}{An object of class \strong{bs_cv}}

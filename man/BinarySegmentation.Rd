@@ -24,8 +24,7 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{control}{}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.}
 }
 \value{
 An object of class \strong{bs_tree}

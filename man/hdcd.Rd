@@ -4,11 +4,12 @@
 \alias{hdcd}
 \title{hdcd}
 \usage{
-hdcd(x, delta = 0.1, lambda = NULL, gamma = NULL,
-  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-  penalize_diagonal = F, optimizer = c("line_search", "ternary_search",
-  "section_search"), control = NULL, standardize = T, threshold = 1e-07,
-  n_folds = 10, verbose = F, parallel = T, ...)
+hdcd(x, delta = 0.1, lambda = NULL, lambda_min = 0.01,
+  lambda_grid_size = 10, gamma = NULL, method = c("nodewise_regression",
+  "summed_regression", "ratio_regression"), penalize_diagonal = F,
+  optimizer = c("line_search", "ternary_search", "section_search"),
+  control = NULL, standardize = T, threshold = 1e-07, n_folds = 10,
+  verbose = F, parallel = T, ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
@@ -18,6 +19,10 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
 
+\item{lambda_min}{Minimal value for lambda when performing cross-validation.}
+
+\item{lambda_grid_size}{Number of values for which lambda should be evaluated from lambda_min to lambda_max.}
+
 \item{gamma}{Split penalty parameter for pruning the tree. If NULL k-fold cross-validation will be conducted.}
 
 \item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
@@ -26,8 +31,7 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{control}{}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.}
 
 \item{n_folds}{Number of folds in cross validation. Default is 10.}
 

@@ -4,17 +4,16 @@
 \alias{SegmentLoss}
 \title{SegmentLoss}
 \usage{
-SegmentLoss(n_obs, lambda, penalize_diagonal = FALSE, intercept = TRUE,
-  standardize = TRUE, threshold = 1e-07, method = c("nodewise_regression",
-  "summed_regression", "ratio_regression"), ...)
+SegmentLoss(n_obs, lambda, penalize_diagonal = FALSE, standardize = TRUE,
+  threshold = 1e-07, method = c("nodewise_regression", "summed_regression",
+  "ratio_regression", "glasso"), ...)
 }
 \arguments{
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.}
 
 \item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
 }

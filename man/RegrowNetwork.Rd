@@ -10,7 +10,7 @@ RegrowNetwork(omega, n_nodes = ncol(omega) * 0.1, preferential_power = 1,
 \arguments{
 \item{omega}{A precision matrix as created by ScaleNetwork}
 
-\item{n_nodes}{Number of nodes to prune and regrow. Default is 10% of all nodes.}
+\item{n_nodes}{Number of nodes to prune and regrow. Default is 0.1 of all nodes.}
 
 \item{preferential_power}{Power coefficient alpha for weighting of degree number as alpha in prefential attachment mechanism.}
 
