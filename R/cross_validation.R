@@ -22,7 +22,7 @@
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
-                            lambda_min = 0.01,
+                            lambda_min_ratio = 0.01,
                             lambda_grid_size = 10,
                             gamma = NULL,
                             n_folds = 10,
@@ -53,7 +53,7 @@ CrossValidation <- function(x,
   if (is.null(lambda)) {
     cov_mat <- cov(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
-    lambda <- LogSpace(lambda_min, lambda_max, length.out = lambda_grid_size)
+    lambda <- LogSpace(lambda_min_ratio*lambda_max, lambda_max, length.out = lambda_grid_size)
   }
   n_lambdas <- length(lambda)
 

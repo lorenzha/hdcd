@@ -19,7 +19,7 @@
 hdcd <- function(x,
                  delta = 0.1,
                  lambda = NULL,
-                 lambda_min = 0.01,
+                 lambda_min_ratio = 0.01,
                  lambda_grid_size = 10,
                  gamma = NULL,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
@@ -41,7 +41,7 @@ hdcd <- function(x,
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
       x = x_mat, delta = delta, method = method, lambda = lambda,
-      lambda_min = lambda_min, lambda_grid_size = lambda_grid_size,
+      lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
       control = control,
