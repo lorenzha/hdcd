@@ -4,12 +4,12 @@
 \alias{CrossValidation}
 \title{CrossValidation}
 \usage{
-CrossValidation(x, delta = c(0.1, 0.25), lambda = NULL, lambda_min = 0.01,
-  lambda_grid_size = 10, gamma = NULL, n_folds = 10,
-  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-  penalize_diagonal = F, optimizer = c("line_search", "ternary_search",
-  "section_search"), control = NULL, standardize = T, threshold = 1e-07,
-  parallel = T, verbose = T, ...)
+CrossValidation(x, delta = c(0.1, 0.25), lambda = NULL,
+  lambda_min_ratio = 0.01, lambda_grid_size = 10, gamma = NULL,
+  n_folds = 10, method = c("nodewise_regression", "summed_regression",
+  "ratio_regression"), penalize_diagonal = F, optimizer = c("line_search",
+  "ternary_search", "section_search"), control = NULL, standardize = T,
+  threshold = 1e-07, parallel = T, verbose = T, ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}

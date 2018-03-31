@@ -4,7 +4,7 @@
 \alias{hdcd}
 \title{hdcd}
 \usage{
-hdcd(x, delta = 0.1, lambda = NULL, lambda_min = 0.01,
+hdcd(x, delta = 0.1, lambda = NULL, lambda_min_ratio = 0.01,
   lambda_grid_size = 10, gamma = NULL, method = c("nodewise_regression",
   "summed_regression", "ratio_regression"), penalize_diagonal = F,
   optimizer = c("line_search", "ternary_search", "section_search"),
@@ -18,8 +18,6 @@ hdcd(x, delta = 0.1, lambda = NULL, lambda_min = 0.01,
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
 \item{lambda}{Sparsity penality parameter in single lasso fits.}
-
-\item{lambda_min}{Minimal value for lambda when performing cross-validation.}
 
 \item{lambda_grid_size}{Number of values for which lambda should be evaluated from lambda_min to lambda_max.}
 
@@ -38,6 +36,8 @@ proportional to the size of the dataset and hence an upper bound for the number 
 \item{verbose}{Should additional information be printed?}
 
 \item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
+
+\item{lambda_min}{Minimal value for lambda when performing cross-validation.}
 }
 \value{
 The indices of the found changepoints in the sequence
