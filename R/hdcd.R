@@ -82,8 +82,13 @@ hdcd <- function(x,
   res
 }
 
+#' Print method for objects of class bs_cv
+#'
+#' @param res Object of class bs_cv
+#'
+#' @export
 print.bs_cv <- function(res){
-  cat("\nBest params:\n\n")
+  cat("\nBest parameters:\n\n")
   cat("-> Lambda: ", res$cv_lambda, "\n")
   cat("-> Delta : ", res$cv_delta, "\n")
   cat("-> Gamma : ", res$cv_gamma, "\n")
