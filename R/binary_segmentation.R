@@ -11,8 +11,7 @@
 #' @param lambda Sparsity penality parameter in single lasso fits.
 #' @param method Which method should be used for fitting the model? See defaults for possible choices.
 #' @param penalize_diagonal Boolean, should the diagonal elements of the precision matrix be penalized?
-#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters
-#' in the latter it controls the total objective value.
+#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.
 #' @param optimizer
 #' @param control
 #'
@@ -97,6 +96,7 @@ BinarySegmentation <- function(x, delta, lambda,
 #'
 #' @inheritParams BinarySegmentation
 #' @param SegmentLossFUN A loss function as created by \code{\link{SegmentLoss}}
+#'
 FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary_search", "section_search"), control, SegmentLossFUN) {
   opt <- match.arg(optimizer)
 
