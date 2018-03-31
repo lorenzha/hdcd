@@ -88,6 +88,7 @@ CrossValidation <- function(x,
       res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
       rss_gamma <- numeric(length(final_gamma))
+      n_params_gamma <- numeric(length(final_gamma))
       cpts <- list()
       for (gam in seq_along(final_gamma)) {
         fit <- FullRegression(
@@ -99,6 +100,7 @@ CrossValidation <- function(x,
         segment_bounds <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
 
         rss <- 0
+        n_params <- 0
         for (seg in seq_along(fit[[1]])) {
           wi <- fit$est_coefs[[seg]]
           intercepts <- fit$est_intercepts[[seg]]
@@ -113,13 +115,15 @@ CrossValidation <- function(x,
           # dimension before and reuse it here?
           rss <- rss +
             sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
+          n_params <- n_params + length(which(wi[upper.tri(wi)] != 0))
         }
         rss_gamma[gam] <- rss / n_g
+        n_params_gamma[gam] <- n_params
         cpts[[gam]] <- segment_bounds
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
-      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, rss = rss_gamma, cpts = cpts)
+      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, rss = rss_gamma, cpts = cpts, n_params = n_params_gamma)
     }
 
   res <- data.frame()
@@ -131,7 +135,8 @@ CrossValidation <- function(x,
                               lambda = r[["lambda"]],
                               delta = r[["delta"]],
                               gamma = r[["gamma"]],
-                              rss = r[["rss"]])
+                              rss = r[["rss"]],
+                              n_params = r[["n_params"]])
         # Need to assign those separately since it is a list
         new_res$cpts <- r[["cpts"]]
         res <- rbind(res, new_res)
@@ -170,18 +175,21 @@ plot.bs_cv <- function(results, show_legend = T) {
                                           lambda = formatC(x[["lambda"]], format = "e", digits = 2),
                                           gamma = x[["rss"]][,1],
                                           rss = rowMeans(x[["rss"]][,-1]),
+                                          n_params = rowMeans(x[["n_params"]][,-1]),
                                           n_cpts = 0)
                              else
                                data.frame(delta = factor(x[["delta"]]),
                                           lambda = formatC(x[["lambda"]], format = "e", digits = 2),
                                           gamma = x[["rss"]][,1],
                                           rss = rowMeans(x[["rss"]][,-1]),
+                                          n_params = rowMeans(x[["n_params"]][,-1]),
                                           n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2))))) #substract first and last segment boundary
 
-  res_long <- reshape2::melt(res_long, measure.vars = c("rss", "n_cpts"), value.name = "value", variable.name = "metric")
+  res_long <- reshape2::melt(res_long, measure.vars = c("rss", "n_cpts", "n_params"), value.name = "value", variable.name = "metric")
 
   metrics_names <- c(
-    "rss" = "loss",
+    "n_params" = "# of parameters",
+    "rss" = "cv-loss",
     "n_cpts" = "# of changepoints"
   )
 
@@ -218,6 +226,7 @@ SolutionPaths <- function(dat){
   dat <- dat[order(dat$gamma), ]
   list(lambda = dat$lambda[1], delta = dat$delta[1],
        rss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "rss")),
+       n_params = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "n_params")),
        cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA)))
 }
 
