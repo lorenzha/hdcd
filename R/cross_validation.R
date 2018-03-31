@@ -155,55 +155,62 @@ CrossValidation <- function(x,
 #'
 #' @param cv_results An object of class \strong{bs_cv}
 #'
+#' @importFrom grDevices rainbow
+#' @importFrom reshape2 melt
+#' @importFrom latex2exp TeX
+#' @import ggplot2
+#'
 #' @export
-plot.bs_cv <- function(results, show_legend = T, ...) {
-  res <- results[["cv_results"]]
-
+plot.bs_cv <- function(results, show_legend = T) {
 
   res_long <- do.call(rbind,
-                      lapply(res,
+                      lapply(results[["cv_results"]],
                              function(x) if (nrow(x[["cpts"]]) == 1)
-                               data.frame(delta = x[["delta"]],
-                                          lambda = x[["lambda"]],
+                               data.frame(delta = factor(x[["delta"]]),
+                                          lambda = formatC(x[["lambda"]], format = "e", digits = 2),
                                           gamma = x[["rss"]][,1],
                                           rss = rowMeans(x[["rss"]][,-1]),
-                                          n_cpts = 0,
-                                          key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2), sep = "/"))
+                                          n_cpts = 0)
                              else
-                              data.frame(delta = x[["delta"]],
-                                                    lambda = x[["lambda"]],
-                                                    gamma = x[["rss"]][,1],
-                                                    rss = rowMeans(x[["rss"]][,-1]),
-                                                    n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2)), #substract first and last segment boundary
-                                                    key = paste(x[["delta"]], formatC(x[["lambda"]], format = "e", digits = 2), sep = "/"))))
-  levs <- levels(res_long$key)
-  cols <- rainbow(length(levs))
+                               data.frame(delta = factor(x[["delta"]]),
+                                          lambda = formatC(x[["lambda"]], format = "e", digits = 2),
+                                          gamma = x[["rss"]][,1],
+                                          rss = rowMeans(x[["rss"]][,-1]),
+                                          n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2))))) #substract first and last segment boundary
 
-  leg <- formatC(res_long$lambda, format = "e", digits = 2)
+  res_long <- reshape2::melt(res_long, measure.vars = c("rss", "n_cpts"), value.name = "value", variable.name = "metric")
 
-  op <- par(mfrow = c(2,1), xpd=TRUE)
-  par(mar = c(1,5,4,2))
-  plot(res_long$gamma, res_long$rss, type = "n", axes = F, ylab = "loss", xlab ="", ...)
-  axis(side = 2)
-  if(show_legend){
-    legend("top", legend = levs, ncol = ceiling(length(levs)/4), inset = c(0, - 0.3),
-            lty = 1, bty = "n", col = cols, cex = 0.8)
-  }
-  box()
-  for (i in seq_along(levs)){
-    plot_dat <- res_long[res_long$key == levs[i], ]
-    lines(plot_dat[, "gamma"], plot_dat[, "rss"], col = cols[i], type = "s", xlim = c(min(plot_dat[, "gamma"]), max(plot_dat[, "gamma"])))
-  }
+  metrics_names <- c(
+    "rss" = "loss",
+    "n_cpts" = "# of changepoints"
+  )
 
-  par(mar = c(5,5,0,2))
-  plot(res_long$gamma, res_long$n_cpts, type = "n", axes = F, ylab = "# of changepoints", xlab = expression(gamma), ...)
-  axis(side = 2)
-  axis(side = 1)
-  box()
-  for (i in seq_along(levs)){
-    plot_dat <- res_long[res_long$key == levs[i], ]
-    lines(plot_dat[, "gamma"], plot_dat[, "n_cpts"], col = cols[i], type = "s")
-  }
+  if (show_legend)
+    l_pos <- "bottom"
+  else
+    l_pos <- "none"
+
+  ggplot(res_long) +
+    geom_line(aes(x = gamma, y = value, color = lambda , linetype = delta)) +
+    ylab("") +
+    xlab(latex2exp::TeX("$\\gamma$")) +
+    theme_minimal() +
+    theme(legend.position = l_pos,
+          axis.text = element_text(size=14, colour = "black"),
+          strip.text = element_text(size=14, colour = "black"),
+          legend.text = element_text(size = 9),
+          axis.title = element_text(size = 14),
+                   strip.background = element_rect(colour=NA, fill=NA),
+                   strip.placement = "outside") +
+    facet_grid(metric~., scales = "free_y", switch = "y", labeller = labeller(metric = metrics_names)) +
+    scale_colour_manual(values=grDevices::rainbow(length(levels(res_long$lambda))),
+                                 name=latex2exp::TeX("$\\lambda$"),
+                                 breaks=levels(res_long$lambda),
+                                 labels=levels(res_long$lambda))+
+    scale_linetype_manual(values=seq(1:length(levels(res_long$delta))),
+                                   name=latex2exp::TeX("$\\delta$"),
+                                   breaks=levels(res_long$delta),
+                                   labels=levels(res_long$delta))
 }
 
 
