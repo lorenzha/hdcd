@@ -232,6 +232,7 @@ RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power =
     for (i in seq(1, n_nodes)){
 
     probs <- colSums(omega != 0)^preferential_power
+    if (sum(probs) == 0 | any(is.na(probs))) probs <- rep(1, p)
     probs <- probs / sum(probs)
 
     edges <- sample.int(p, 1, prob = probs)
