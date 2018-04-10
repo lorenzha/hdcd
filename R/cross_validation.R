@@ -1,24 +1,26 @@
 #' CrossValidation
 #'
-#' EXPERIMENTAL. Crossvalidation for the desired method and parameter combinations.
+#' Cross-validation for the desired method and parameter combinations.
+#'
 #' Evaluating different lambda values will lead to refitting the entire model whereas gamma values can be evaluted cheaply using a
-#' single fit.
+#' single fit. Suitable values for lambda as well as gamma are choosen automatically if they are not supplied.
 #'
 #' Will make use of a registered parallel backend over the folds and lambda values. Therefore the whole cross-validation will make
-#' use even of a high number of compute nodes (up to number of folds times number of lambda values) efficiently.
+#' use even of a high number of compute nodes (up to number of folds times number of lambda values).
 #'
 #' @inheritParams BinarySegmentation
 #' @param n_folds Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.
-#' @param gamma If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
-#' difference between the full segment loss and the loss of the first split.
-#' @param verbose If TRUE additional information will be printed.
+#' @param lambda_min_ratio Numeric value between 0 and 1. If the \eqn{\lambda_max} is determined internally this will pick \eqn{\lambda_min = lambda_min_ratio * \lambda_max}.
+#' @param lambda_grid_size Integer value determining the number of values between \eqn{\lambda_min} and \eqn{\lambda_max} to will be equally spaced on a logarithmic scale.
+#' @param gamma Numeric value or vector. If NULL the full solution path for gamma will be caluclated for every combination of \eqn{\lambda} and \eqn{\delta}
+#' @param verbose Boolean. If TRUE additional information will be printed.
 #'
-#' @return A nested list with the cv results and the full fitted models for each gamm, lambda combination.
+#' @return A nested list with the cv results and the full fitted models for each combination of \eqn{\delta}, \eqn{lambda} and \eqn{gamma} combination.
 #' @export
 #'
 #' @examples
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
-#' CrossValidation(dat, delta = 0.1, method = "summed_regression")
+#' CrossValidation(dat, method = "summed_regression")
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,
