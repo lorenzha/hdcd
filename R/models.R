@@ -208,6 +208,8 @@ RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power =
   d <- diag(omega)
   diag(omega) <- 0
 
+  n_nodes <- floor(n_nodes)
+
   p <- ncol(omega)
 
   # prune
