@@ -3,7 +3,6 @@
 #' Uses the binary segmentation algorithmn in order to build a binary tree. The tree can then be pruned in order to obtain
 #' a changepoint estimate.
 #'
-#' @inheritParams TernarySearch
 #' @param x A n times p data matrix.
 #' @param delta Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 #' proportional to the size of the dataset and hence an upper bound for the number of changepoints.
@@ -15,7 +14,6 @@
 #'   \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
 #' }
 #' @param penalize_diagonal Boolean, should the diagonal elements of the precision matrix be penalized?
-#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.
 #' @param optimizer Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
 #' \itemize{
 #'   \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
@@ -27,6 +25,10 @@
 #'   \item stepsize: Numeric value between 0 and 0.5. Used by section search.
 #'   \item intervals: Integer value larger than 3. Used by ternary search.
 #' }
+#' @param standardize Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.
+#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.
+#' @param verbose Boolean. If TRUE additional information will be printed.
+#'
 #' @return An object of class \strong{bs_tree}.
 #' @export
 #'
