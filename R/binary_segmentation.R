@@ -1,21 +1,33 @@
 #' BinarySegmentation
 #'
-#' Uses the binary segmentation algorithmn in order to build a binary tree of the data sequence
-#' and given tuning parameters lambda and delta recursively. The tree can then be pruned in order to obtain
+#' Uses the binary segmentation algorithmn in order to build a binary tree. The tree can then be pruned in order to obtain
 #' a changepoint estimate.
 #'
 #' @inheritParams TernarySearch
 #' @param x A n times p data matrix.
-#' @param delta Value between 0 and 0.5. Tuning param which determines the minimal segment size
+#' @param delta Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 #' proportional to the size of the dataset and hence an upper bound for the number of changepoints.
-#' @param lambda Sparsity penality parameter in single lasso fits.
-#' @param method Which method should be used for fitting the model? See defaults for possible choices.
+#' @param lambda Positive numeric value. This is the regularization parameter in the single Lasso fits.
+#' @param method Which estimator should be used? Possible choices are
+#' \itemize{
+#'   \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
+#'   \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
+#'   \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
+#' }
 #' @param penalize_diagonal Boolean, should the diagonal elements of the precision matrix be penalized?
-#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.
-#' @param optimizer
-#' @param control
-#'
-#' @return An object of class \strong{bs_tree}
+#' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.
+#' @param optimizer Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
+#' \itemize{
+#'   \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
+#'   \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
+#'   \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
+#' }
+#' @param control A list with parameters that is accessed by the optimizer.
+#' \itemize{
+#'   \item stepsize: Numeric value between 0 and 0.5. Used by section search.
+#'   \item intervals: Integer value larger than 3. Used by ternary search.
+#' }
+#' @return An object of class \strong{bs_tree}.
 #' @export
 #'
 #' @examples
