@@ -28,6 +28,7 @@
 #' @param standardize Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.
 #' @param threshold The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.
 #' @param verbose Boolean. If TRUE additional information will be printed.
+#' @param ... Supply additional arguments for a specific method (e.g. p for nodewise_regression)
 #'
 #' @return An object of class \strong{bs_tree}.
 #' @export
