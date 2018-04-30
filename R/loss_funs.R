@@ -38,7 +38,7 @@ SegmentLoss <- function(n_obs,
   mth <- match.arg(method)
 
   if (mth == "nodewise_regression") {
-    p <- args[["P"]]
+    p <- args[["node"]]
     stopifnot(length(p) == 1 && is.numeric(p))
   }
 
