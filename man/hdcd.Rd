@@ -14,33 +14,50 @@ hdcd(x, delta = 0.1, lambda = NULL, lambda_min_ratio = 0.01,
 \arguments{
 \item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
+\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{lambda}{Sparsity penality parameter in single lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
 
-\item{lambda_grid_size}{Number of values for which lambda should be evaluated from lambda_min to lambda_max.}
-
-\item{gamma}{Split penalty parameter for pruning the tree. If NULL k-fold cross-validation will be conducted.}
-
-\item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
+\item{method}{Which estimator should be used? Possible choices are
+\itemize{
+  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
+  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
+  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
+}}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{control}{}
+\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
+\itemize{
+  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
+  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
+  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
+}}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.}
+\item{control}{A list with parameters that is accessed by the optimizer.
+\itemize{
+  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
+  \item intervals: Integer value larger than 3. Used by ternary search.
+}}
 
-\item{n_folds}{Number of folds in cross validation. Default is 10.}
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
 
-\item{verbose}{Should additional information be printed?}
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+
+\item{verbose}{Boolean. If TRUE additional information will be printed.}
 
 \item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
-
-\item{lambda_min}{Minimal value for lambda when performing cross-validation.}
 }
 \value{
-The indices of the found changepoints in the sequence
+For a single fit:
+
+\describe{
+  \item{One}{First item}
+  \item{Two}{Second item}
+}
+
+If only a single fit was performed a list with the found changepoints as well as the fully grown binary tree are returned. For cross-validation the a list with the found changepopints, the optimal parameter values and the full results is returned.
 }
 \description{
 High Dimensional Changepoint Detection

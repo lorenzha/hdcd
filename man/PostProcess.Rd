@@ -11,12 +11,17 @@ PostProcess(x, cpts, delta, lambda, method)
 
 \item{cpts}{A numeric vector containing the found changepoints. Can be of length zero if no changepoints have been found.}
 
-\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
+\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{lambda}{Sparsity penality parameter in single lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
 
-\item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
+\item{method}{Which estimator should be used? Possible choices are
+\itemize{
+  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
+  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
+  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
+}}
 }
 \value{
 A nuemric vector containing the final segment boundaries

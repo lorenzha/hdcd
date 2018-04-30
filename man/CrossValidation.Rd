@@ -14,39 +14,63 @@ CrossValidation(x, delta = c(0.1, 0.25), lambda = NULL,
 \arguments{
 \item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
+\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{lambda}{Sparsity penality parameter in single lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
 
-\item{gamma}{If NULL the range of gamma will be determined by doing an extra fit on the full model and taking the
-difference between the full segment loss and the loss of the first split.}
+\item{lambda_min_ratio}{Numeric value between 0 and 1. If the \eqn{\lambda_max} is determined internally this will pick \eqn{\lambda_min = lambda_min_ratio * \lambda_max}.}
+
+\item{lambda_grid_size}{Integer value determining the number of values between \eqn{\lambda_min} and \eqn{\lambda_max} to will be equally spaced on a logarithmic scale.}
+
+\item{gamma}{Numeric value or vector. If NULL the full solution path for gamma will be caluclated for every combination of \eqn{\lambda} and \eqn{\delta}}
 
 \item{n_folds}{Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.}
 
-\item{method}{Which method should be used for fitting the model? See defaults for possible choices.}
+\item{method}{Which estimator should be used? Possible choices are
+\itemize{
+  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
+  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
+  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
+}}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
 
-\item{control}{}
+\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
+\itemize{
+  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
+  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
+  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
+}}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the change of single parameters in the latter it controls the total objective value.}
+\item{control}{A list with parameters that is accessed by the optimizer.
+\itemize{
+  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
+  \item intervals: Integer value larger than 3. Used by ternary search.
+}}
 
-\item{verbose}{If TRUE additional information will be printed.}
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
+
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+
+\item{verbose}{Boolean. If TRUE additional information will be printed.}
+
+\item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
 }
 \value{
-A nested list with the cv results and the full fitted models for each gamm, lambda combination.
+A nested list with the cv results and the full fitted models for each combination of \eqn{\delta}, \eqn{lambda} and \eqn{gamma} combination.
 }
 \description{
-EXPERIMENTAL. Crossvalidation for the desired method and parameter combinations.
-Evaluating different lambda values will lead to refitting the entire model whereas gamma values can be evaluted cheaply using a
-single fit.
+Cross-validation for the desired method and parameter combinations.
 }
 \details{
+Evaluating different lambda values will lead to refitting the entire model whereas gamma values can be evaluted cheaply using a
+single fit. Suitable values for lambda as well as gamma are choosen automatically if they are not supplied.
+
 Will make use of a registered parallel backend over the folds and lambda values. Therefore the whole cross-validation will make
-use even of a high number of compute nodes (up to number of folds times number of lambda values) efficiently.
+use even of a high number of compute nodes (up to number of folds times number of lambda values).
 }
 \examples{
 dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
-CrossValidation(dat, delta = 0.1, method = "summed_regression")
+CrossValidation(dat, method = "summed_regression")
 }

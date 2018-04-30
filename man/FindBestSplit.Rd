@@ -10,10 +10,21 @@ FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "ternary_search",
 \arguments{
 \item{x}{A n times p data matrix.}
 
-\item{delta}{Value between 0 and 0.5. Tuning param which determines the minimal segment size
+\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
-\item{control}{}
+\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
+\itemize{
+  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
+  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
+  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
+}}
+
+\item{control}{A list with parameters that is accessed by the optimizer.
+\itemize{
+  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
+  \item intervals: Integer value larger than 3. Used by ternary search.
+}}
 
 \item{SegmentLossFUN}{A loss function as created by \code{\link{SegmentLoss}}}
 }
