@@ -81,16 +81,16 @@ SectionSearch <- function() {
   # Initialize the cache
   cache_reset()
 
-  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, stepsize = 0.1) {
+  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, intervals = 3, stepsize = 0.1) {
     step <- (right - left) * stepsize
 
     # If no mid point is supplied start randomly left or right
     if (missing(mid)) {
-      mid <- if (runif(1) <= 0.5) ceiling(right - step) else floor(left + step)
+      mid <- if (runif(1) <= 0.5) floor(right - step) else ceiling(left + step)
     }
 
     # Stopping condition for recursion
-    if (step < 1) {
+    if (abs(left - right) < intervals) {
 
       # Check all remaining points for the minimum
       inds <- split_candidates[left:right]
@@ -116,7 +116,7 @@ SectionSearch <- function() {
     f_mid <- f(mid)
 
     if (mid - left < right - mid) {
-      new <- ceiling(right - step)
+      new <- floor(right - step)
       f_new <- f(new)
       if (f_new > f_mid) {
         RecFUN(
@@ -131,7 +131,7 @@ SectionSearch <- function() {
       }
     }
     else {
-      new <- floor(left + step)
+      new <- ceiling(left + step)
       f_new <- f(new)
       if (f_new > f_mid) {
         RecFUN(

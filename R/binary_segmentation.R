@@ -144,6 +144,7 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
     },
     "section_search" = {
       rec <- SectionSearch()
+      intervals <- control[["intervals"]]
       stepsize <- control[["stepsize"]]
       if (is.null(stepsize) || stepsize <= 0)
         stepsize <- 0.1 # set default value if necessary
