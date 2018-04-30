@@ -20,7 +20,9 @@
 #'
 #' @examples
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
+#' \dontrun{
 #' CrossValidation(dat, method = "summed_regression")
+#' }
 CrossValidation <- function(x,
                             delta = c(0.1, 0.25),
                             lambda = NULL,

@@ -3,19 +3,33 @@
 #' High Dimensional Changepoint Detection
 #'
 #' @inheritParams BinarySegmentation
-#' @param lambda_min Minimal value for lambda when performing cross-validation.
-#' @param lambda_grid_size Number of values for which lambda should be evaluated from lambda_min to lambda_max.
-#' @param gamma Split penalty parameter for pruning the tree. If NULL k-fold cross-validation will be conducted.
-#' @param n_folds Number of folds in cross validation. Default is 10.
-#' @param verbose Should additional information be printed?
-#' @param ... Supply additional arguments for a specific method (e.g. p for nodewise_regression)
+#' @inheritParams CorssValidation
 #'
-#' @return The indices of the found changepoints in the sequence
+#' @return For a single fit a list with elements
+#'
+#' \describe{
+#'   \item{changepoints}{A numeric list with the indices of the changepoints}
+#'   \item{tree}{The fully grown binary tree}
+#' }
+#'
+#' For cross-validation a list with elements
+#'
+#' #' \describe{
+#'   \item{changepoints}{A numeric list with the indices of the changepoints}
+#'   \item{cv_results}{A multi-dimensional array with the cross-validation results}
+#'   \item{cv_gamma}{Best gamma value}
+#'   \item{cv_lambda}{Best lambda value}
+#'   \item{cv_delta}{Best delta value}
+#' }
+#'
+#' If only a single fit was performed a list with the found changepoints as well as the fully grown binary tree are returned. For cross-validation the a list with the found changepopints, the optimal parameter values and the full results is returned.
 #' @export
 #'
 #' @examples
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
+#' \dontrun{
 #' hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
+#' }
 hdcd <- function(x,
                  delta = 0.1,
                  lambda = NULL,
