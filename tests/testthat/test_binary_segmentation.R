@@ -24,11 +24,11 @@ test_that("binary segmentation finds same changepoints as in original version", 
     c(41, 87, 129, 174, 217, 259)
   )
 
-  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "nodewise_regression", P = 10)
+  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "nodewise_regression", node = 10)
 
   expect_equal(
     PruneTreeGamma(tree, gamma = 0.05)[[1]][[1]],
-    c(52, 86, 137, 170, 225, 258)
+    c(35, 86, 136, 170, 211, 258)
   )
 })
 
@@ -55,11 +55,11 @@ test_that("split function gets split correct", {
     174
   )
 
-  loss_fun <- SegmentLoss(n_obs = nrow(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "nodewise_regression", P = 10)
+  loss_fun <- SegmentLoss(n_obs = nrow(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "nodewise_regression", node = 10)
 
   expect_equal(
     FindBestSplit(x = test_data, n_obs = nrow(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
-    225
+    258
   )
 })
 
@@ -86,11 +86,11 @@ test_that("ternary search finds changepoints", {
 
   tree <- BinarySegmentation(
     x = test_data, delta = 0.1, lambda = 0.01, penalize_diagonal = F,
-    optimizer = "ternary_search", method = "nodewise_regression", P = 10
+    optimizer = "ternary_search", method = "nodewise_regression", node = 10
   )
 
   expect_equal(
     PruneTreeGamma(tree, gamma = 0.05)[[1]][[1]],
-    c(52, 88, 135, 171, 212, 263)
+    c(52, 88, 135, 169, 206, 263)
   )
 })
