@@ -43,7 +43,7 @@ hdcd <- function(x,
                  standardize = T,
                  threshold = 1e-7,
                  n_folds = 10,
-                 verbose = F,
+                 verbose = T,
                  parallel = T,
                  ...) {
   stopifnot(nrow(x) > 1)
