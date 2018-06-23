@@ -82,10 +82,10 @@ SectionSearch <- function() {
   cache_reset()
 
   function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, min_points = 3, stepsize = 0.1) {
-    step <- (right - left) * stepsize
 
     # If no mid point is supplied start randomly left or right
     if (missing(mid)) {
+      step <- (right - left) * stepsize
       mid <- if (runif(1) <= 0.5) floor(right - step) else ceiling(left + step)
     }
 
@@ -116,6 +116,7 @@ SectionSearch <- function() {
     f_mid <- f(mid)
 
     if (mid - left < right - mid) {
+      step <- (right - mid) * stepsize
       new <- floor(right - step)
       f_new <- f(new)
       if (f_new > f_mid) {
@@ -131,6 +132,7 @@ SectionSearch <- function() {
       }
     }
     else {
+      step <- (mid - left) * stepsize
       new <- ceiling(left + step)
       f_new <- f(new)
       if (f_new > f_mid) {
