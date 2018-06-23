@@ -1,4 +1,4 @@
-# hdcd - High dimensional changepoint detection
+# hdcd - high dimensional changepoint detection
 
 This is the development version of the hdcd package. It is still very work in progress
 and not meant for public use yet.
