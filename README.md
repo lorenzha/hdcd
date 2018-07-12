@@ -1,5 +1,7 @@
 # hdcd - high dimensional changepoint detection
 
+[![Build Status](https://travis-ci.com/lorenzha/hdcd.svg?branch=master)](https://travis-ci.com/lorenzha/hdcd)
+
 This is the development version of the hdcd package. It is still very work in progress
 and not meant for public use yet.
 
