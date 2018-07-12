@@ -32,14 +32,14 @@ SimulateFromModel <- function(model) {
 #' @param p Number of dimensions
 #' @param equispaced If TRUE, the segments will be of equal length (up to rounding) and hence the changepoints will be equispaced.
 #' Otherwise the changepoints will be drawn randomly and the distance between them will differ.
-#' @param mean_zero If TRUE, the mean for each segment will be zero.
-#' Otherwise it will be sampled from a standard normal distribution for each segment.
+#' @param mean_vecs If NULL, the mean for each segment will be zero.
+#' Otherwise mean_vecs should be a list containing a p-dimensional numeric vector with the means for each segment.
 #' @param modelFUN A function that spawns covariance matrices of dimension p.
 #' @param ... Addtional arguments to be supplied to modelFUN
 #'
 #' @return An object to be used by \link{SimulateFromModel}
 #' @export
-CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_zero = T, ...) {
+CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = NULL, ...) {
   model_args <- list(...)
 
   if (equispaced) {
@@ -49,9 +49,13 @@ CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_zero = 
     changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
     segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
   }
-  segment_means <- replicate(n_segments, rep(if (mean_zero) 0 else rnorm(1), p), simplify = F)
-  cov_mats <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
 
+  if (is.null(mean_vecs))
+    segment_means <- replicate(n_segments, rep(0, p), simplify = F)
+  else
+    segment_means <- mean_vecs
+
+  cov_mats <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
 
   list(
     segment_lengths = segment_lengths,
