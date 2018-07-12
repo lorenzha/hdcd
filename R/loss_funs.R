@@ -21,12 +21,6 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' @inheritParams BinarySegmentation
 #'
 #' @return A parametrized loss function
-#'
-#' @examples
-#' dat <- SimulateFromModel(CreateModel(n_segments = 1,n = 100,p = 30, ChainNetwork))
-#' lossFUN <- SegmentLoss(100, 0.1, F, method = "summed_regression")
-#' lossFUN
-#' lossFUN(dat)
 SegmentLoss <- function(n_obs,
                         lambda,
                         penalize_diagonal = FALSE,
