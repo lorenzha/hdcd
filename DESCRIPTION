@@ -4,7 +4,7 @@ Title: High-dimensional Changepoint Detection
 Version: 0.2.0
 Author: Lorenz Haubner
 Maintainer: Lorenz Haubner <lorenz.haubner@gmail.com>
-Description: The hdcd (high-dimensional changepoint detection) package implements different variants of the binary segmentation algorithm for changepoint detection in large scale high-dimensional data.
+Description: The hdcd (high-dimensional changepoint detection) package implements fast algorithms for changepoint detection in large scale, high-dimensional data.
 License: Apache License Version 2.0
 Encoding: UTF-8
 LazyData: true
