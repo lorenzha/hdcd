@@ -34,12 +34,6 @@ This closure returns a function which calculates the loss for the given segment 
 }
 \details{
 Depending on the desired method and the tuning parameters a different loss function will be parametrized and returned.
-If method \emph{nodewise_regression} is selected, additional argument \emph{P} can be supplied to determine on which node (dimension)
+If method \emph{nodewise_regression} is selected, the additional argument \emph{node} must be supplied to determine on which node (dimension)
 it should be performed.
-}
-\examples{
-dat <- SimulateFromModel(CreateModel(n_segments = 1,n = 100,p = 30, ChainNetwork))
-lossFUN <- SegmentLoss(100, 0.1, F, method = "summed_regression")
-lossFUN
-lossFUN(dat)
 }

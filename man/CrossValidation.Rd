@@ -71,6 +71,8 @@ Will make use of a registered parallel backend over the folds and lambda values.
 use even of a high number of compute nodes (up to number of folds times number of lambda values).
 }
 \examples{
+\dontrun{
 dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
 CrossValidation(dat, method = "summed_regression")
+}
 }

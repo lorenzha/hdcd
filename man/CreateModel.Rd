@@ -4,7 +4,8 @@
 \alias{CreateModel}
 \title{CreateModel}
 \usage{
-CreateModel(n_segments, n, p, modelFUN, equispaced = T, mean_zero = T, ...)
+CreateModel(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = NULL,
+  ...)
 }
 \arguments{
 \item{n_segments}{Number of segments in the model. There will be one less changepoints than segments.}
@@ -18,8 +19,8 @@ CreateModel(n_segments, n, p, modelFUN, equispaced = T, mean_zero = T, ...)
 \item{equispaced}{If TRUE, the segments will be of equal length (up to rounding) and hence the changepoints will be equispaced.
 Otherwise the changepoints will be drawn randomly and the distance between them will differ.}
 
-\item{mean_zero}{If TRUE, the mean for each segment will be zero.
-Otherwise it will be sampled from a standard normal distribution for each segment.}
+\item{mean_vecs}{If NULL, the mean for each segment will be zero.
+Otherwise mean_vecs should be a list containing a p-dimensional numeric vector with the means for each segment.}
 
 \item{...}{Addtional arguments to be supplied to modelFUN}
 }

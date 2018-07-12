@@ -9,7 +9,7 @@ hdcd(x, delta = 0.1, lambda = NULL, lambda_min_ratio = 0.01,
   "summed_regression", "ratio_regression"), penalize_diagonal = F,
   optimizer = c("line_search", "ternary_search", "section_search"),
   control = NULL, standardize = T, threshold = 1e-07, n_folds = 10,
-  verbose = F, parallel = T, ...)
+  verbose = T, parallel = T, ...)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
@@ -50,11 +50,21 @@ proportional to the size of the dataset and hence an upper bound for the number 
 \item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
 }
 \value{
-For a single fit:
+For a single fit a list with elements
 
 \describe{
-  \item{One}{First item}
-  \item{Two}{Second item}
+  \item{changepoints}{A numeric list with the indices of the changepoints}
+  \item{tree}{The fully grown binary tree}
+}
+
+For cross-validation a list with elements
+
+#' \describe{
+  \item{changepoints}{A numeric list with the indices of the changepoints}
+  \item{cv_results}{A multi-dimensional array with the cross-validation results}
+  \item{cv_gamma}{Best gamma value}
+  \item{cv_lambda}{Best lambda value}
+  \item{cv_delta}{Best delta value}
 }
 
 If only a single fit was performed a list with the found changepoints as well as the fully grown binary tree are returned. For cross-validation the a list with the found changepopints, the optimal parameter values and the full results is returned.
@@ -64,5 +74,7 @@ High Dimensional Changepoint Detection
 }
 \examples{
 dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
+\dontrun{
 hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
+}
 }
