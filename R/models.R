@@ -150,7 +150,6 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
 #' @return
 #' @export
 #'
-#' @examples
 MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
   if (share_moves == 0) return(prec_mat)
 
