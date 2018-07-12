@@ -19,6 +19,12 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
 
+\item{lambda_min_ratio}{Numeric value between 0 and 1. If the \eqn{\lambda_max} is determined internally this will pick \eqn{\lambda_min = lambda_min_ratio * \lambda_max}.}
+
+\item{lambda_grid_size}{Integer value determining the number of values between \eqn{\lambda_min} and \eqn{\lambda_max} to will be equally spaced on a logarithmic scale.}
+
+\item{gamma}{Numeric value or vector. If NULL the full solution path for gamma will be caluclated for every combination of \eqn{\lambda} and \eqn{\delta}}
+
 \item{method}{Which estimator should be used? Possible choices are
 \itemize{
   \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
@@ -44,6 +50,8 @@ proportional to the size of the dataset and hence an upper bound for the number 
 \item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
 
 \item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+
+\item{n_folds}{Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.}
 
 \item{verbose}{Boolean. If TRUE additional information will be printed.}
 

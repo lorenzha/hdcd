@@ -110,6 +110,7 @@ BinarySegmentation <- function(x, delta, lambda,
 #' as well as the loss for each candidate.
 #'
 #' @inheritParams BinarySegmentation
+#' @n_obs The number of observations in the data set.
 #' @param SegmentLossFUN A loss function as created by \code{\link{SegmentLoss}}
 #'
 FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary_search", "section_search"), control, SegmentLossFUN) {

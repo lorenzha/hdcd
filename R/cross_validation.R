@@ -13,6 +13,7 @@
 #' @param lambda_min_ratio Numeric value between 0 and 1. If the \eqn{\lambda_max} is determined internally this will pick \eqn{\lambda_min = lambda_min_ratio * \lambda_max}.
 #' @param lambda_grid_size Integer value determining the number of values between \eqn{\lambda_min} and \eqn{\lambda_max} to will be equally spaced on a logarithmic scale.
 #' @param gamma Numeric value or vector. If NULL the full solution path for gamma will be caluclated for every combination of \eqn{\lambda} and \eqn{\delta}
+#' @param parallel If TRUE and a parallel backend is registered, the cross-validation will be performed in parallel.
 #' @param verbose Boolean. If TRUE additional information will be printed.
 #'
 #' @return A nested list with the cv results and the full fitted models for each combination of \eqn{\delta}, \eqn{lambda} and \eqn{gamma} combination.
