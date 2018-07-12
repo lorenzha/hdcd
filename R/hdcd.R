@@ -3,7 +3,7 @@
 #' High Dimensional Changepoint Detection
 #'
 #' @inheritParams BinarySegmentation
-#' @inheritParams CorssValidation
+#' @inheritParams CrossValidation
 #'
 #' @return For a single fit a list with elements
 #'
