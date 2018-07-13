@@ -9,6 +9,8 @@ SegmentLoss(n_obs, lambda, penalize_diagonal = FALSE, standardize = TRUE,
   "ratio_regression", "glasso"), ...)
 }
 \arguments{
+\item{n_obs}{Total number of observations}
+
 \item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
@@ -24,7 +26,7 @@ SegmentLoss(n_obs, lambda, penalize_diagonal = FALSE, standardize = TRUE,
   \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
 }}
 
-\item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
+\item{...}{Further arguments supplied to the select method.}
 }
 \value{
 A parametrized loss function

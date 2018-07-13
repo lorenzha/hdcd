@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{A data.tree node.}
+
+\item{...}{Further arguments passed to print generic.}
 }
 \description{
 S3 method for printing a bs_tree object.

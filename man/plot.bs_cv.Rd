@@ -8,6 +8,10 @@
 }
 \arguments{
 \item{x}{An object of class \strong{bs_cv}}
+
+\item{...}{Only included to be consist with plot generic.}
+
+\item{show_legend}{If TRUE the legend is shown on the bottom of the plot.}
 }
 \description{
 S3 method for plotting the results of cross-validation.

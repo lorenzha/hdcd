@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{Object of class bs_cv}
+
+\item{...}{Only included to be consist with print generic.}
 }
 \description{
 Print method for objects of class bs_cv
