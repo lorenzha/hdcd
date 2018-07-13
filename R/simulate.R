@@ -50,10 +50,11 @@ CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = 
     segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
   }
 
-  if (is.null(mean_vecs))
+  if (is.null(mean_vecs)) {
     segment_means <- replicate(n_segments, rep(0, p), simplify = F)
-  else
+  } else {
     segment_means <- mean_vecs
+  }
 
   cov_mats <- replicate(n_segments, do.call(modelFUN, c(list(p = p), model_args)), simplify = F)
 

@@ -137,18 +137,20 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
     },
     "ternary_search" = {
       intervals <- control[["intervals"]]
-      if (is.null(intervals) || !all.equal(intervals, as.integer(intervals)))
-        intervals <- 3 # set default value if necessary
+      if (is.null(intervals) || !all.equal(intervals, as.integer(intervals))) {
+        intervals <- 3
+      }  # set default value if necessary
       result <- TernarySearch(
         split_candidates, 1, length(split_candidates), x, SegmentLossFUN, intervals
-        )
+      )
     },
     "section_search" = {
       rec <- SectionSearch()
       min_points <- control[["min_points"]]
       stepsize <- control[["stepsize"]]
-      if (is.null(stepsize) || stepsize <= 0)
-        stepsize <- 0.1 # set default value if necessary
+      if (is.null(stepsize) || stepsize <= 0) {
+        stepsize <- 0.1
+      }  # set default value if necessary
       result <- rec(
         split_candidates, left = 1, right = length(split_candidates), x = x,
         SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize,

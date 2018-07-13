@@ -60,7 +60,7 @@ CrossValidation <- function(x,
   if (is.null(lambda)) {
     cov_mat <- cov(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
-    lambda <- LogSpace(lambda_min_ratio*lambda_max, lambda_max, length.out = lambda_grid_size)
+    lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
   }
   n_lambdas <- length(lambda)
 
@@ -85,7 +85,7 @@ CrossValidation <- function(x,
         standardize = standardize, ...
       )
 
-      if(is.null(gamma)){
+      if (is.null(gamma)) {
         final_gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
         final_gamma <- final_gamma[which(final_gamma >= 0)]
       } else {
@@ -138,12 +138,14 @@ CrossValidation <- function(x,
     for (lam in seq_len(n_lambdas)) {
       for (del in seq_len(n_delta)) {
         r <- cv_results[[fold]][[del]][[lam]]
-        new_res <- data.frame(fold = r[["fold"]],
-                              lambda = r[["lambda"]],
-                              delta = r[["delta"]],
-                              gamma = r[["gamma"]],
-                              rss = r[["rss"]],
-                              n_params = r[["n_params"]])
+        new_res <- data.frame(
+          fold = r[["fold"]],
+          lambda = r[["lambda"]],
+          delta = r[["delta"]],
+          gamma = r[["gamma"]],
+          rss = r[["rss"]],
+          n_params = r[["n_params"]]
+        )
         # Need to assign those separately since it is a list
         new_res$cpts <- r[["cpts"]]
         res <- rbind(res, new_res)
@@ -155,9 +157,9 @@ CrossValidation <- function(x,
 
   results <- lapply(single, SolutionPaths)
 
-  opt <- do.call(rbind,lapply(results, GetOpt))
+  opt <- do.call(rbind, lapply(results, GetOpt))
 
-  list(opt = opt[which.min(opt$rss),, drop = TRUE], cv_results = results)
+  list(opt = opt[which.min(opt$rss), , drop = TRUE], cv_results = results)
 }
 
 
@@ -176,23 +178,31 @@ CrossValidation <- function(x,
 #'
 #' @export
 plot.bs_cv <- function(x, ..., show_legend = T) {
-
-  res_long <- do.call(rbind,
-                      lapply(x[["cv_results"]],
-                             function(x) if (nrow(x[["cpts"]]) == 1)
-                               data.frame(delta = factor(x[["delta"]]),
-                                          lambda = formatC(x[["lambda"]], format = "e", digits = 2),
-                                          gamma = x[["rss"]][,1],
-                                          rss = rowMeans(x[["rss"]][,-1]),
-                                          n_params = rowMeans(x[["n_params"]][,-1]),
-                                          n_cpts = 0)
-                             else
-                               data.frame(delta = factor(x[["delta"]]),
-                                          lambda = formatC(x[["lambda"]], format = "e", digits = 2),
-                                          gamma = x[["rss"]][,1],
-                                          rss = rowMeans(x[["rss"]][,-1]),
-                                          n_params = rowMeans(x[["n_params"]][,-1]),
-                                          n_cpts = rowMeans(apply(x[["cpts"]][,-1, drop = F], 2, function(x) sapply(x, length) - 2))))) #substract first and last segment boundary
+  res_long <- do.call(
+    rbind,
+    lapply(
+      x[["cv_results"]],
+      function(x) if (nrow(x[["cpts"]]) == 1) {
+          data.frame(
+            delta = factor(x[["delta"]]),
+            lambda = formatC(x[["lambda"]], format = "e", digits = 2),
+            gamma = x[["rss"]][, 1],
+            rss = rowMeans(x[["rss"]][, -1]),
+            n_params = rowMeans(x[["n_params"]][, -1]),
+            n_cpts = 0
+          )
+        } else {
+          data.frame(
+            delta = factor(x[["delta"]]),
+            lambda = formatC(x[["lambda"]], format = "e", digits = 2),
+            gamma = x[["rss"]][, 1],
+            rss = rowMeans(x[["rss"]][, -1]),
+            n_params = rowMeans(x[["n_params"]][, -1]),
+            n_cpts = rowMeans(apply(x[["cpts"]][, -1, drop = F], 2, function(x) sapply(x, length) - 2))
+          )
+        }
+    )
+  ) # substract first and last segment boundary
 
   res_long <- reshape2::melt(res_long, measure.vars = c("rss", "n_cpts", "n_params"), value.name = "value", variable.name = "metric")
 
@@ -202,50 +212,59 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
     "n_cpts" = "# of changepoints"
   )
 
-  if (show_legend)
+  if (show_legend) {
     l_pos <- "bottom"
-  else
+  } else {
     l_pos <- "none"
+  }
 
   ggplot(res_long) +
-    geom_line(aes_(x = ~gamma, y = ~value, color = ~lambda , linetype = ~delta)) +
+    geom_line(aes_(x = ~gamma, y = ~value, color = ~lambda, linetype = ~delta)) +
     ylab("") +
     xlab(latex2exp::TeX("$\\gamma$")) +
     theme_minimal() +
-    theme(legend.position = l_pos,
-          axis.text = element_text(size=14, colour = "black"),
-          strip.text = element_text(size=14, colour = "black"),
-          legend.text = element_text(size = 9),
-          axis.title = element_text(size = 14),
-                   strip.background = element_rect(colour=NA, fill=NA),
-                   strip.placement = "outside") +
+    theme(
+      legend.position = l_pos,
+      axis.text = element_text(size = 14, colour = "black"),
+      strip.text = element_text(size = 14, colour = "black"),
+      legend.text = element_text(size = 9),
+      axis.title = element_text(size = 14),
+      strip.background = element_rect(colour = NA, fill = NA),
+      strip.placement = "outside"
+    ) +
     facet_grid(metric~., scales = "free_y", switch = "y", labeller = labeller(metric = metrics_names)) +
-    scale_colour_manual(values=grDevices::rainbow(length(levels(res_long$lambda))),
-                                 name=latex2exp::TeX("$\\lambda$"),
-                                 breaks=levels(res_long$lambda),
-                                 labels=levels(res_long$lambda))+
-    scale_linetype_manual(values=seq(1:length(levels(res_long$delta))),
-                                   name=latex2exp::TeX("$\\delta$"),
-                                   breaks=levels(res_long$delta),
-                                   labels=levels(res_long$delta))
+    scale_colour_manual(
+      values = grDevices::rainbow(length(levels(res_long$lambda))),
+      name = latex2exp::TeX("$\\lambda$"),
+      breaks = levels(res_long$lambda),
+      labels = levels(res_long$lambda)
+    ) +
+    scale_linetype_manual(
+      values = seq(1:length(levels(res_long$delta))),
+      name = latex2exp::TeX("$\\delta$"),
+      breaks = levels(res_long$delta),
+      labels = levels(res_long$delta)
+    )
 }
 
 
-SolutionPaths <- function(dat){
+SolutionPaths <- function(dat) {
   dat <- dat[order(dat$gamma), ]
-  list(lambda = dat$lambda[1], delta = dat$delta[1],
-       rss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "rss")),
-       n_params = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "n_params")),
-       cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA)))
+  list(
+    lambda = dat$lambda[1], delta = dat$delta[1],
+    rss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "rss")),
+    n_params = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "n_params")),
+    cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA))
+  )
 }
 
-ImputeMatrix <- function(mat, cols = seq(2, ncol(mat))){
-  temp_mat <- mat[,cols]
+ImputeMatrix <- function(mat, cols = seq(2, ncol(mat))) {
+  temp_mat <- mat[, cols]
   for (i in seq(2, nrow(temp_mat))) {
-    for (j in seq_len(ncol(temp_mat))){
-      if (anyNA(temp_mat[i,j][[1]]) | is.null(temp_mat[i,j][[1]]))
-        temp_mat[i,j][[1]] <- ifelse((is.null(temp_mat[i - 1,j]) | length(temp_mat[i - 1,j]) < 1), NA, temp_mat[i - 1,j])
-
+    for (j in seq_len(ncol(temp_mat))) {
+      if (anyNA(temp_mat[i, j][[1]]) | is.null(temp_mat[i, j][[1]])) {
+        temp_mat[i, j][[1]] <- ifelse((is.null(temp_mat[i - 1, j]) | length(temp_mat[i - 1, j]) < 1), NA, temp_mat[i - 1, j])
+      }
     }
   }
   mat[, cols] <- temp_mat
@@ -256,16 +275,16 @@ RSS <- function(x, y, beta, intercepts) {
   sum((y - x %*% beta - intercepts) ^ 2)
 }
 
-GetOpt <- function(param_res){
-
-  avg_rss <- rowMeans(param_res$rss[,-1])
+GetOpt <- function(param_res) {
+  avg_rss <- rowMeans(param_res$rss[, -1])
   opt <- which.min(avg_rss)
 
-  data.frame(lambda = param_res$lambda,
-             delta = param_res$delta,
-             gamma = param_res$rss[opt, 1],
-             rss = avg_rss[opt])
-
+  data.frame(
+    lambda = param_res$lambda,
+    delta = param_res$delta,
+    gamma = param_res$rss[opt, 1],
+    rss = avg_rss[opt]
+  )
 }
 
 LogSpace <- function(from, to, length.out) {

@@ -102,7 +102,7 @@ hdcd <- function(x,
 #' @param ... Only included to be consist with print generic.
 #'
 #' @export
-print.bs_cv <- function(x, ...){
+print.bs_cv <- function(x, ...) {
   cat("\nBest parameters:\n\n")
   cat("-> Lambda: ", x$cv_lambda, "\n")
   cat("-> Delta : ", x$cv_delta, "\n")

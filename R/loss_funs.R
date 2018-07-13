@@ -43,7 +43,6 @@ SegmentLoss <- function(n_obs,
   }
 
   if (mth == "glasso") {
-
     function(x) {
       obs_count <- nrow(x)
       obs_share <- obs_count / n_obs
@@ -67,7 +66,7 @@ SegmentLoss <- function(n_obs,
       }
 
       ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-        - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
+      - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
     }
   } else if (mth == "nodewise_regression") {
     function(x) {

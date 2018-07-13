@@ -34,17 +34,19 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T) {
     }
   }
 
-  if (scaled){
+  if (scaled) {
     sigma <- cov2cor(solve(omega))
-    if (prec_mat)
+    if (prec_mat) {
       solve(sigma)
-    else
+    } else {
       sigma
+    }
   } else {
-    if (prec_mat)
+    if (prec_mat) {
       omega
-    else
+    } else {
       solve(omega)
+    }
   }
 }
 
@@ -61,21 +63,19 @@ ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T) {
 #'
 #' @examples
 #' ScaleNetwork(50)
-ScaleNetwork <- function(p, preferential_power = 1,  u = 0.1, v = 0.3, prec_mat = T, scaled = F) {
+ScaleNetwork <- function(p, preferential_power = 1, u = 0.1, v = 0.3, prec_mat = T, scaled = F) {
+  theta <- matrix(0, p, p)
+  probs <- numeric(p)
 
-  theta   <- matrix(0, p, p)
-  probs   <- numeric(p)
+  theta[1, 2] <- theta[2, 1] <- TRUE
 
-  theta[1,2] <- theta[2,1] <- TRUE
-
-  for (i in seq(3, p)){
-
-    probs <- colSums(theta)^preferential_power
+  for (i in seq(3, p)) {
+    probs <- colSums(theta) ^ preferential_power
     probs <- probs / sum(probs)
 
-    edges <- sample.int(i-1, 1, prob = probs[1:(i-1)])
+    edges <- sample.int(i - 1, 1, prob = probs[1:(i - 1)])
 
-    theta[edges, i] <- theta[i, edges]  <- TRUE
+    theta[edges, i] <- theta[i, edges] <- TRUE
   }
 
   diag(theta) <- 0
@@ -84,17 +84,19 @@ ScaleNetwork <- function(p, preferential_power = 1,  u = 0.1, v = 0.3, prec_mat 
 
   diag(omega) <- abs(min(eigen(omega)$values)) + u
 
-  if (scaled){
+  if (scaled) {
     sigma <- cov2cor(solve(omega))
-    if (prec_mat)
+    if (prec_mat) {
       solve(sigma)
-    else
+    } else {
       sigma
+    }
   } else {
-    if (prec_mat)
+    if (prec_mat) {
       omega
-    else
+    } else {
       solve(omega)
+    }
   }
 }
 
@@ -123,17 +125,19 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
   omega <- theta * v
   diag(omega) <- abs(min(eigen(omega)$values)) + u
 
-  if (scaled){
+  if (scaled) {
     sigma <- cov2cor(solve(omega))
-    if (prec_mat)
+    if (prec_mat) {
       solve(sigma)
-    else
+    } else {
       sigma
+    }
   } else {
-    if (prec_mat)
+    if (prec_mat) {
       omega
-    else
+    } else {
       solve(omega)
+    }
   }
 }
 
@@ -148,7 +152,7 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
 #'
 #' @examples
 #' DiagMatrice(50)
-DiagMatrice <- function(p){
+DiagMatrice <- function(p) {
   diag(p)
 }
 
@@ -217,8 +221,7 @@ MoveEdges <- function(x, share_moves = 0.1, tol = 1e-16) {
 #' omega_hat <- RegrowNetwork(omega, v = 1)
 #' omega
 #' omega_hat
-RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power = 1, v = 0.3){
-
+RegrowNetwork <- function(omega, n_nodes = ncol(omega) * 0.1, preferential_power = 1, v = 0.3) {
   d <- diag(omega)
   diag(omega) <- 0
 
@@ -228,35 +231,32 @@ RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power =
 
   # prune
   pruned <- numeric(n_nodes)
-  for (i in seq(1, n_nodes)){
+  for (i in seq(1, n_nodes)) {
     candidates <- which(colSums(omega != 0) == 1)
     if (length(candidates) == 0) stop("Not enough nodes to prune from graph!")
-    pruned[i]  <- sample(candidates, 1)
+    pruned[i] <- sample(candidates, 1)
     omega[, pruned[i]] <- omega[pruned[i], ] <- 0
   }
 
   # regrow
   pruned <- rev(pruned)
-  probs   <- numeric(p)
+  probs <- numeric(p)
 
   omega_temp <- omega
 
   # Regrow network and discard permutation if it leads to non pd matrix
   while (any(eigen(omega)$values <= 0)) {
-
     omega <- omega_temp
-    for (i in seq(1, n_nodes)){
+    for (i in seq(1, n_nodes)) {
+      probs <- colSums(omega != 0) ^ preferential_power
+      if (sum(probs) == 0 | any(is.na(probs))) probs <- rep(1, p)
+      probs <- probs / sum(probs)
 
-    probs <- colSums(omega != 0)^preferential_power
-    if (sum(probs) == 0 | any(is.na(probs))) probs <- rep(1, p)
-    probs <- probs / sum(probs)
+      edges <- sample.int(p, 1, prob = probs)
 
-    edges <- sample.int(p, 1, prob = probs)
-
-    omega[edges, pruned[i]] <- omega[pruned[i], edges]  <- v
+      omega[edges, pruned[i]] <- omega[pruned[i], edges] <- v
     }
     diag(omega) <- d
   }
   omega
 }
-
