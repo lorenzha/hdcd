@@ -206,7 +206,7 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
     l_pos <- "none"
 
   ggplot(res_long) +
-    geom_line(aes(x = gamma, y = value, color = lambda , linetype = delta)) +
+    geom_line(aes_(x = ~gamma, y = ~value, color = ~lambda , linetype = ~delta)) +
     ylab("") +
     xlab(latex2exp::TeX("$\\gamma$")) +
     theme_minimal() +
