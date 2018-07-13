@@ -15,6 +15,9 @@
 #'   \item{gamma}{Gamma values.}
 #' }
 #'
+#'
+#' @importFrom methods is
+#'
 #' @export
 PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
   stopifnot(is(x, "bs_tree"))
@@ -35,6 +38,8 @@ PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
 #' GetChangePointsFromLeafs
 #'
 #' Utility function to get the changepoints from the name of the leaf nodes in the tree.
+#'
+#' @importFrom methods is
 #'
 #' @param x An object of class \strong{bs_tree}
 #'

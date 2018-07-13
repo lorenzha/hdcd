@@ -7,6 +7,8 @@
 #' @param lambda Sparsity penalty parameter
 #' @inheritParams BinarySegmentation
 #'
+#' @importFrom stats cov
+#'
 #' @return \describe{
 #'   \item{est_coefs}{A p times p matrix of estimated coefficients.}
 #'   \item{est_mean}{A p vector of estimated means.}

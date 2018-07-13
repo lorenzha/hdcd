@@ -11,6 +11,8 @@
 #' @return A covariance or precision matrix.
 #' @export
 #'
+#' @importFrom stats runif cov2cor
+#'
 #' @examples
 #' ChainNetwork(50)
 ChainNetwork <- function(p, n_perm = p, a = 0.5, prec_mat = F, scaled = T) {

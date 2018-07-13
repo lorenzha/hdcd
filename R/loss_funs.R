@@ -24,6 +24,8 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' @param n_obs Total number of observations
 #' @param ... Further arguments supplied to the select method.
 #'
+#' @importFrom stats var deviance
+#'
 #' @return A parametrized loss function
 SegmentLoss <- function(n_obs,
                         lambda,

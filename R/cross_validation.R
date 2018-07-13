@@ -19,6 +19,8 @@
 #' @return A nested list with the cv results and the full fitted models for each combination of \eqn{\delta}, \eqn{lambda} and \eqn{gamma} combination.
 #' @export
 #'
+#' @importFrom stats cov
+#'
 #' @examples
 #' \dontrun{
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
