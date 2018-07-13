@@ -6,9 +6,8 @@
 #' than the loss of the base segment the node will be pruned from the tree. The tree will be pruned for the specified
 #' path of gamma and for each gamma value a set of changepoints is returned.
 #'
-#' @param tree An object of class \strong{bs_tree}
-#' @param gamma_max Upper limit of gamma. Range will be [0, gamma_max].
-#' @param gamma_length Number of equispaced points in the range.
+#' @param x An object of class \strong{bs_tree}
+#' @param gamma A numeric vector with values for gamma for which the tree shall be pruned.
 #'
 #' @return
 #' \describe{
@@ -17,15 +16,15 @@
 #' }
 #'
 #' @export
-PruneTreeGamma <- function(tree, gamma = seq(0, 3, length.out = 50)) {
-  stopifnot(is(tree, "bs_tree"))
+PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
+  stopifnot(is(x, "bs_tree"))
 
   cpts <- list()
   pruned_tree <- list()
   for (i in seq_along(gamma)) {
     FUN <- PenalizeSplitsFUN(gamma[i])
 
-    clone_tree <- data.tree::Clone(tree, pruneFun = FUN) # TODO: Check if copy can be avoided
+    clone_tree <- data.tree::Clone(x, pruneFun = FUN) # TODO: Check if copy can be avoided
 
     cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
     pruned_tree[[i]] <- clone_tree
@@ -37,11 +36,11 @@ PruneTreeGamma <- function(tree, gamma = seq(0, 3, length.out = 50)) {
 #'
 #' Utility function to get the changepoints from the name of the leaf nodes in the tree.
 #'
-#' @param tree An object of class \strong{bs_tree}
+#' @param x An object of class \strong{bs_tree}
 #'
 #' @return A vector with the sorted changepoints.
-GetChangePointsFromLeafs <- function(tree) {
-  stopifnot(is(tree, "bs_tree"))
+GetChangePointsFromLeafs <- function(x) {
+  stopifnot(is(x, "bs_tree"))
 
   filter <- function(x)
     if (x$name != "1" && x$name != "bs_tree") {
@@ -50,7 +49,7 @@ GetChangePointsFromLeafs <- function(tree) {
       NA
     }
 
-  unname(sort(as.numeric(tree$Get(filter, filterFun = data.tree::isLeaf))))
+  unname(sort(as.numeric(x$Get(filter, filterFun = data.tree::isLeaf))))
 }
 
 #' PenalizeSplitsFUN
@@ -80,9 +79,8 @@ PenalizeSplitsFUN <- function(gamma) {
 #'
 #' Decorate the print method of the data.tree package to see more details at each node.
 #'
-#' @param tree A data.tree node
+#' @param x A data.tree node.
 #' @export
-print.bs_tree <- function(tree, ...) {
+print.bs_tree <- function(x, ...) {
   NextMethod(generic = NULL, object = NULL, "start", "end", "min_loss", "segment_loss", ...)
-  # data.tree::print.Node(node, "start", "end", "min_loss", "segment_loss")
 }

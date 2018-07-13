@@ -98,13 +98,13 @@ hdcd <- function(x,
 
 #' Print method for objects of class bs_cv
 #'
-#' @param res Object of class bs_cv
+#' @param x Object of class bs_cv
 #'
 #' @export
-print.bs_cv <- function(res){
+print.bs_cv <- function(x, ...){
   cat("\nBest parameters:\n\n")
-  cat("-> Lambda: ", res$cv_lambda, "\n")
-  cat("-> Delta : ", res$cv_delta, "\n")
-  cat("-> Gamma : ", res$cv_gamma, "\n")
-  cat("\nFound changepoints: \n\n", res$changepoints, "\n")
+  cat("-> Lambda: ", x$cv_lambda, "\n")
+  cat("-> Delta : ", x$cv_delta, "\n")
+  cat("-> Gamma : ", x$cv_gamma, "\n")
+  cat("\nFound changepoints: \n\n", x$changepoints, "\n")
 }

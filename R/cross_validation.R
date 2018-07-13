@@ -163,7 +163,7 @@ CrossValidation <- function(x,
 #'
 #' S3 method for plotting the results of cross-validation.
 #'
-#' @param cv_results An object of class \strong{bs_cv}
+#' @param x An object of class \strong{bs_cv}
 #'
 #' @importFrom grDevices rainbow
 #' @importFrom reshape2 melt
@@ -171,10 +171,10 @@ CrossValidation <- function(x,
 #' @import ggplot2
 #'
 #' @export
-plot.bs_cv <- function(results, show_legend = T) {
+plot.bs_cv <- function(x, ..., show_legend = T) {
 
   res_long <- do.call(rbind,
-                      lapply(results[["cv_results"]],
+                      lapply(x[["cv_results"]],
                              function(x) if (nrow(x[["cpts"]]) == 1)
                                data.frame(delta = factor(x[["delta"]]),
                                           lambda = formatC(x[["lambda"]], format = "e", digits = 2),
