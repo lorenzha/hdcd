@@ -1,6 +1,6 @@
 context("Binary segmentation")
 
-test_dat <- system.file("data", "test_data.Rdata", package = "hdcd")
+test_dat <- system.file("test_data", "test_data.Rdata", package = "hdcd")
 load(test_dat)
 
 test_that("binary segmentation finds same changepoints as in original version", {
