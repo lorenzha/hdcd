@@ -13,6 +13,8 @@ FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "ternary_search",
 \item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
 proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
 
+\item{n_obs}{The number of observations in the data set.}
+
 \item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{
   \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.

@@ -4,14 +4,12 @@
 \alias{PruneTreeGamma}
 \title{PruneTreeGamma}
 \usage{
-PruneTreeGamma(tree, gamma = seq(0, 3, length.out = 50))
+PruneTreeGamma(x, gamma = seq(0, 3, length.out = 50))
 }
 \arguments{
-\item{tree}{An object of class \strong{bs_tree}}
+\item{x}{An object of class \strong{bs_tree}}
 
-\item{gamma_max}{Upper limit of gamma. Range will be [0, gamma_max].}
-
-\item{gamma_length}{Number of equispaced points in the range.}
+\item{gamma}{A numeric vector with values for gamma for which the tree shall be pruned.}
 }
 \value{
 \describe{

@@ -4,10 +4,10 @@
 \alias{GetChangePointsFromLeafs}
 \title{GetChangePointsFromLeafs}
 \usage{
-GetChangePointsFromLeafs(tree)
+GetChangePointsFromLeafs(x)
 }
 \arguments{
-\item{tree}{An object of class \strong{bs_tree}}
+\item{x}{An object of class \strong{bs_tree}}
 }
 \value{
 A vector with the sorted changepoints.

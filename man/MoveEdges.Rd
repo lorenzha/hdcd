@@ -4,12 +4,14 @@
 \alias{MoveEdges}
 \title{MoveEdges}
 \usage{
-MoveEdges(prec_mat, share_moves = 0.1, tol = 1e-16)
+MoveEdges(x, share_moves = 0.1, tol = 1e-16)
 }
 \arguments{
+\item{x}{A precision matrix}
+
 \item{share_moves}{Share of edges to be moved.}
 
-\item{mat}{A precision matrix}
+\item{tol}{Tolerance for zero values.}
 }
 \description{
 Radomly move a share of the edges in a random graph

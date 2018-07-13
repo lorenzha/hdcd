@@ -55,6 +55,8 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{verbose}{Boolean. If TRUE additional information will be printed.}
 
+\item{parallel}{If TRUE and a parallel backend is registered, the cross-validation will be performed in parallel.}
+
 \item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
 }
 \value{

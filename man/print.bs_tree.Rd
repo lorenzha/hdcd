@@ -4,10 +4,10 @@
 \alias{print.bs_tree}
 \title{print.bs_tree}
 \usage{
-\method{print}{bs_tree}(tree, ...)
+\method{print}{bs_tree}(x, ...)
 }
 \arguments{
-\item{tree}{A data.tree node}
+\item{x}{A data.tree node.}
 }
 \description{
 S3 method for printing a bs_tree object.

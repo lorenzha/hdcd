@@ -4,10 +4,10 @@
 \alias{plot.bs_cv}
 \title{plot.bs_cv}
 \usage{
-\method{plot}{bs_cv}(results, show_legend = T)
+\method{plot}{bs_cv}(x, ..., show_legend = T)
 }
 \arguments{
-\item{cv_results}{An object of class \strong{bs_cv}}
+\item{x}{An object of class \strong{bs_cv}}
 }
 \description{
 S3 method for plotting the results of cross-validation.

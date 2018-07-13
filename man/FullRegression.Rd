@@ -12,6 +12,10 @@ FullRegression(x, cpts, lambda = 0.1, standardize = T, threshold = 1e-07)
 \item{cpts}{A set of changepoints correspoding to row indices.}
 
 \item{lambda}{Sparsity penalty parameter}
+
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
+
+\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
 }
 \value{
 \describe{

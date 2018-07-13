@@ -53,6 +53,8 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
 
+\item{parallel}{If TRUE and a parallel backend is registered, the cross-validation will be performed in parallel.}
+
 \item{verbose}{Boolean. If TRUE additional information will be printed.}
 
 \item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}

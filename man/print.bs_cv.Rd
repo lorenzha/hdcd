@@ -4,10 +4,10 @@
 \alias{print.bs_cv}
 \title{Print method for objects of class bs_cv}
 \usage{
-\method{print}{bs_cv}(res)
+\method{print}{bs_cv}(x, ...)
 }
 \arguments{
-\item{res}{Object of class bs_cv}
+\item{x}{Object of class bs_cv}
 }
 \description{
 Print method for objects of class bs_cv
