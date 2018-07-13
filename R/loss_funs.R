@@ -2,7 +2,9 @@
 #'
 #' Caluclates the sum of the loss that results from splitting the segment at the given point
 #'
-#' @param opt_split Index on which to split the segment
+#' @param x A n times p data matrix.
+#' @param split_point Index on which to split the segment
+#' @param SegmentLossFUN A loss function as generate by closure \link{SegmentLoss}.
 #'
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(x, split_point, SegmentLossFUN) {
@@ -19,6 +21,8 @@ SplitLoss <- function(x, split_point, SegmentLossFUN) {
 #' it should be performed.
 #'
 #' @inheritParams BinarySegmentation
+#' @param n_obs Total number of observations
+#' @param ... Further arguments supplied to the select method.
 #'
 #' @return A parametrized loss function
 SegmentLoss <- function(n_obs,

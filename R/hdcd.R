@@ -99,6 +99,7 @@ hdcd <- function(x,
 #' Print method for objects of class bs_cv
 #'
 #' @param x Object of class bs_cv
+#' @param ... Only included to be consist with print generic.
 #'
 #' @export
 print.bs_cv <- function(x, ...){

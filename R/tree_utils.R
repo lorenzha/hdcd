@@ -80,6 +80,8 @@ PenalizeSplitsFUN <- function(gamma) {
 #' Decorate the print method of the data.tree package to see more details at each node.
 #'
 #' @param x A data.tree node.
+#' @param ... Further arguments passed to print generic.
+#'
 #' @export
 print.bs_tree <- function(x, ...) {
   NextMethod(generic = NULL, object = NULL, "start", "end", "min_loss", "segment_loss", ...)

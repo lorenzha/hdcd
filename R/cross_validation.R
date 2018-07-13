@@ -164,6 +164,8 @@ CrossValidation <- function(x,
 #' S3 method for plotting the results of cross-validation.
 #'
 #' @param x An object of class \strong{bs_cv}
+#' @param ... Only included to be consist with plot generic.
+#' @param show_legend If TRUE the legend is shown on the bottom of the plot.
 #'
 #' @importFrom grDevices rainbow
 #' @importFrom reshape2 melt
