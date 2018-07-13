@@ -24,7 +24,7 @@ proportional to the size of the dataset and hence an upper bound for the number 
 }}
 }
 \value{
-A nuemric vector containing the final segment boundaries
+A numeric vector containing the final segment boundaries
 }
 \description{
 Adjust the position of each changepoint by refitting the model in the respective segments.

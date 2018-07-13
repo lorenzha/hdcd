@@ -6,7 +6,7 @@
 #' @inheritParams BinarySegmentation
 #' @param cpts A numeric vector containing the found changepoints. Can be of length zero if no changepoints have been found.
 #'
-#' @return A nuemric vector containing the final segment boundaries
+#' @return A numeric vector containing the final segment boundaries
 #' @export
 #'
 PostProcess <- function(x, cpts, delta, lambda, method){
