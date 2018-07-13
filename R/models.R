@@ -159,17 +159,16 @@ DiagMatrice <- function(p){
 #' the selected share of edges will be randomly moved to positions where no edge existed
 #' before. Make sure to choose share_moves low for dense graphs.
 #'
-#' @param mat A precision matrix
+#' @param x A precision matrix
 #' @param share_moves Share of edges to be moved.
+#' @param tol Tolerance for zero values.
 #'
-#' @return
 #' @export
-#'
-MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
-  if (share_moves == 0) return(prec_mat)
+MoveEdges <- function(x, share_moves = 0.1, tol = 1e-16) {
+  if (share_moves == 0) return(x)
 
-  edges <- which(upper.tri(prec_mat) & abs(prec_mat) >= tol)
-  not_edges <- which(upper.tri(prec_mat) & prec_mat == 0)
+  edges <- which(upper.tri(x) & abs(x) >= tol)
+  not_edges <- which(upper.tri(x) & x == 0)
 
   n_moves <- floor(share_moves * length(edges))
 
@@ -178,22 +177,22 @@ MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
     warning("Cannot move edges because graph is not sparse enough. Will move as many as possible.")
   }
 
-  d <- diag(prec_mat)
+  d <- diag(x)
 
   # ensure that matrix is not pd to begin with
-  diag(prec_mat) <- diag(prec_mat) - abs(min(eigen(prec_mat)$values)) - 0.1
+  diag(x) <- diag(x) - abs(min(eigen(x)$values)) - 0.1
 
   # sample until matrix is pd again
-  while (any(eigen(prec_mat)$values <= 0)) {
+  while (any(eigen(x)$values <= 0)) {
     sel_edges <- sample(edges, n_moves)
-    prec_mat[sample(not_edges, n_moves)] <- prec_mat[sel_edges]
-    prec_mat[sel_edges] <- 0
+    x[sample(not_edges, n_moves)] <- x[sel_edges]
+    x[sel_edges] <- 0
 
     # make symmetric again
-    prec_mat[lower.tri(prec_mat)] <- t(prec_mat)[lower.tri(prec_mat)]
-    diag(prec_mat) <- d
+    x[lower.tri(x)] <- t(x)[lower.tri(x)]
+    diag(x) <- d
   }
-  prec_mat
+  x
 }
 
 
@@ -209,7 +208,6 @@ MoveEdges <- function(prec_mat, share_moves = 0.1, tol = 1e-16) {
 #' @inheritParams ScaleNetwork
 #' @inheritParams RandomNetwork
 #'
-#' @return
 #' @export
 #'
 #' @examples
@@ -259,3 +257,4 @@ RegrowNetwork <- function(omega, n_nodes = ncol(omega)*0.1, preferential_power =
   }
   omega
 }
+
