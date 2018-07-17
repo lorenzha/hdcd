@@ -9,6 +9,6 @@ Versions:
 
 * 0.1.0 - Draft version with verified results of the computations
 * 0.2.0 - Alpha version with extended functionality
-
+* 0.3.0 - Alpha version passing R CMD check without errors, warnings or notes on Linux and win builder.
 
 
