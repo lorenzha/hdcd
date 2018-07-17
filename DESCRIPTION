@@ -1,6 +1,6 @@
 Package: hdcd
 Type: Package
-Title: High-dimensional Changepoint Detection
+Title: High-Dimensional Changepoint Detection
 Version: 0.2.0
 Author: Lorenz Haubner
 Maintainer: Lorenz Haubner <lorenz.haubner@gmail.com>
