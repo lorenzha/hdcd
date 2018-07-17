@@ -34,7 +34,7 @@
 #' @export
 #'
 #' @examples
-#' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 100,p = 30, ChainNetwork))
+#' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 50,p = 30, ChainNetwork))
 #' res <- BinarySegmentation(dat, delta = 0.1, lambda = 0.01, method = "summed_regression")
 #' print(res)
 BinarySegmentation <- function(x, delta, lambda,
