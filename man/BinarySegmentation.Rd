@@ -11,50 +11,78 @@ BinarySegmentation(x, delta, lambda, method = c("nodewise_regression",
   ...)
 }
 \arguments{
-\item{x}{A n times p data matrix.}
+\item{x}{A n times p matrix or data frame.}
 
-\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
-proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
+\item{delta}{Numeric value between 0 and 0.5. This tuning parameter determines
+the minimal segment size proportional to the size of the dataset and hence
+an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
-\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in
+the single Lasso fits.}
 
-\item{method}{Which estimator should be used? Possible choices are
+\item{method}{Which estimator should be used? Possible choices are \itemize{
+\item \strong{nodewise_regression}: Nodewise regression is based on a single
+node that needs to be specified with an additional parameter \code{node}
+pointing to the column index of the node of interest. Uses \code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
+\item \strong{summed_regression}: Summed nodewise regression sums up the residual
+variances of nodewise regression over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{ratio_regression}: Likelihood ratio based regression sums the
+pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{glasso}: The graphical Lasso uses the approach of Friedman et al (2007).
+In contrast to the other approaches the exact likelihood the whole graphical
+model is computed and used as loss. }}
+
+\item{penalize_diagonal}{Boolean, should the diagonal elements of the
+precision matrix be penalized by \eqn{\lambda}?}
+
+\item{optimizer}{Which search technique should be used for performing
+individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{
-  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
-  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
-  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
-}}
+\item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
+evaluated and the index with maximal loss reduction is returned.
+\item \strong{ternary_search}: Iteratively
+cuts the search space by a fixed ratio and approximately finds an index at a
+local maximum. See Haubner (2018) for details.
+\item \strong{section_search}: Iteratively cuts the search space
+according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
+and approximately finds an index at a local maximum. See Haubner (2018) for details. }}
 
-\item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
+\item{control}{A list with parameters that is accessed by the selected optimizer:
+\itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
+search. \item \strong{intervals}: Integer value larger than 3. Used by ternary
+search.}}
 
-\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
-\itemize{
-  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
-  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
-  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
-}}
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will
+be adjusted for every dimension in the single Lasso fits according to the standard deviation in the data.}
 
-\item{control}{A list with parameters that is accessed by the optimizer.
-\itemize{
-  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
-  \item intervals: Integer value larger than 3. Used by ternary search.
-}}
-
-\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
-
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}.
+In the former it controls the absolute change of single parameters in the
+latter it controls the total objective value.}
 
 \item{verbose}{Boolean. If TRUE additional information will be printed.}
 
-\item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
+\item{...}{Supply additional arguments for a specific method (e.g. \code{node} for
+\strong{nodewise_regression})}
 }
 \value{
-An object of class \strong{bs_tree}.
+An object of class \strong{bs_tree} and \strong{Node} (as defined in  \code{\link[data.tree]{Node}}).
 }
 \description{
-Uses the binary segmentation algorithmn in order to build a binary tree. The tree can then be pruned in order to obtain
-a changepoint estimate.
+Applies the binary segmentation algorithmn by recursively calling \code{\link{FindBestSplit}} in order to build a binary tree. The
+tree can then be pruned using \code{\link{PruneTreeGamma}} in order to obtain
+a changepoint estimate. Typically this function is not used directly but the
+interface \code{\link{hdcd}}.
 }
+\section{References}{
+
+
+ Friedman, J., Hastie, T. & Tibshirani, R. Sparse inverse covariance estimation with the graphical lasso. Biostatistics 9, 432–441 (2008).
+
+ Haubner, L. Optimistic binary segmentation: A scalable approach to changepoint detection in high-dimensional graphical models. (Seminar for Statistics, ETH Zurich, 2018).
+
+ Kovács, S. Changepoint detection for high-dimensional covariance matrix estimation. (Seminar for Statistics, ETH Zurich, 2016).
+}
+
 \examples{
 dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 50,p = 30, ChainNetwork))
 res <- BinarySegmentation(dat, delta = 0.1, lambda = 0.01, method = "summed_regression")

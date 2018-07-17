@@ -13,9 +13,12 @@ FullRegression(x, cpts, lambda = 0.1, standardize = T, threshold = 1e-07)
 
 \item{lambda}{Sparsity penalty parameter}
 
-\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will
+be adjusted for every dimension in the single Lasso fits according to the standard deviation in the data.}
 
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}.
+In the former it controls the absolute change of single parameters in the
+latter it controls the total objective value.}
 }
 \value{
 \describe{

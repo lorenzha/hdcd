@@ -12,12 +12,14 @@ CrossValidation(x, delta = c(0.1, 0.25), lambda = NULL,
   threshold = 1e-07, parallel = T, verbose = T, ...)
 }
 \arguments{
-\item{x}{A n times p data matrix.}
+\item{x}{A n times p matrix or data frame.}
 
-\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
-proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
+\item{delta}{Numeric value between 0 and 0.5. This tuning parameter determines
+the minimal segment size proportional to the size of the dataset and hence
+an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
-\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in
+the single Lasso fits.}
 
 \item{lambda_min_ratio}{Numeric value between 0 and 1. If the \eqn{\lambda_max} is determined internally this will pick \eqn{\lambda_min = lambda_min_ratio * \lambda_max}.}
 
@@ -27,37 +29,51 @@ proportional to the size of the dataset and hence an upper bound for the number 
 
 \item{n_folds}{Number of folds. Test data will be selected equi-spaced, i.e. each n_fold-th observation.}
 
-\item{method}{Which estimator should be used? Possible choices are
+\item{method}{Which estimator should be used? Possible choices are \itemize{
+\item \strong{nodewise_regression}: Nodewise regression is based on a single
+node that needs to be specified with an additional parameter \code{node}
+pointing to the column index of the node of interest. Uses \code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
+\item \strong{summed_regression}: Summed nodewise regression sums up the residual
+variances of nodewise regression over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{ratio_regression}: Likelihood ratio based regression sums the
+pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{glasso}: The graphical Lasso uses the approach of Friedman et al (2007).
+In contrast to the other approaches the exact likelihood the whole graphical
+model is computed and used as loss. }}
+
+\item{penalize_diagonal}{Boolean, should the diagonal elements of the
+precision matrix be penalized by \eqn{\lambda}?}
+
+\item{optimizer}{Which search technique should be used for performing
+individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{
-  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
-  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
-  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
-}}
+\item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
+evaluated and the index with maximal loss reduction is returned.
+\item \strong{ternary_search}: Iteratively
+cuts the search space by a fixed ratio and approximately finds an index at a
+local maximum. See Haubner (2018) for details.
+\item \strong{section_search}: Iteratively cuts the search space
+according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
+and approximately finds an index at a local maximum. See Haubner (2018) for details. }}
 
-\item{penalize_diagonal}{Boolean, should the diagonal elements of the precision matrix be penalized?}
+\item{control}{A list with parameters that is accessed by the selected optimizer:
+\itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
+search. \item \strong{intervals}: Integer value larger than 3. Used by ternary
+search.}}
 
-\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
-\itemize{
-  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
-  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
-  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
-}}
+\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will
+be adjusted for every dimension in the single Lasso fits according to the standard deviation in the data.}
 
-\item{control}{A list with parameters that is accessed by the optimizer.
-\itemize{
-  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
-  \item intervals: Integer value larger than 3. Used by ternary search.
-}}
-
-\item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will be the standard deviation for every dimension in the single Lasso fits.}
-
-\item{threshold}{The threshold for halting the iteration in glasso or glmnet. In the former it controls the absolute change of single parameters in the latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}.
+In the former it controls the absolute change of single parameters in the
+latter it controls the total objective value.}
 
 \item{parallel}{If TRUE and a parallel backend is registered, the cross-validation will be performed in parallel.}
 
 \item{verbose}{Boolean. If TRUE additional information will be printed.}
 
-\item{...}{Supply additional arguments for a specific method (e.g. p for nodewise_regression)}
+\item{...}{Supply additional arguments for a specific method (e.g. \code{node} for
+\strong{nodewise_regression})}
 }
 \value{
 A nested list with the cv results and the full fitted models for each combination of \eqn{\delta}, \eqn{lambda} and \eqn{gamma} combination.

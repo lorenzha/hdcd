@@ -7,21 +7,28 @@
 PostProcess(x, cpts, delta, lambda, method)
 }
 \arguments{
-\item{x}{A n times p data matrix.}
+\item{x}{A n times p matrix or data frame.}
 
 \item{cpts}{A numeric vector containing the found changepoints. Can be of length zero if no changepoints have been found.}
 
-\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
-proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
+\item{delta}{Numeric value between 0 and 0.5. This tuning parameter determines
+the minimal segment size proportional to the size of the dataset and hence
+an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
-\item{lambda}{Positive numeric value. This is the regularization parameter in the single Lasso fits.}
+\item{lambda}{Positive numeric value. This is the regularization parameter in
+the single Lasso fits.}
 
-\item{method}{Which estimator should be used? Possible choices are
-\itemize{
-  \item nodewise_regression: Nodewise regression is based on a single node that needs to be specified with an additional parameter p.
-  \item summed_regression: Summed nodewise regression sums up the residual variances of nodewise regression over all nodes.
-  \item ratio_regression: Likelihood ratio based regression sums the pseudo-profile-likelihood over all nodes.
-}}
+\item{method}{Which estimator should be used? Possible choices are \itemize{
+\item \strong{nodewise_regression}: Nodewise regression is based on a single
+node that needs to be specified with an additional parameter \code{node}
+pointing to the column index of the node of interest. Uses \code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
+\item \strong{summed_regression}: Summed nodewise regression sums up the residual
+variances of nodewise regression over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{ratio_regression}: Likelihood ratio based regression sums the
+pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+\item \strong{glasso}: The graphical Lasso uses the approach of Friedman et al (2007).
+In contrast to the other approaches the exact likelihood the whole graphical
+model is computed and used as loss. }}
 }
 \value{
 A numeric vector containing the final segment boundaries

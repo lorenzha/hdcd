@@ -8,30 +8,33 @@ FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "ternary_search",
   "section_search"), control, SegmentLossFUN)
 }
 \arguments{
-\item{x}{A n times p data matrix.}
+\item{x}{A n times p matrix or data frame.}
 
-\item{delta}{Numeric value between 0 and 0.5. Tuning param which determines the minimal segment size
-proportional to the size of the dataset and hence an upper bound for the number of changepoints.}
+\item{delta}{Numeric value between 0 and 0.5. This tuning parameter determines
+the minimal segment size proportional to the size of the dataset and hence
+an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
 \item{n_obs}{The number of observations in the data set.}
 
-\item{optimizer}{Which search technique should be used for performing individual splits in the binary segmentation alogrithm? Possible choices are
+\item{optimizer}{Which search technique should be used for performing
+individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{
-  \item line_search: Exhaustive linear search. All datapoints are evaluated and the maximum is returned.
-  \item ternary_search: Iteratively cuts the search space according by a fixed ratio and approximately finds a local maximum.
-  \item section_search: Iteratively cuts the search space according by a flexible ratio as determined by stepsize in control parameter and approximately finds a local maximum.
-}}
+\item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
+evaluated and the index with maximal loss reduction is returned.
+\item \strong{ternary_search}: Iteratively
+cuts the search space by a fixed ratio and approximately finds an index at a
+local maximum. See Haubner (2018) for details.
+\item \strong{section_search}: Iteratively cuts the search space
+according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
+and approximately finds an index at a local maximum. See Haubner (2018) for details. }}
 
-\item{control}{A list with parameters that is accessed by the optimizer.
-\itemize{
-  \item stepsize: Numeric value between 0 and 0.5. Used by section search.
-  \item intervals: Integer value larger than 3. Used by ternary search.
-}}
+\item{control}{A list with parameters that is accessed by the selected optimizer:
+\itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
+search. \item \strong{intervals}: Integer value larger than 3. Used by ternary
+search.}}
 
-\item{SegmentLossFUN}{A loss function as created by \code{\link{SegmentLoss}}}
+\item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
 }
 \description{
-Uses the SegmentLossFUN function for each possible split on the given segment
-considering delta and returns the splitting index with the lowest loss
-as well as the loss for each candidate.
+Takes a segment of the data and dispatches the choosen \code{method} to the different optimizers.
 }
