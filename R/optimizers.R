@@ -37,12 +37,21 @@ SectionSearch <- function() {
   # Initialize the cache
   cache_reset()
 
+  # Initialize alternating splits for equal segment length
+  cache_set("left", TRUE)
+
   function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, min_points = 3, stepsize = 0.5) {
 
-    # If no mid point is supplied start randomly left or right
+    # If no mid point is supplied start on cache status
     if (missing(mid)) {
       step <- (right - left) * stepsize
-      mid <- if (runif(1) <= 0.5) floor(right - step) else ceiling(left + step)
+      if (cache_get("left")){
+        mid <- ceiling(left + step)
+        cache_set("left", FALSE)
+      }  else {
+        mid <- floor(right - step)
+        cache_set("left", TRUE)
+      }
     }
 
     # Stopping condition for recursion
@@ -71,7 +80,17 @@ SectionSearch <- function() {
 
     f_mid <- f(mid)
 
-    if (mid - left < right - mid) {
+    if (mid - left == right - mid){
+      dir_left <- cache_get("left")
+      cache_set("left", !dir_left)
+    }
+    else if (mid - left < right - mid){
+      dir_left <- FALSE
+    } else {
+      dir_left <- TRUE
+    }
+
+    if (!dir_left) {
       step <- (right - mid) * stepsize
       new <- floor(right - step)
       f_new <- f(new)
