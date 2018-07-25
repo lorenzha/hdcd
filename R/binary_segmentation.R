@@ -162,6 +162,9 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "section
       if (is.null(stepsize) || stepsize <= 0) {
         stepsize <- 0.1
       }  # set default value if necessary
+      if (is.null(min_points) || min_points < 3) {
+        min_points <- 3
+      }  # set default value if necessary
       result <- rec(
         split_candidates, left = 1, right = length(split_candidates), x = x,
         SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize,
