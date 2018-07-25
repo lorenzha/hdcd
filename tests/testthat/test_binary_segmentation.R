@@ -62,3 +62,35 @@ test_that("split function gets split correct", {
     258
   )
 })
+
+
+test_that("section search", {
+
+  min_points <- 10
+  stepsize <- 0.5
+
+  x <- test_data
+
+  SegmentLossFUN <- SegmentLoss(n_obs = nrow(x), lambda = 0.05, method = "summed_regression")
+
+  rec <- SectionSearch()
+
+
+  result <- rec(
+    1:NROW(x), left = 1, right = NROW(x), x = x,
+    SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize,
+    min_points = min_points
+  )
+
+
+  expect_equal(
+    result$opt_split,
+    97
+  )
+
+  expect_equal(
+    result$loss,
+    2.080238099
+  )
+})
+
