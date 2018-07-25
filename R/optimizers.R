@@ -81,7 +81,7 @@ SectionSearch <- function() {
   # Initialize the cache
   cache_reset()
 
-  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, min_points = 3, stepsize = 0.1) {
+  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, min_points = 3, stepsize = 0.5) {
 
     # If no mid point is supplied start randomly left or right
     if (missing(mid)) {
