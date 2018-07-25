@@ -62,35 +62,3 @@ test_that("split function gets split correct", {
     258
   )
 })
-
-test_that("ternary search finds changepoints", {
-
-  # tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "glasso", use_ternary_search = T)
-
-  # expect_equal(PruneTreeGamma(tree, gamma = 0.05, 1)[[1]][[1]],
-  #             c(44, 97, 130, 174, 216, 259))
-
-  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "summed_regression", optimizer = "ternary_search")
-
-  expect_equal(
-    PruneTreeGamma(tree, gamma = 0.05)[[1]][[1]],
-    c(44, 86, 130, 174, 217, 260)
-  )
-
-  tree <- BinarySegmentation(x = test_data, delta = 0.1, lambda = 0.1, method = "ratio_regression", optimizer = "ternary_search")
-
-  expect_equal(
-    PruneTreeGamma(tree, gamma = 0.05)[[1]][[1]],
-    c(44, 86, 130, 174, 216, 260)
-  )
-
-  tree <- BinarySegmentation(
-    x = test_data, delta = 0.1, lambda = 0.01, penalize_diagonal = F,
-    optimizer = "ternary_search", method = "nodewise_regression", node = 10
-  )
-
-  expect_equal(
-    PruneTreeGamma(tree, gamma = 0.05)[[1]][[1]],
-    c(52, 88, 135, 169, 206, 263)
-  )
-})

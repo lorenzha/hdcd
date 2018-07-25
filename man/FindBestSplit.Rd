@@ -4,8 +4,8 @@
 \alias{FindBestSplit}
 \title{FindBestSplit}
 \usage{
-FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "ternary_search",
-  "section_search"), control, SegmentLossFUN)
+FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "section_search"),
+  control, SegmentLossFUN)
 }
 \arguments{
 \item{x}{A n times p matrix or data frame.}
@@ -21,17 +21,13 @@ individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{
 \item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
 evaluated and the index with maximal loss reduction is returned.
-\item \strong{ternary_search}: Iteratively
-cuts the search space by a fixed ratio and approximately finds an index at a
-local maximum. See Haubner (2018) for details.
 \item \strong{section_search}: Iteratively cuts the search space
 according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
 and approximately finds an index at a local maximum. See Haubner (2018) for details. }}
 
 \item{control}{A list with parameters that is accessed by the selected optimizer:
 \itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
-search. \item \strong{intervals}: Integer value larger than 3. Used by ternary
-search.}}
+search. \item \strong{min_points}: Integer value larger than 3. Used by section search.}}
 
 \item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
 }

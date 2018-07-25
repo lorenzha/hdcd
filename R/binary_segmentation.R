@@ -29,16 +29,12 @@
 #'  \itemize{
 #'  \item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
 #'  evaluated and the index with maximal loss reduction is returned.
-#'  \item \strong{ternary_search}: Iteratively
-#'  cuts the search space by a fixed ratio and approximately finds an index at a
-#'  local maximum. See Haubner (2018) for details.
 #'  \item \strong{section_search}: Iteratively cuts the search space
 #'  according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
 #'  and approximately finds an index at a local maximum. See Haubner (2018) for details. }
 #'@param control A list with parameters that is accessed by the selected optimizer:
 #'  \itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
-#'  search. \item \strong{intervals}: Integer value larger than 3. Used by ternary
-#'  search.}
+#'  search. \item \strong{min_points}: Integer value larger than 3. Used by section search.}
 #'@param standardize Boolean. If TRUE the penalty parameter \eqn{\lambda} will
 #'  be adjusted for every dimension in the single Lasso fits according to the standard deviation in the data.
 #'@param threshold The threshold for halting the iteration in \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}.
@@ -66,7 +62,7 @@
 BinarySegmentation <- function(x, delta, lambda,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                penalize_diagonal = F,
-                               optimizer = c("line_search", "ternary_search", "section_search"),
+                               optimizer = c("line_search", "section_search"),
                                control = NULL,
                                standardize = T,
                                threshold = 1e-7,
@@ -137,7 +133,7 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @param n_obs The number of observations in the data set.
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
 #'
-FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary_search", "section_search"), control, SegmentLossFUN) {
+FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "section_search"), control, SegmentLossFUN) {
   opt <- match.arg(optimizer)
 
   obs_count <- nrow(x)
@@ -158,15 +154,6 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "ternary
     "line_search" = {
       loss <- sapply(split_candidates, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN))
       result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)
-    },
-    "ternary_search" = {
-      intervals <- control[["intervals"]]
-      if (is.null(intervals) || !all.equal(intervals, as.integer(intervals))) {
-        intervals <- 3
-      }  # set default value if necessary
-      result <- TernarySearch(
-        split_candidates, 1, length(split_candidates), x, SegmentLossFUN, intervals
-      )
     },
     "section_search" = {
       rec <- SectionSearch()
