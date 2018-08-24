@@ -57,5 +57,5 @@ FullRegression <- function(x, cpts,
     }
     est_intercepts[[i]] <- est_mean[[i]] - colSums(est_coefs[[i]] * est_mean[[i]])
   }
-  list(est_coefs = est_coefs, est_mean = est_mean, est_intercepts = est_intercepts)
+  list(est_coefs = est_coefs, est_intercepts = est_intercepts)
 }
