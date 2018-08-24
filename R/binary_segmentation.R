@@ -117,21 +117,21 @@ BinarySegmentation <- function(x, delta, lambda,
 
   if (is.null(FUN)){
     SegmentLossFUN <- SegmentLoss(
-      n_obs = nrow(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
+      n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
     stopifnot(c("x", "n_obs", "standardize") %in% formalArgs(FUN))
-    SegmentLossFUN <- Curry(FUN, n_obs = nrow(x), standardize = standardize)
+    SegmentLossFUN <- functional::Curry(FUN, n_obs = NROW(x), standardize = standardize)
   }
 
 
-  tree <- data.tree::Node$new("bs_tree", start = 1, end = nrow(x))
+  tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
   class(tree) <- c("bs_tree", class(tree))
 
 
   Rec <- function(x, n_obs, delta, SegmentLossFUN, node, optimizer) {
-    n_selected_obs <- nrow(x)
+    n_selected_obs <- NROW(x)
 
     if (verbose) print(tree)
 
@@ -172,7 +172,7 @@ BinarySegmentation <- function(x, delta, lambda,
     }
   }
   Rec(
-    x = x, n_obs = nrow(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
+    x = x, n_obs = NROW(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
     optimizer = optimizer
   )
   tree
@@ -186,10 +186,11 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @param n_obs The number of observations in the data set.
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
 #'
+
 FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "section_search"), control, SegmentLossFUN) {
   opt <- match.arg(optimizer)
 
-  obs_count <- nrow(x)
+  obs_count <- NROW(x)
   min_seg_length <- ceiling(delta * n_obs)
 
   if (obs_count < 2 * min_seg_length || obs_count < 4) {

@@ -9,7 +9,7 @@
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(x, split_point, SegmentLossFUN) {
   SegmentLossFUN(x[1:(split_point - 1), , drop = F]) +
-    SegmentLossFUN(x[split_point:nrow(x), , drop = F])
+    SegmentLossFUN(x[split_point:NROW(x), , drop = F])
 }
 
 #' SegmentLoss
@@ -44,13 +44,13 @@ SegmentLoss <- function(n_obs,
 
   if (mth == "glasso") {
     function(x) {
-      obs_count <- nrow(x)
+      obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to caclculate the covariance matrix
       stopifnot(obs_count > 1)
 
-      n_p <- ncol(x)
+      n_p <- NCOL(x)
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x)
 
@@ -70,7 +70,7 @@ SegmentLoss <- function(n_obs,
     }
   } else if (mth == "nodewise_regression") {
     function(x) {
-      obs_count <- nrow(x)
+      obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
       # We need more than one observation
@@ -92,7 +92,7 @@ SegmentLoss <- function(n_obs,
     }
   } else if (mth == "ratio_regression") {
     function(x) {
-      obs_count <- nrow(x)
+      obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to caclculate the covariance matrix
@@ -124,7 +124,7 @@ SegmentLoss <- function(n_obs,
     }
   } else if (mth == "summed_regression") {
     function(x) {
-      obs_count <- nrow(x)
+      obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to caclculate the covariance matrix

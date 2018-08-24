@@ -42,8 +42,8 @@ CrossValidation <- function(x,
                             parallel = T,
                             verbose = T,
                             ...) {
-  n_obs <- nrow(x)
-  n_p <- ncol(x)
+  n_obs <- NROW(x)
+  n_p <- NCOL(x)
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
@@ -79,7 +79,7 @@ CrossValidation <- function(x,
       n_g <- length(test_inds)
 
       tree <- BinarySegmentation(
-        x = x[train_inds, ], delta = del, lambda = lam,
+        x = x[train_inds, , drop = F], delta = del, lambda = lam,
         method = method, penalize_diagonal = penalize_diagonal,
         optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, ...
@@ -99,18 +99,16 @@ CrossValidation <- function(x,
       cpts <- list()
       for (gam in seq_along(final_gamma)) {
         fit <- FullRegression(
-          x[train_inds, ], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
-          lambda = lam, standardize = standardize,
-          threshold = threshold
+          x[train_inds, , drop =F], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
+          lambda = lam, standardize = standardize, threshold = threshold
         )
 
         segment_bounds <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
 
         rss <- 0
         n_params <- 0
-        for (seg in seq_along(fit[[1]])) {
-          wi <- fit$est_coefs[[seg]]
-          intercepts <- fit$est_intercepts[[seg]]
+
+        for (seg in seq_len(length(segment_bounds) - 1)) {
 
           seg_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
 
@@ -119,10 +117,15 @@ CrossValidation <- function(x,
             next
           }
           # TODO: Instead of calculating the RSS, we could take the likelihood ratio here again, can we store the loss for one segment per
-          # dimension before and reuse it here?
-          rss <- rss +
-            sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
-          n_params <- n_params + length(which(wi[upper.tri(wi)] != 0))
+          #  dimension before and reuse it here?
+
+          if(n_p > 1) {
+            loss <- loss +
+              sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z, drop = F], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
+            n_params <- n_params + length(which(wi[upper.tri(wi)] != 0))
+          } else {
+            loss <- loss + RSS(x[seg_test_inds, , drop = F], x[seg_test_inds, , drop = F], wi, intercepts) / n_obs
+          }
         }
         rss_gamma[gam] <- rss / n_g
         n_params_gamma[gam] <- n_params
