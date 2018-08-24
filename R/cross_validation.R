@@ -109,7 +109,7 @@ CrossValidation <- function(x,
 
       res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
-      rss_gamma <- numeric(length(final_gamma))
+      loss_gamma <- numeric(length(final_gamma))
       n_params_gamma <- numeric(length(final_gamma))
       cpts <- list()
       for (gam in seq_along(final_gamma)) {
@@ -120,7 +120,7 @@ CrossValidation <- function(x,
 
         segment_bounds <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
 
-        rss <- 0
+        loss <- 0
         n_params <- 0
 
         for (seg in seq_len(length(segment_bounds) - 1)) {
@@ -142,13 +142,14 @@ CrossValidation <- function(x,
             loss <- loss + RSS(x[seg_test_inds, , drop = F], x[seg_test_inds, , drop = F], wi, intercepts) / n_obs
           }
         }
-        rss_gamma[gam] <- rss / n_g
+
+        loss_gamma[gam] <- loss / n_g
         n_params_gamma[gam] <- n_params
         cpts[[gam]] <- segment_bounds
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
-      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, rss = rss_gamma, cpts = cpts, n_params = n_params_gamma)
+      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts, n_params = n_params_gamma)
     }
 
   res <- data.frame()
@@ -161,7 +162,7 @@ CrossValidation <- function(x,
           lambda = r[["lambda"]],
           delta = r[["delta"]],
           gamma = r[["gamma"]],
-          rss = r[["rss"]],
+          loss = r[["loss"]],
           n_params = r[["n_params"]]
         )
         # Need to assign those separately since it is a list
@@ -177,7 +178,7 @@ CrossValidation <- function(x,
 
   opt <- do.call(rbind, lapply(results, GetOpt))
 
-  list(opt = opt[which.min(opt$rss), , drop = TRUE], cv_results = results)
+  list(opt = opt[which.min(opt$loss), , drop = TRUE], cv_results = results)
 }
 
 
@@ -204,8 +205,8 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
           data.frame(
             delta = factor(x[["delta"]]),
             lambda = formatC(x[["lambda"]], format = "e", digits = 2),
-            gamma = x[["rss"]][, 1],
-            rss = rowMeans(x[["rss"]][, -1]),
+            gamma = x[["loss"]][, 1],
+            loss = rowMeans(x[["loss"]][, -1]),
             n_params = rowMeans(x[["n_params"]][, -1]),
             n_cpts = 0
           )
@@ -213,8 +214,8 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
           data.frame(
             delta = factor(x[["delta"]]),
             lambda = formatC(x[["lambda"]], format = "e", digits = 2),
-            gamma = x[["rss"]][, 1],
-            rss = rowMeans(x[["rss"]][, -1]),
+            gamma = x[["loss"]][, 1],
+            loss = rowMeans(x[["loss"]][, -1]),
             n_params = rowMeans(x[["n_params"]][, -1]),
             n_cpts = rowMeans(apply(x[["cpts"]][, -1, drop = F], 2, function(x) sapply(x, length) - 2))
           )
@@ -222,11 +223,11 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
     )
   ) # substract first and last segment boundary
 
-  res_long <- reshape2::melt(res_long, measure.vars = c("rss", "n_cpts", "n_params"), value.name = "value", variable.name = "metric")
+  res_long <- reshape2::melt(res_long, measure.vars = c("loss", "n_cpts", "n_params"), value.name = "value", variable.name = "metric")
 
   metrics_names <- c(
     "n_params" = "# of parameters",
-    "rss" = "cv-loss",
+    "loss" = "cv-loss",
     "n_cpts" = "# of changepoints"
   )
 
@@ -270,7 +271,7 @@ SolutionPaths <- function(dat) {
   dat <- dat[order(dat$gamma), ]
   list(
     lambda = dat$lambda[1], delta = dat$delta[1],
-    rss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "rss")),
+    loss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "loss")),
     n_params = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "n_params")),
     cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA))
   )
@@ -294,14 +295,14 @@ RSS <- function(x, y, beta, intercepts) {
 }
 
 GetOpt <- function(param_res) {
-  avg_rss <- rowMeans(param_res$rss[, -1])
-  opt <- which.min(avg_rss)
+  avg_loss <- rowMeans(param_res$loss[, -1])
+  opt <- which.min(avg_loss)
 
   data.frame(
     lambda = param_res$lambda,
     delta = param_res$delta,
-    gamma = param_res$rss[opt, 1],
-    rss = avg_rss[opt]
+    gamma = param_res$loss[opt, 1],
+    loss = avg_loss[opt]
   )
 }
 
