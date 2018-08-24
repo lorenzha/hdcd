@@ -57,11 +57,14 @@ CrossValidation <- function(x,
   `%:%` <- foreach::`%:%`
 
   # choose lambda as grid around the asymptotic value
-  if (is.null(lambda)) {
+  if (is.null(lambda) && is.null(FUN) && NCOL(x) > 1) {
     cov_mat <- cov(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
+  } else if (!is.null(FUN)){
+    lambda <- c(1, 2)
   }
+
   n_lambdas <- length(lambda)
 
   # choose three sensible values for delta

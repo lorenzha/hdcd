@@ -26,7 +26,7 @@
 #'  graphical Lasso uses the approach of Friedman et al (2007). In contrast to
 #'  the other approaches the exact likelihood the whole graphical model is
 #'  computed and used as loss. }
-#'  This value is ignored if FUN is not NULL.
+#'  This value is ignored if \code{FUN} is not \code{NULL}.
 #'@param penalize_diagonal Boolean, should the diagonal elements of the
 #'  precision matrix be penalized by \eqn{\lambda}? This value is ignored if FUN is not NULL.
 #'@param optimizer Which search technique should be used for performing
@@ -203,7 +203,6 @@ FindBestSplit <- function(x, delta, n_obs, optimizer = c("line_search", "section
   )
 
   segment_loss <- SegmentLossFUN(x)
-
   switch(opt,
     "line_search" = {
       loss <- sapply(split_candidates, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN))
