@@ -131,6 +131,10 @@ CrossValidation <- function(x,
             warning("Segment had no test data. Consider reducing the number of folds.")
             next
           }
+
+          wi <- fit$est_coefs[[seg]]
+          intercepts <- fit$est_intercepts[[seg]]
+
           # TODO: Instead of calculating the RSS, we could take the likelihood ratio here again, can we store the loss for one segment per
           #  dimension before and reuse it here?
 
