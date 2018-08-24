@@ -16,19 +16,23 @@ the minimal segment size proportional to the size of the dataset and hence
 an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
 \item{lambda}{Positive numeric value. This is the regularization parameter in
-the single Lasso fits.}
+the single Lasso fits. This value is ignored if FUN is not NULL.}
 
 \item{method}{Which estimator should be used? Possible choices are \itemize{
 \item \strong{nodewise_regression}: Nodewise regression is based on a single
 node that needs to be specified with an additional parameter \code{node}
-pointing to the column index of the node of interest. Uses \code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
-\item \strong{summed_regression}: Summed nodewise regression sums up the residual
-variances of nodewise regression over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+pointing to the column index of the node of interest. Uses
+\code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
+\item \strong{summed_regression}: Summed nodewise regression sums up the
+residual variances of nodewise regression over all nodes. Uses
+\code{\link[glasso]{glasso}} internally. See Kovács (2016) for details.
 \item \strong{ratio_regression}: Likelihood ratio based regression sums the
-pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
-\item \strong{glasso}: The graphical Lasso uses the approach of Friedman et al (2007).
-In contrast to the other approaches the exact likelihood the whole graphical
-model is computed and used as loss. }}
+pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}}
+internally. See Kovács (2016) for details. \item \strong{glasso}: The
+graphical Lasso uses the approach of Friedman et al (2007). In contrast to
+the other approaches the exact likelihood the whole graphical model is
+computed and used as loss. } This value is ignored if \code{FUN} is not
+\code{NULL}.}
 }
 \value{
 A numeric vector containing the final segment boundaries

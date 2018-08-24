@@ -12,29 +12,37 @@ SegmentLoss(n_obs, lambda, penalize_diagonal = FALSE, standardize = TRUE,
 \item{n_obs}{Total number of observations}
 
 \item{lambda}{Positive numeric value. This is the regularization parameter in
-the single Lasso fits.}
+the single Lasso fits. This value is ignored if FUN is not NULL.}
 
 \item{penalize_diagonal}{Boolean, should the diagonal elements of the
-precision matrix be penalized by \eqn{\lambda}?}
+precision matrix be penalized by \eqn{\lambda}? This value is ignored if FUN
+is not NULL.}
 
 \item{standardize}{Boolean. If TRUE the penalty parameter \eqn{\lambda} will
-be adjusted for every dimension in the single Lasso fits according to the standard deviation in the data.}
+be adjusted for every dimension in the single Lasso fits according to the
+standard deviation in the data.}
 
-\item{threshold}{The threshold for halting the iteration in \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}.
-In the former it controls the absolute change of single parameters in the
-latter it controls the total objective value.}
+\item{threshold}{The threshold for halting the iteration in
+\code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}. In the former
+it controls the absolute change of single parameters in the latter it
+controls the total objective value. This value is ignored if FUN is not
+NULL.}
 
 \item{method}{Which estimator should be used? Possible choices are \itemize{
 \item \strong{nodewise_regression}: Nodewise regression is based on a single
 node that needs to be specified with an additional parameter \code{node}
-pointing to the column index of the node of interest. Uses \code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
-\item \strong{summed_regression}: Summed nodewise regression sums up the residual
-variances of nodewise regression over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
+pointing to the column index of the node of interest. Uses
+\code{\link[glmnet]{glmnet}} internally. See Kovács (2016) for details.
+\item \strong{summed_regression}: Summed nodewise regression sums up the
+residual variances of nodewise regression over all nodes. Uses
+\code{\link[glasso]{glasso}} internally. See Kovács (2016) for details.
 \item \strong{ratio_regression}: Likelihood ratio based regression sums the
-pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}} internally. See Kovács (2016)  for details.
-\item \strong{glasso}: The graphical Lasso uses the approach of Friedman et al (2007).
-In contrast to the other approaches the exact likelihood the whole graphical
-model is computed and used as loss. }}
+pseudo-profile-likelihood over all nodes. Uses \code{\link[glasso]{glasso}}
+internally. See Kovács (2016) for details. \item \strong{glasso}: The
+graphical Lasso uses the approach of Friedman et al (2007). In contrast to
+the other approaches the exact likelihood the whole graphical model is
+computed and used as loss. } This value is ignored if \code{FUN} is not
+\code{NULL}.}
 
 \item{...}{Further arguments supplied to the select method.}
 }

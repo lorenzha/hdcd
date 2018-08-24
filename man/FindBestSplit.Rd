@@ -18,16 +18,17 @@ an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
 \item{optimizer}{Which search technique should be used for performing
 individual splits in the binary segmentation alogrithm? Possible choices are
-\itemize{
-\item \strong{line_search}: Exhaustive linear search. All possivle split candidates are
-evaluated and the index with maximal loss reduction is returned.
-\item \strong{section_search}: Iteratively cuts the search space
-according by a flexible ratio as determined by parameter \code{stepsize} in \code{control} parameter list
-and approximately finds an index at a local maximum. See Haubner (2018) for details. }}
+\itemize{ \item \strong{line_search}: Exhaustive linear search. All possivle
+split candidates are evaluated and the index with maximal loss reduction is
+returned. \item \strong{section_search}: Iteratively cuts the search space
+according by a flexible ratio as determined by parameter \code{stepsize} in
+\code{control} parameter list and approximately finds an index at a local
+maximum. See Haubner (2018) for details. }}
 
-\item{control}{A list with parameters that is accessed by the selected optimizer:
-\itemize{ \item \strong{stepsize}: Numeric value between 0 and 0.5. Used by section
-search. \item \strong{min_points}: Integer value larger than 3. Used by section search.}}
+\item{control}{A list with parameters that is accessed by the selected
+optimizer: \itemize{ \item \strong{stepsize}: Numeric value between 0 and
+0.5. Used by section search. \item \strong{min_points}: Integer value larger
+than 3. Used by section search.}}
 
 \item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
 }

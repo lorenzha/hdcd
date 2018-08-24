@@ -25,10 +25,11 @@
 #'  internally. See Kovács (2016) for details. \item \strong{glasso}: The
 #'  graphical Lasso uses the approach of Friedman et al (2007). In contrast to
 #'  the other approaches the exact likelihood the whole graphical model is
-#'  computed and used as loss. }
-#'  This value is ignored if \code{FUN} is not \code{NULL}.
+#'  computed and used as loss. } This value is ignored if \code{FUN} is not
+#'  \code{NULL}.
 #'@param penalize_diagonal Boolean, should the diagonal elements of the
-#'  precision matrix be penalized by \eqn{\lambda}? This value is ignored if FUN is not NULL.
+#'  precision matrix be penalized by \eqn{\lambda}? This value is ignored if FUN
+#'  is not NULL.
 #'@param optimizer Which search technique should be used for performing
 #'  individual splits in the binary segmentation alogrithm? Possible choices are
 #'  \itemize{ \item \strong{line_search}: Exhaustive linear search. All possivle
@@ -47,7 +48,8 @@
 #'@param threshold The threshold for halting the iteration in
 #'  \code{\link[glasso]{glasso}} or \code{\link[glmnet]{glmnet}}. In the former
 #'  it controls the absolute change of single parameters in the latter it
-#'  controls the total objective value. This value is ignored if FUN is not NULL.
+#'  controls the total objective value. This value is ignored if FUN is not
+#'  NULL.
 #'@param verbose Boolean. If TRUE additional information will be printed.
 #'@param FUN A loss function with formal arguments, \code{x}, \code{n_obs} and
 #'  \code{standardize} which returns a scalar representing the loss for the
@@ -94,14 +96,16 @@
 #' n <- 20
 #' mean_vecs <- list(rep(0, p), c(rep(1, p-2), rep(5, 2)), rep(-0.5, p))
 #'
-#' model <- CreateModel(3, n, p, DiagMatrice, equispaced = T, mean_vecs = mean_vecs)
+#' model <- CreateModel(3, n, p, DiagMatrice, equispaced = TRUE, mean_vecs = mean_vecs)
 #'
 #' x <- SimulateFromModel(model)
 #'
-#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss, optimizer = "section_search")
+#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+#' optimizer = "section_search")
 #' print(res)
 #'
-#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss, optimizer = "line_search")
+#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+#' optimizer = "line_search")
 #' print(res)
 #'
 BinarySegmentation <- function(x, delta, lambda,
@@ -121,7 +125,7 @@ BinarySegmentation <- function(x, delta, lambda,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
-    stopifnot(c("x", "n_obs", "standardize") %in% formalArgs(FUN))
+    stopifnot(c("x", "n_obs", "standardize") %in% methods::formalArgs(FUN))
     SegmentLossFUN <- functional::Curry(FUN, n_obs = NROW(x), standardize = standardize)
   }
 

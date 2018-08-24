@@ -52,7 +52,7 @@ CrossValidation <- function(x,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
-    stopifnot(c("x", "n_obs", "standardize") %in% formalArgs(FUN))
+    stopifnot(c("x", "n_obs", "standardize") %in% methods::formalArgs(FUN))
     SegmentLossFUN <- functional::Curry(FUN, n_obs = NROW(x), standardize = standardize)
   }
 
