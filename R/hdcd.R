@@ -103,6 +103,8 @@ hdcd <- function(x,
 #'
 #' @export
 print.bs_cv <- function(x, ...) {
+  stopifnot("bs_cv" %in% class(x))
+
   cat("\nBest parameters:\n\n")
   cat("-> Lambda: ", x$cv_lambda, "\n")
   cat("-> Delta : ", x$cv_delta, "\n")
