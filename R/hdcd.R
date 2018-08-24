@@ -45,6 +45,7 @@ hdcd <- function(x,
                  n_folds = 10,
                  verbose = T,
                  parallel = T,
+                 FUN = NULL,
                  ...) {
   stopifnot(nrow(x) > 1)
   x_mat <- as.matrix(x)
@@ -64,6 +65,7 @@ hdcd <- function(x,
       verbose = verbose,
       parallel = parallel,
       threshold = threshold,
+      FUN = FUN,
       ...
     )
     lambda <- cv_res$opt$lambda
@@ -75,6 +77,7 @@ hdcd <- function(x,
     x = x_mat, delta = delta, lambda = lambda, method = method,
     threshold = threshold, penalize_diagonal = penalize_diagonal,
     optimizer = optimizer, control = control, standardize = standardize,
+    FUN = FUN,
     ...
   )
   res <- PruneTreeGamma(tree, gamma)

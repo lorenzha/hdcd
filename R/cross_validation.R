@@ -41,9 +41,21 @@ CrossValidation <- function(x,
                             threshold = 1e-7,
                             parallel = T,
                             verbose = T,
+                            FUN = NULL,
                             ...) {
   n_obs <- NROW(x)
   n_p <- NCOL(x)
+
+  if (is.null(FUN)){
+    SegmentLossFUN <- SegmentLoss(
+      n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
+      method = method, standardize = standardize, threshold = threshold, ...
+    )
+  } else {
+    stopifnot(c("x", "n_obs", "standardize") %in% formalArgs(FUN))
+    SegmentLossFUN <- functional::Curry(FUN, n_obs = NROW(x), standardize = standardize)
+  }
+
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
@@ -85,7 +97,7 @@ CrossValidation <- function(x,
         x = x[train_inds, , drop = F], delta = del, lambda = lam,
         method = method, penalize_diagonal = penalize_diagonal,
         optimizer = optimizer, control = control, threshold = threshold,
-        standardize = standardize, ...
+        standardize = standardize, FUN = FUN, ...
       )
 
       if (is.null(gamma)) {
