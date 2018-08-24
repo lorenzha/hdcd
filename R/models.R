@@ -141,7 +141,7 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
   }
 }
 
-#' DiagMatrice
+#' DiagMatrix
 #'
 #' Spawn a p-dimensional identity matrix.
 #'
@@ -151,8 +151,8 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
 #' @export
 #'
 #' @examples
-#' DiagMatrice(50)
-DiagMatrice <- function(p) {
+#' DiagMatrix(50)
+DiagMatrix<- function(p) {
   diag(p)
 }
 
