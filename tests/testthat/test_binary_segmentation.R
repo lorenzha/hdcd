@@ -41,24 +41,24 @@ test_that("split function gets split correct", {
   #                           SegmentLossFUN = loss_fun)[["opt_split"]],
   #             44)
 
-  loss_fun <- SegmentLoss(n_obs = nrow(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "summed_regression")
+  loss_fun <- SegmentLoss(n_obs = NROW(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "summed_regression")
 
   expect_equal(
-    FindBestSplit(x = test_data, n_obs = nrow(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
+    FindBestSplit(x = test_data, n_obs = NROW(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
     174
   )
 
-  loss_fun <- SegmentLoss(n_obs = nrow(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "ratio_regression")
+  loss_fun <- SegmentLoss(n_obs = NROW(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "ratio_regression")
 
   expect_equal(
-    FindBestSplit(x = test_data, n_obs = nrow(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
+    FindBestSplit(x = test_data, n_obs = NROW(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
     174
   )
 
-  loss_fun <- SegmentLoss(n_obs = nrow(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "nodewise_regression", node = 10)
+  loss_fun <- SegmentLoss(n_obs = NROW(test_data), lambda = 0.1, const = 0.05, penalize_diagonal = F, method = "nodewise_regression", node = 10)
 
   expect_equal(
-    FindBestSplit(x = test_data, n_obs = nrow(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
+    FindBestSplit(x = test_data, n_obs = NROW(test_data), delta = 0.1, SegmentLossFUN = loss_fun)[["opt_split"]],
     258
   )
 })
@@ -71,7 +71,7 @@ test_that("section search", {
 
   x <- test_data
 
-  SegmentLossFUN <- SegmentLoss(n_obs = nrow(x), lambda = 0.05, method = "summed_regression")
+  SegmentLossFUN <- SegmentLoss(n_obs = NROW(x), lambda = 0.05, method = "summed_regression")
 
   rec <- SectionSearch()
 
