@@ -4,7 +4,7 @@
 #'
 #' @param x A n times p data matrix
 #' @param cpts A set of changepoints correspoding to row indices.
-#' @param lambda Sparsity penalty parameter
+#' @param lambda Sparsity penalty parameter.
 #' @inheritParams BinarySegmentation
 #'
 #' @importFrom stats cov
