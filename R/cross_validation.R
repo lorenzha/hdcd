@@ -143,6 +143,8 @@ CrossValidation <- function(x,
           }
         }
 
+        n_params <- n_params + (length(segment_bounds) - 1)*n_p # Add mean params to count
+
         loss_gamma[gam] <- loss / n_g
         n_params_gamma[gam] <- n_params
         cpts[[gam]] <- segment_bounds
