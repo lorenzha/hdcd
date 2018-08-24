@@ -118,7 +118,7 @@ p <- 5
 n <- 20
 mean_vecs <- list(rep(0, p), c(rep(1, p-2), rep(5, 2)), rep(-0.5, p))
 
-model <- CreateModel(3, n, p, DiagMatrice, equispaced = TRUE, mean_vecs = mean_vecs)
+model <- CreateModel(3, n, p, DiagMatrix, equispaced = TRUE, mean_vecs = mean_vecs)
 
 x <- SimulateFromModel(model)
 
