@@ -4,8 +4,8 @@
 \alias{FindBestSplit}
 \title{FindBestSplit}
 \usage{
-FindBestSplit(x, delta, n_obs, optimizer = c("line_search", "section_search"),
-  control, SegmentLossFUN)
+FindBestSplit(x, start, end, delta, n_obs, control, SegmentLossFUN,
+  optimizer = c("line_search", "section_search"))
 }
 \arguments{
 \item{x}{A n times p matrix or data frame.}
@@ -16,6 +16,13 @@ an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}
 
 \item{n_obs}{The number of observations in the data set.}
 
+\item{control}{A list with parameters that is accessed by the selected
+optimizer: \itemize{ \item \strong{stepsize}: Numeric value between 0 and
+0.5. Used by section search. \item \strong{min_points}: Integer value larger
+than 3. Used by section search.}}
+
+\item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
+
 \item{optimizer}{Which search technique should be used for performing
 individual splits in the binary segmentation alogrithm? Possible choices are
 \itemize{ \item \strong{line_search}: Exhaustive linear search. All possivle
@@ -24,13 +31,6 @@ returned. \item \strong{section_search}: Iteratively cuts the search space
 according by a flexible ratio as determined by parameter \code{stepsize} in
 \code{control} parameter list and approximately finds an index at a local
 maximum. See Haubner (2018) for details. }}
-
-\item{control}{A list with parameters that is accessed by the selected
-optimizer: \itemize{ \item \strong{stepsize}: Numeric value between 0 and
-0.5. Used by section search. \item \strong{min_points}: Integer value larger
-than 3. Used by section search.}}
-
-\item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
 }
 \description{
 Takes a segment of the data and dispatches the choosen \code{method} to the different optimizers.

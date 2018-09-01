@@ -4,7 +4,7 @@
 \alias{SplitLoss}
 \title{SplitLoss}
 \usage{
-SplitLoss(x, split_point, SegmentLossFUN)
+SplitLoss(x, split_point, SegmentLossFUN, start, end)
 }
 \arguments{
 \item{x}{A n times p data matrix.}
