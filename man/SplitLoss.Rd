@@ -7,11 +7,15 @@
 SplitLoss(x, split_point, SegmentLossFUN, start, end)
 }
 \arguments{
-\item{x}{A n times p data matrix.}
+\item{x}{A n times p matrix or data frame.}
 
 \item{split_point}{Index on which to split the segment}
 
-\item{SegmentLossFUN}{A loss function as generate by closure \link{SegmentLoss}.}
+\item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
+
+\item{start}{The start index of the given segment \code{x}.}
+
+\item{end}{The end index of the given segment \code{x}.}
 }
 \value{
 Sum of the loss for both new segments after split.

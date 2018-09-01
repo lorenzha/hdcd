@@ -10,6 +10,10 @@ FindBestSplit(x, start, end, delta, n_obs, control, SegmentLossFUN,
 \arguments{
 \item{x}{A n times p matrix or data frame.}
 
+\item{start}{The start index of the given segment \code{x}.}
+
+\item{end}{The end index of the given segment \code{x}.}
+
 \item{delta}{Numeric value between 0 and 0.5. This tuning parameter determines
 the minimal segment size proportional to the size of the dataset and hence
 an upper bound for the number of changepoints (roughly \eqn{1/\delta}).}

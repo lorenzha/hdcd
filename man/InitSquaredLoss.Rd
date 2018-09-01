@@ -6,6 +6,9 @@
 \usage{
 InitSquaredLoss(x)
 }
+\arguments{
+\item{x}{A n times p matrix or data frame.}
+}
 \description{
 Square loss with updates
 }

@@ -2,9 +2,8 @@
 #'
 #' Caluclates the sum of the loss that results from splitting the segment at the given point
 #'
-#' @param x A n times p data matrix.
+#' @inheritParams FindBestSplit
 #' @param split_point Index on which to split the segment
-#' @param SegmentLossFUN A loss function as generate by closure \link{SegmentLoss}.
 #'
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(x, split_point, SegmentLossFUN, start, end) {
@@ -162,8 +161,9 @@ SegmentLoss <- function(n_obs,
 
 #' Square loss with updates
 #'
+#' @inheritParams FindBestSplit
 #'
-#'@export
+#' @export
 InitSquaredLoss <- function(x){
 
   csum <- cumsum(x)
@@ -189,8 +189,9 @@ InitSquaredLoss <- function(x){
 
 #' Square loss with naive calculation
 #'
+#' @inheritParams FindBestSplit
 #'
-#'@export
+#' @export
 InitNaiveSquaredLoss <- function(x){
 
   n_obs <- NROW(x)

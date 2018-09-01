@@ -105,13 +105,17 @@ print(res)
 
 # Define your own loss function and pass it to the BinarySegmentation algorithm
 
-MeanLoss <- function(x, n_obs, standardize){
+InitNaiveSquaredLoss <- function(x){
 
-  x <- scale(x, center = TRUE, scale = standardize)
-  loss <- colSums(x^2)
+  n_obs <- NROW(x)
 
-  mean(loss / n_obs)
+  function(x, start, end){
 
+    stopifnot(end >= start && end <= n_obs && start >= 1)
+
+    sum((x - mean(x))^2) / n_obs
+
+  }
 }
 
 p <- 5
@@ -122,11 +126,11 @@ model <- CreateModel(3, n, p, DiagMatrix, equispaced = TRUE, mean_vecs = mean_ve
 
 x <- SimulateFromModel(model)
 
-res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = InitNaiveSquaredLoss,
 optimizer = "section_search")
 print(res)
 
-res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = InitNaiveSquaredLoss,
 optimizer = "line_search")
 print(res)
 
