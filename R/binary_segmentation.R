@@ -83,13 +83,17 @@
 #'
 #' # Define your own loss function and pass it to the BinarySegmentation algorithm
 #'
-#' MeanLoss <- function(x, n_obs, standardize){
+#' InitNaiveSquaredLoss <- function(x){
 #'
-#'   x <- scale(x, center = TRUE, scale = standardize)
-#'   loss <- colSums(x^2)
+#'   n_obs <- NROW(x)
 #'
-#'   mean(loss / n_obs)
+#'   function(x, start, end){
 #'
+#'     stopifnot(end >= start && end <= n_obs && start >= 1)
+#'
+#'     sum((x - mean(x))^2) / n_obs
+#'
+#'   }
 #' }
 #'
 #' p <- 5
@@ -100,11 +104,11 @@
 #'
 #' x <- SimulateFromModel(model)
 #'
-#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = InitNaiveSquaredLoss,
 #' optimizer = "section_search")
 #' print(res)
 #'
-#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = MeanLoss,
+#' res <- BinarySegmentation(x, delta = 0.1, lambda = 0.01, FUN = InitNaiveSquaredLoss,
 #' optimizer = "line_search")
 #' print(res)
 #'
@@ -193,8 +197,8 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @inheritParams BinarySegmentation
 #' @param n_obs The number of observations in the data set.
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
-#'
-
+#' @param start The start index of the given segment \code{x}.
+#' @param end The end index of the given segment \code{x}.
 FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
                           optimizer = c("line_search", "section_search")) {
   opt <- match.arg(optimizer)
