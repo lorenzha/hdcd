@@ -236,7 +236,7 @@ FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
       min_points <- control[["min_points"]]
       stepsize <- control[["stepsize"]]
       if (is.null(stepsize) || stepsize <= 0) {
-        stepsize <- 0.1
+        stepsize <- 0.5
       } # set default value if necessary
       if (is.null(min_points) || min_points < 3) {
         min_points <- 3
