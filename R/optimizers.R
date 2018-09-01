@@ -40,7 +40,8 @@ SectionSearch <- function() {
   # Initialize alternating splits for equal segment length
   cache_set("left", TRUE)
 
-  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, min_points = 3, stepsize = 0.5) {
+  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN,
+           start, end, min_points = 3, stepsize = 0.5) {
 
     # If no mid point is supplied start on cache status
     if (missing(mid)) {
@@ -59,7 +60,8 @@ SectionSearch <- function() {
 
       # Check all remaining points for the minimum
       inds <- split_candidates[left:right]
-      loss <- sapply(inds, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN))
+      loss <- sapply(inds, function(y) SplitLoss(x, y, SegmentLossFUN = SegmentLossFUN,
+                                                 start = start, end = end))
 
       return(list(opt_split = inds[which.min(loss)], loss = min(loss)))
     }
@@ -72,7 +74,7 @@ SectionSearch <- function() {
       } else {
         cache_set(key, SplitLoss(
           x = x, split_point = split_candidates[ind],
-          SegmentLossFUN = SegmentLossFUN
+          SegmentLossFUN = SegmentLossFUN, start = start, end = end
         ))
         cache_get(key)
       }
@@ -97,12 +99,14 @@ SectionSearch <- function() {
       if (f_new > f_mid) {
         RecFUN(
           split_candidates, left = left, mid = mid, right = new, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
+          end = end, min_points = min_points, stepsize = stepsize
         )
       } else {
         RecFUN(
           split_candidates, left = mid, mid = new, right = right, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
+          end = end, min_points = min_points, stepsize = stepsize
         )
       }
     }
@@ -113,12 +117,14 @@ SectionSearch <- function() {
       if (f_new > f_mid) {
         RecFUN(
           split_candidates, left = new, mid = mid, right = right, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
+          end = end, min_points = min_points, stepsize = stepsize
         )
       } else {
         RecFUN(
           split_candidates, left = left, mid = new, right = mid, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, stepsize = stepsize
+          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
+          end = end, min_points = min_points, stepsize = stepsize
         )
       }
     }

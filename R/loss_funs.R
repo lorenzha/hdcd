@@ -7,9 +7,9 @@
 #' @param SegmentLossFUN A loss function as generate by closure \link{SegmentLoss}.
 #'
 #' @return Sum of the loss for both new segments after split.
-SplitLoss <- function(x, split_point, SegmentLossFUN) {
-  SegmentLossFUN(x[1:(split_point - 1), , drop = F]) +
-    SegmentLossFUN(x[split_point:NROW(x), , drop = F])
+SplitLoss <- function(x, split_point, SegmentLossFUN, start, end) {
+  SegmentLossFUN(x[1:(split_point - 1), , drop = F], start = start, end = start + (split_point - 2)) +
+    SegmentLossFUN(x[split_point:NROW(x), , drop = F], start = start + (split_point - 1), end = end)
 }
 
 #' SegmentLoss
@@ -43,7 +43,8 @@ SegmentLoss <- function(n_obs,
   }
 
   if (mth == "glasso") {
-    function(x) {
+    function(x, ...) {
+
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
@@ -69,7 +70,7 @@ SegmentLoss <- function(n_obs,
       - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
     }
   } else if (mth == "nodewise_regression") {
-    function(x) {
+    function(x, ...) {
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
@@ -91,7 +92,7 @@ SegmentLoss <- function(n_obs,
       deviance(fit) / n_obs
     }
   } else if (mth == "ratio_regression") {
-    function(x) {
+    function(x, ...) {
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
@@ -123,7 +124,7 @@ SegmentLoss <- function(n_obs,
       mean(loss / n_obs)
     }
   } else if (mth == "summed_regression") {
-    function(x) {
+    function(x, ...) {
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
