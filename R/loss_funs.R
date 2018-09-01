@@ -157,3 +157,49 @@ SegmentLoss <- function(n_obs,
     }
   }
 }
+
+#### Custom loss functions used with the FUN argument ####
+
+#' Square loss with updates
+#'
+#'
+#'@export
+InitSquaredLoss <- function(x){
+
+  csum <- cumsum(x)
+  csum_2 <- cumsum(x^2)
+
+  n_obs <- NROW(x)
+
+  function(x, start, end) {
+
+    seg_length <- (end - start + 1)
+
+    stopifnot(end >= start && end <= n_obs && start >= 1)
+
+    csum_2_start <- ifelse(start > 1, csum_2[start - 1], 0)
+    csum_start   <- ifelse(start > 1, csum[start - 1], 0)
+
+    ((csum_2[end] - csum_2_start) -
+        (csum[end] - csum_start)^2 / seg_length) / n_obs
+
+  }
+}
+
+
+#' Square loss with naive calculation
+#'
+#'
+#'@export
+InitNaiveSquaredLoss <- function(x){
+
+  n_obs <- NROW(x)
+
+  function(x, start, end){
+
+    stopifnot(end >= start && end <= n_obs && start >= 1)
+
+    sum((x - mean(x))^2) / n_obs
+
+  }
+}
