@@ -111,6 +111,7 @@
 #' print(res)
 #'
 BinarySegmentation <- function(x, delta, lambda,
+                               gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                penalize_diagonal = F,
                                optimizer = c("line_search", "section_search"),
@@ -147,7 +148,7 @@ BinarySegmentation <- function(x, delta, lambda,
 
       res <- FindBestSplit(
         x, node$start, node$end, delta, n_obs, control,
-        SegmentLossFUN, optimizer
+        SegmentLossFUN, optimizer, gamma
       )
 
       node$min_loss <- min(res[["loss"]])
@@ -201,7 +202,8 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @param start The start index of the given segment \code{x}.
 #' @param end The end index of the given segment \code{x}.
 FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
-                          optimizer = c("line_search", "section_search")) {
+                          optimizer = c("line_search", "section_search"),
+                          gamma = 0) {
   opt <- match.arg(optimizer)
 
   obs_count <- NROW(x)
@@ -248,7 +250,7 @@ FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
     }
   )
 
-  if (round(min(result[["loss"]]), 15) >= round(segment_loss, 15)) {
+  if (round(min(result[["loss"]]), 15) + gamma >= round(segment_loss, 15)) {
     list(opt_split = NA, loss = result[["loss"]], segment_loss = segment_loss)
   } else {
     list(opt_split = result[["opt_split"]], loss = result[["loss"]], segment_loss = segment_loss)
