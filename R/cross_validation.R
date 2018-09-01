@@ -46,7 +46,7 @@ CrossValidation <- function(x,
   n_obs <- NROW(x)
   n_p <- NCOL(x)
 
-  if (is.null(FUN)){
+  if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
       n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
@@ -74,7 +74,7 @@ CrossValidation <- function(x,
     cov_mat <- cov(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
-  } else if (!is.null(FUN)){
+  } else if (!is.null(FUN)) {
     lambda <- c(1, 2)
   }
 
@@ -115,7 +115,8 @@ CrossValidation <- function(x,
       cpts <- list()
       for (gam in seq_along(final_gamma)) {
         fit <- FullRegression(
-          x[train_inds, , drop =F], cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
+          x[train_inds, , drop = F],
+          cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
           lambda = lam, standardize = standardize, threshold = threshold
         )
 
@@ -125,7 +126,6 @@ CrossValidation <- function(x,
         n_params <- 0
 
         for (seg in seq_len(length(segment_bounds) - 1)) {
-
           seg_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
 
           if (length(seg_test_inds) == 0) {
@@ -139,7 +139,7 @@ CrossValidation <- function(x,
           # TODO: Instead of calculating the RSS, we could take the likelihood ratio here again, can we store the loss for one segment per
           #  dimension before and reuse it here?
 
-          if(n_p > 1) {
+          if (n_p > 1) {
             loss <- loss +
               sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z, drop = F], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
             n_params <- n_params + length(which(wi[upper.tri(wi)] != 0))
@@ -148,7 +148,7 @@ CrossValidation <- function(x,
           }
         }
 
-        n_params <- n_params + (length(segment_bounds) - 1)*n_p # Add mean params to count
+        n_params <- n_params + (length(segment_bounds) - 1) * n_p # Add mean params to count
 
         loss_gamma[gam] <- loss / n_g
         n_params_gamma[gam] <- n_params
@@ -258,7 +258,7 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
       strip.background = element_rect(colour = NA, fill = NA),
       strip.placement = "outside"
     ) +
-    facet_grid(metric~., scales = "free_y", switch = "y", labeller = labeller(metric = metrics_names)) +
+    facet_grid(metric ~ ., scales = "free_y", switch = "y", labeller = labeller(metric = metrics_names)) +
     scale_colour_manual(
       values = grDevices::rainbow(length(levels(res_long$lambda))),
       name = latex2exp::TeX("$\\lambda$"),
@@ -298,7 +298,7 @@ ImputeMatrix <- function(mat, cols = seq(2, ncol(mat))) {
 }
 
 RSS <- function(x, y, beta, intercepts) {
-  sum((y - x %*% beta - intercepts) ^ 2)
+  sum((y - x %*% beta - intercepts)^2)
 }
 
 GetOpt <- function(param_res) {

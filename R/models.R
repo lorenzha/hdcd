@@ -70,7 +70,7 @@ ScaleNetwork <- function(p, preferential_power = 1, u = 0.1, v = 0.3, prec_mat =
   theta[1, 2] <- theta[2, 1] <- TRUE
 
   for (i in seq(3, p)) {
-    probs <- colSums(theta) ^ preferential_power
+    probs <- colSums(theta)^preferential_power
     probs <- probs / sum(probs)
 
     edges <- sample.int(i - 1, 1, prob = probs[1:(i - 1)])
@@ -117,7 +117,7 @@ ScaleNetwork <- function(p, preferential_power = 1, u = 0.1, v = 0.3, prec_mat =
 RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = F, scaled = F) {
   theta <- matrix(0, p, p)
 
-  tmp <- matrix(runif(p ^ 2, 0, 0.5), p, p)
+  tmp <- matrix(runif(p^2, 0, 0.5), p, p)
   tmp <- tmp + t(tmp)
   theta[tmp < prob] <- 1
   diag(theta) <- 0
@@ -152,7 +152,7 @@ RandomNetwork <- function(p, prob = min(1, 5 / p), u = 0.1, v = 0.3, prec_mat = 
 #'
 #' @examples
 #' DiagMatrix(50)
-DiagMatrix<- function(p) {
+DiagMatrix <- function(p) {
   diag(p)
 }
 
@@ -248,7 +248,7 @@ RegrowNetwork <- function(omega, n_nodes = ncol(omega) * 0.1, preferential_power
   while (any(eigen(omega)$values <= 0)) {
     omega <- omega_temp
     for (i in seq(1, n_nodes)) {
-      probs <- colSums(omega != 0) ^ preferential_power
+      probs <- colSums(omega != 0)^preferential_power
       if (sum(probs) == 0 | any(is.na(probs))) probs <- rep(1, p)
       probs <- probs / sum(probs)
 

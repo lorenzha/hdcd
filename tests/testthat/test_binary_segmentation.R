@@ -65,7 +65,6 @@ test_that("split function gets split correct", {
 
 
 test_that("section search", {
-
   min_points <- 10
   stepsize <- 0.5
 
@@ -77,7 +76,8 @@ test_that("section search", {
 
 
   result <- rec(
-    1:NROW(x), left = 1, right = NROW(x), x = x,
+    1:NROW(x),
+    left = 1, right = NROW(x), x = x,
     SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize,
     min_points = min_points
   )
@@ -93,4 +93,3 @@ test_that("section search", {
     2.080238099
   )
 })
-

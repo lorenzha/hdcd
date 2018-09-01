@@ -21,7 +21,8 @@ PostProcess <- function(x, cpts, delta, lambda, method) {
       seg_inds <- seg_boundaries[i - 1]:(seg_boundaries[i + 1] - 1)
 
       opt_split_ind <- FindBestSplit(
-        x[seg_inds, ], delta = delta, n_obs = n_obs, optimizer = "line_search", control = NULL,
+        x[seg_inds, ],
+        delta = delta, n_obs = n_obs, optimizer = "line_search", control = NULL,
         SegmentLossFUN = SegmentLoss(n_obs = n_obs, lambda = lambda, method = method)
       )$opt_split
 

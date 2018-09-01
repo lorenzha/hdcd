@@ -43,15 +43,15 @@ FullRegression <- function(x, cpts,
     }
 
     est_mean[[i]] <- colMeans(x[start:end, , drop = F])
-    if(NCOL(x) > 1) {
-    withCallingHandlers({
-      est_coefs[[i]] <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share) * var_x,
-        approx = T,
-        thr = threshold
-      )$wi
-    }, warning = HandleGlassoNaN)
+    if (NCOL(x) > 1) {
+      withCallingHandlers({
+        est_coefs[[i]] <- glasso::glasso(
+          cov_mat,
+          rho = lambda / sqrt(obs_share) * var_x,
+          approx = T,
+          thr = threshold
+        )$wi
+      }, warning = HandleGlassoNaN)
     } else {
       est_coefs[[i]] <- matrix(0)
     }

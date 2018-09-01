@@ -43,7 +43,6 @@ SegmentLoss <- function(n_obs,
 
   if (mth == "glasso") {
     function(x, ...) {
-
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
@@ -117,7 +116,7 @@ SegmentLoss <- function(n_obs,
 
       mean_vec <- colMeans(x)
       intercepts <- mean_vec - colSums(glasso_output * mean_vec)
-      ss <- t(t(x - x %*% glasso_output) - intercepts) ^ 2
+      ss <- t(t(x - x %*% glasso_output) - intercepts)^2
       loss <- obs_count * log(colSums(ss) / obs_count)
 
       mean(loss / n_obs)
@@ -149,7 +148,7 @@ SegmentLoss <- function(n_obs,
 
       mean_vec <- colMeans(x)
       intercepts <- mean_vec - colSums(glasso_output * mean_vec)
-      ss <- t(t(x - x %*% glasso_output) - intercepts) ^ 2
+      ss <- t(t(x - x %*% glasso_output) - intercepts)^2
       loss <- colSums(ss)
 
       mean(loss / n_obs)
@@ -164,25 +163,22 @@ SegmentLoss <- function(n_obs,
 #' @inheritParams FindBestSplit
 #'
 #' @export
-InitSquaredLoss <- function(x){
-
+InitSquaredLoss <- function(x) {
   csum <- cumsum(x)
   csum_2 <- cumsum(x^2)
 
   n_obs <- NROW(x)
 
   function(x, start, end) {
-
     seg_length <- (end - start + 1)
 
     stopifnot(end >= start && end <= n_obs && start >= 1)
 
     csum_2_start <- ifelse(start > 1, csum_2[start - 1], 0)
-    csum_start   <- ifelse(start > 1, csum[start - 1], 0)
+    csum_start <- ifelse(start > 1, csum[start - 1], 0)
 
     ((csum_2[end] - csum_2_start) -
-        (csum[end] - csum_start)^2 / seg_length) / n_obs
-
+      (csum[end] - csum_start)^2 / seg_length) / n_obs
   }
 }
 
@@ -192,15 +188,12 @@ InitSquaredLoss <- function(x){
 #' @inheritParams FindBestSplit
 #'
 #' @export
-InitNaiveSquaredLoss <- function(x){
-
+InitNaiveSquaredLoss <- function(x) {
   n_obs <- NROW(x)
 
-  function(x, start, end){
-
+  function(x, start, end) {
     stopifnot(end >= start && end <= n_obs && start >= 1)
 
     sum((x - mean(x))^2) / n_obs
-
   }
 }
