@@ -73,8 +73,6 @@
 #'  \code{\link[data.tree]{Node}}).
 #' @export
 #'
-#' @importFrom functional Curry
-#'
 #' @examples
 #' # Use summed regression loss function and ChainNetwork
 #' dat <- SimulateFromModel(CreateModel(n_segments = 2,n = 50,p = 30, ChainNetwork))

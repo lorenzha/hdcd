@@ -22,8 +22,7 @@ Imports:
     lattice,
     ggplot2,
     reshape2,
-    latex2exp,
-    functional
+    latex2exp
 Suggests: testthat,
     knitr,
     rmarkdown
