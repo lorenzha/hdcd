@@ -119,9 +119,11 @@ BinarySegmentation <- function(x, delta, lambda,
                                FUN = NULL,
                                ...) {
 
+  n_obs = NROW(x)
+
   if (is.null(FUN)){
     SegmentLossFUN <- SegmentLoss(
-      n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
+      n_obs = n_obs, lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
@@ -176,8 +178,8 @@ BinarySegmentation <- function(x, delta, lambda,
     }
   }
   Rec(
-    x = x, n_obs = NROW(x), delta = delta, SegmentLossFUN = SegmentLossFUN, node = tree,
-    optimizer = optimizer
+    x = x, n_obs = n_obs, delta = delta, SegmentLossFUN = SegmentLossFUN,
+    node = tree, optimizer = optimizer
   )
   tree
 }
