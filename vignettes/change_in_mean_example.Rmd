@@ -1,0 +1,149 @@
+---
+title: "hdcd - change in mean example"
+author: "Lorenz Haubner"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Install/load dependencies
+```{r}
+install.packages(c("curl", "httr", "devtools"))
+devtools::install_github("lorenzha/hdcd", ref = "section-search-variance")
+library(hdcd)
+```
+
+
+# Generate some data
+
+```{r}
+# Needs to be a 1-colum matrix at the moment
+
+## n = 100
+model_small <- CreateModel(n_segments = 3, 
+                     n = 100,
+                     p = 1,
+                     modelFUN = DiagMatrix,
+                     mean_vecs = c(0, 1, -1))
+
+x_small <- SimulateFromModel(model_small)
+
+## n = 1 000 000
+model_large <- CreateModel(n_segments = 3, 
+                     n = 1000000,
+                     p = 1,
+                     modelFUN = DiagMatrix,
+                     mean_vecs = c(0, 1, -1))
+
+x_large <- SimulateFromModel(model_large)
+```
+
+
+
+# Apply Binary Segmentation
+
+```{r}
+# Grow tree
+tree <- BinarySegmentation(x_small,
+                          delta = 0.05,
+                          lambda = 0, # Not effective if FUN is supplied
+                          gamma = 0, # Prevents tree from being grown to deep
+                          FUN = InitSquaredLoss, # See function definition for details
+                          optimizer = "section_search",
+                          control = list(stepsize = 0.5, k_sigma = 0) # Those are supplied to the SectionSearch() function
+                          )
+# Print final tree
+tree
+```
+
+See `?SectionSearch` for documentation on the used paramaters. 
+
+Specifically `gamma` is the penality added for each new split and can be used from preventing the tree being grown to deep. If computational performance permits it should be set to zero here so the full tree is grown and the pruned as can be seen in the following code chunks.
+
+`k_sigma` is the parameter which defines a threshold $k\sigma \sqrt{\log n}$ that is __added__ to the loss function evaluation during the section search evaluations. If the difference between the evaluated points is not higher than $k\sigma \sqrt{\log n}$, the loss function is evaluated in the outer two segments and the algorithm proceeds on the side with higher loss. For the change in mean example and squared loss this is akin choosing the segment with higher variance. See the function definition of `SectionSearch` for details.
+
+```{r}
+# Collect changepoints from leafs as is
+GetChangePointsFromLeafs(tree)
+```
+
+```{r}
+
+## OR: Get all possible trees according to altering gamma
+final_gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
+final_gamma <- final_gamma[which(final_gamma >= 0)]
+
+res <- PruneTreeGamma(tree, final_gamma)
+str(res, max.level = 1)
+
+```
+
+For other operations on the fully grown tree see [data.tree documentation](https://cran.r-project.org/web/packages/data.tree/vignettes/data.tree.html).
+
+# Speed comparison
+
+## No Updates vs. Updates
+```{r}
+# WITHOUT updates in loss function
+system.time({
+tree <- BinarySegmentation(x_large,
+                          delta = 0.05,
+                          lambda = 0, # Not effective if FUN is supplied
+                          gamma = 0, # Prevents tree from being grown to deep
+                          FUN = InitNaiveSquaredLoss, # See function definition for details
+                          optimizer = "section_search",
+                          control = list(stepsize = 0.5, k_sigma = 0) # Those are supplied to the SectionSearch() function
+                          )
+})
+
+# With updates in loss function
+system.time({
+tree <- BinarySegmentation(x_large,
+                          delta = 0.05,
+                          lambda = 0, # Not effective if FUN is supplied
+                          gamma = 0, # Prevents tree from being grown to deep
+                          FUN = InitSquaredLoss, # See function definition for details
+                          optimizer = "section_search",
+                          control = list(stepsize = 0.5, k_sigma = 0) # Those are supplied to the SectionSearch() function
+                          )
+})
+```
+
+
+## Ordinary BS vs. optimistic BS
+```{r}
+# ordinary BS
+system.time({
+tree <- BinarySegmentation(x_large,
+                          delta = 0.05,
+                          lambda = 0, # Not effective if FUN is supplied
+                          gamma = 0, # Prevents tree from being grown to deep
+                          FUN = InitSquaredLoss, # See function definition for details
+                          optimizer = "line_search",
+                          control = list(stepsize = 0.5, k_sigma = 0) # Those are supplied to the SectionSearch() function
+                          )
+})
+
+# optimistic BS
+system.time({
+tree <- BinarySegmentation(x_large,
+                          delta = 0.05,
+                          lambda = 0, # Not effective if FUN is supplied
+                          gamma = 0, # Prevents tree from being grown to deep
+                          FUN = InitSquaredLoss, # See function definition for details
+                          optimizer = "section_search",
+                          control = list(stepsize = 0.5, k_sigma = 0) # Those are supplied to the SectionSearch() function
+                          )
+})
+```
+
