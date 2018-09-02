@@ -43,7 +43,7 @@ CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = 
   model_args <- list(...)
 
   if (equispaced) {
-    segment_lengths <- c(rep(ceiling(n / n_segments), times = n_segments - 1), n - (n_segments - 1) * ceiling(n / n_segments))
+    segment_lengths <- Chunks(n , n_segments)
     changepoints <- (cumsum(segment_lengths) + 1)[-length(segment_lengths)]
   } else {
     changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
@@ -64,4 +64,18 @@ CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = 
     cov_mats = cov_mats,
     true_changepoints = changepoints
   )
+}
+
+
+
+Chunks <- function(n, n_chunks = 3){
+
+  chunks <- rep(floor(n / n_chunks), n_chunks)
+
+  remainder <- n %% n_chunks
+
+  if (remainder > 0)
+    chunks[1:remainder] <- chunks[1:remainder] + 1
+
+  chunks
 }
