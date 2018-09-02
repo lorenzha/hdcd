@@ -147,8 +147,8 @@ BinarySegmentation <- function(x, delta, lambda,
     if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
 
       res <- FindBestSplit(
-        x, node$start, node$end, delta, n_obs, control,
-        SegmentLossFUN, optimizer, gamma
+        x, node$start, node$end, delta, n_obs,
+        SegmentLossFUN, control, optimizer, gamma
       )
 
       node$min_loss <- min(res[["loss"]])
@@ -201,7 +201,8 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
 #' @param start The start index of the given segment \code{x}.
 #' @param end The end index of the given segment \code{x}.
-FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
+FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
+                          control = NULL,
                           optimizer = c("line_search", "section_search"),
                           gamma = 0) {
   opt <- match.arg(optimizer)
@@ -232,21 +233,26 @@ FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
       result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)
     },
     "section_search" = {
-      rec <- SectionSearch()
       min_points <- control[["min_points"]]
       stepsize <- control[["stepsize"]]
+      k_sigma <- control[["k_sigma"]]
+
       if (is.null(stepsize) || stepsize <= 0) {
         stepsize <- 0.5
       } # set default value if necessary
       if (is.null(min_points) || min_points < 3) {
         min_points <- 3
       } # set default value if necessary
-      result <- rec(
-        split_candidates,
-        left = 1, right = length(split_candidates), x = x,
-        SegmentLossFUN = SegmentLossFUN, RecFUN = rec, stepsize = stepsize,
-        min_points = min_points, start = start, end = end
-      )
+      if (is.null(k_sigma) || k_sigma < 0) {
+        k_sigma <- 0
+      } # set default value if necessary
+
+      rec <- SectionSearch(x = x, split_candidates = split_candidates,
+                           SegmentLossFUN = SegmentLossFUN, start = start,
+                           end = end, min_points = min_points,
+                           stepsize = stepsize, k_sigma = k_sigma)
+
+      result <- rec(left = 1, right = length(split_candidates), RecFUN = rec)
     }
   )
 

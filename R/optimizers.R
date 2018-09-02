@@ -1,22 +1,38 @@
 
 #' SectionSearch
 #'
-#' Implements a variant of golden section search where the stepsize can be choosen
-#' freely.
+#' Implements a variant of golden section search where the stepsize can be
+#' choosen freely.
 #'
-#' Hence its is possible to trade robustness against computational effciency. This function is
-#' a closure that implements a cache for already calculated values and returns a function that can
-#' be used to find the global minimum numerically.
+#' Hence its is possible to trade robustness against computational effciency.
+#' This function is a closure that implements a cache for already calculated
+#' values and returns a function that can be used to find the global minimum
+#' numerically.
 #'
+#' @inheritParams FindBestSplit
+#' @param split_candidates A vector of indices where splits of \code{x} can
+#'   occur.
+#' @param min_points The number of points left between right and left that
+#'   triggers a final evaluation of all remaining split candidates.
+#' @param stepsize The stepsize for performing section search, should be in (0,
+#'   0.5].
+#' @param k_sigma Constant part in threshold \eqn{k\sigma \sqrt{\log n}} that
+#'   loss needs to differ to decied on where to split. If threshold is not met
+#'   the loss for the outer segements will be calculated in the algorithmn
+#'   proceed on the side with higher loss (which is equal to the variance for
+#'   some loss functions).
 #'
-#' @return
-#' Returns a function with arguments split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN, stepsize
-#' where RecFun should always be set to the object name of the function has been assigned so the function can
-#' call itself recursively.
-SectionSearch <- function() {
+#' @return Returns a function with arguments left, mid, right, RecFUN where
+#'   RecFun should always be set to the object name of the function has been
+#'   assigned so the function can call itself recursively.
+SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
+                          min_points = 3,
+                          stepsize = 0.5,
+                          k_sigma = 0) {
 
   # Implement cache for storing already calculated values
   cache <- NULL
+  #split_candidates <- split_candidates
 
   cache_reset <- function() {
     cache <<- new.env(TRUE, emptyenv())
@@ -34,18 +50,25 @@ SectionSearch <- function() {
     exists(key, envir = cache, inherits = FALSE)
   }
 
+  key_from_inds <- function(start, end){
+    paste(start, end, sep = "-")
+  }
+
   # Initialize the cache
   cache_reset()
 
   # Initialize alternating splits for equal segment length
   cache_set("left", TRUE)
 
-  function(split_candidates, left, mid, right, x, SegmentLossFUN, RecFUN,
-             start, end, min_points = 3, stepsize = 0.5) {
+  function(left, mid, right, RecFUN) {
+
+    n_obs <- right - left + 1
+
+    loss_tolerance <- k_sigma * sqrt(log(n_obs))
 
     # If no mid point is supplied start on cache status
     if (missing(mid)) {
-      step <- (right - left) * stepsize
+      step <- n_obs * stepsize
       if (cache_get("left")) {
         mid <- ceiling(left + step)
         cache_set("left", FALSE)
@@ -56,7 +79,7 @@ SectionSearch <- function() {
     }
 
     # Stopping condition for recursion
-    if (abs(left - right) < min_points) {
+    if (n_obs <= min_points) {
 
       # Check all remaining points for the minimum
       inds <- split_candidates[left:right]
@@ -82,8 +105,19 @@ SectionSearch <- function() {
       }
     }
 
+    f_loss <- function(x, start, end) {
+      key <- key_from_inds(start, end)
+      if (cache_has_key(key)) {
+        cache_get(key)
+      } else {
+        cache_set(key, SegmentLossFUN(x, start, end))
+        cache_get(key)
+      }
+    }
+
     f_mid <- f(mid)
 
+    #
     if (mid - left == right - mid) {
       dir_left <- cache_get("left")
       cache_set("left", !dir_left)
@@ -98,40 +132,45 @@ SectionSearch <- function() {
       step <- (right - mid) * stepsize
       new <- floor(right - step)
       f_new <- f(new)
-      if (f_new > f_mid) {
-        RecFUN(
-          split_candidates,
-          left = left, mid = mid, right = new, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
-          end = end, min_points = min_points, stepsize = stepsize
-        )
+      if (f_new >= f_mid + loss_tolerance) {
+        RecFUN(left = left, mid = mid, right = new, RecFUN = RecFUN) # go left
+      } else if (f_new < f_mid  + loss_tolerance) {
+        RecFUN(left = mid, mid = new, right = right, RecFUN = RecFUN) # go right
       } else {
-        RecFUN(
-          split_candidates,
-          left = mid, mid = new, right = right, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
-          end = end, min_points = min_points, stepsize = stepsize
-        )
+        loss_left  <- f_loss(x[left:mid],
+                             start = start + left - 1,
+                             end = start + mid - 1)
+        loss_right <- f_loss(x[new:right],
+                             start = start + new - 1,
+                             end = start + right - 1)
+        if(loss_left >= loss_right ) {
+          RecFUN(left = left, mid = mid, right = new, RecFUN = RecFUN) # go left
+        } else {
+          RecFUN(left = mid, mid = new, right = right, RecFUN = RecFUN) # go right
+        }
       }
     }
     else {
       step <- (mid - left) * stepsize
       new <- ceiling(left + step)
       f_new <- f(new)
-      if (f_new > f_mid) {
+      if (f_new >= f_mid + loss_tolerance) {
+        RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN)
+      } else if (f_new < f_mid + loss_tolerance) {
         RecFUN(
-          split_candidates,
-          left = new, mid = mid, right = right, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
-          end = end, min_points = min_points, stepsize = stepsize
-        )
+          left = left, mid = new, right = mid, RecFUN = RecFUN)
       } else {
-        RecFUN(
-          split_candidates,
-          left = left, mid = new, right = mid, x = x,
-          SegmentLossFUN = SegmentLossFUN, RecFUN = RecFUN, start = start,
-          end = end, min_points = min_points, stepsize = stepsize
-        )
+        loss_left  <- f_loss(x[left:new],
+                             start = start + left - 1,
+                             end = start + new - 1)
+        loss_right <- f_loss(x[mid:right],
+                             start = start + mid - 1,
+                             end = start + right - 1)
+        if(loss_left >= loss_right ) {
+          RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
+        } else {
+          RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN) # go right
+        }
       }
     }
   }
