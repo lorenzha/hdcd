@@ -25,3 +25,8 @@ vignettes/*.pdf
 *.knit.md
 .Rproj.user
 inst/doc
+
+# ignore vignette artifacts
+vignettes/*.R
+vignettes/*.html
+
