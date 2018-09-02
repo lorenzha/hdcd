@@ -16,12 +16,13 @@
 #'   triggers a final evaluation of all remaining split candidates.
 #' @param stepsize The stepsize for performing section search, should be in (0,
 #'   0.5].
-#' @param k_sigma Constant part in threshold \eqn{k\sigma \sqrt{\log n}} that
+#' @param k_sigma Constant part in threshold \eqn{k\sigma \sqrt(log n)} that
 #'   loss needs to differ to decied on where to split. If threshold is not met
 #'   the loss for the outer segements will be calculated in the algorithmn
 #'   proceed on the side with higher loss (which is equal to the variance for
 #'   some loss functions).
 #'
+#' @export
 #' @return Returns a function with arguments left, mid, right, RecFUN where
 #'   RecFun should always be set to the object name of the function has been
 #'   assigned so the function can call itself recursively.
@@ -105,6 +106,7 @@ SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
       }
     }
 
+    # check if given loss has already been computed before if not compute it and store in cache
     f_loss <- function(x, start, end) {
       key <- key_from_inds(start, end)
       if (cache_has_key(key)) {
@@ -117,7 +119,6 @@ SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
 
     f_mid <- f(mid)
 
-    #
     if (mid - left == right - mid) {
       dir_left <- cache_get("left")
       cache_set("left", !dir_left)
@@ -155,10 +156,9 @@ SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
       new <- ceiling(left + step)
       f_new <- f(new)
       if (f_new >= f_mid + loss_tolerance) {
-        RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN)
+        RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN) # go right
       } else if (f_new < f_mid + loss_tolerance) {
-        RecFUN(
-          left = left, mid = new, right = mid, RecFUN = RecFUN)
+        RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
       } else {
         loss_left  <- f_loss(x[left:new],
                              start = start + left - 1,

@@ -43,6 +43,7 @@ PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
 #'
 #' @param x An object of class \strong{bs_tree}
 #'
+#' @export
 #' @return A vector with the sorted changepoints.
 GetChangePointsFromLeafs <- function(x) {
   stopifnot(is(x, "bs_tree"))

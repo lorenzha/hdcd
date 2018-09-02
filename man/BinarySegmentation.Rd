@@ -4,10 +4,11 @@
 \alias{BinarySegmentation}
 \title{BinarySegmentation}
 \usage{
-BinarySegmentation(x, delta, lambda, method = c("nodewise_regression",
-  "summed_regression", "ratio_regression"), penalize_diagonal = F,
-  optimizer = c("line_search", "section_search"), control = NULL,
-  standardize = T, threshold = 1e-07, verbose = FALSE, FUN = NULL, ...)
+BinarySegmentation(x, delta, lambda, gamma = 0,
+  method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+  penalize_diagonal = F, optimizer = c("line_search", "section_search"),
+  control = NULL, standardize = T, threshold = 1e-07, verbose = FALSE,
+  FUN = NULL, ...)
 }
 \arguments{
 \item{x}{A n times p matrix or data frame.}
