@@ -18,8 +18,8 @@ knitr::opts_chunk$set(
 
 # Install/load dependencies
 ```{r}
-install.packages(c("curl", "httr", "devtools"))
-devtools::install_github("lorenzha/hdcd", ref = "section-search-variance")
+#install.packages(c("curl", "httr", "devtools"))
+#devtools::install_github("lorenzha/hdcd", ref = "section-search-variance")
 library(hdcd)
 ```
 
