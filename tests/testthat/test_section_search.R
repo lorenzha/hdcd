@@ -13,3 +13,23 @@ test_that("multivariate section search", {
     rec(left = 1, right = 290, RecFUN = rec)
   }, test_path("reference_objects/section-search"))
 })
+
+test_that("univariate section search", {
+  expect_equal_to_reference({
+    rec <- SectionSearch(test_data[,1], split_candidates = 10:290,
+                         start = 1, end = 300,
+                         SegmentLossFUN = InitSquaredLoss(test_data[,1]),
+                         k_sigma = 0)
+    rec(left = 1, right = 290, RecFUN = rec)
+  }, test_path("reference_objects/section-search-k_sigma"))
+})
+
+test_that("univariate section search with k_sigma > 0", {
+  expect_equal_to_reference({
+    rec <- SectionSearch(test_data[,1], split_candidates = 10:290,
+                         start = 1, end = 300,
+                         SegmentLossFUN = InitSquaredLoss(test_data[,1]),
+                         k_sigma = 0.00001)
+    rec(left = 1, right = 290, RecFUN = rec)
+  }, test_path("reference_objects/section-search-k_sigma"))
+})
