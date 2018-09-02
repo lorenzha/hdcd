@@ -46,7 +46,7 @@ SegmentLoss <- function(n_obs,
       obs_count <- NROW(x)
       obs_share <- obs_count / n_obs
 
-      # We need more than one observation to caclculate the covariance matrix
+      # We need more than one observation to calculate the covariance matrix
       stopifnot(obs_count > 1)
 
       n_p <- NCOL(x)
