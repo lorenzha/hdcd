@@ -72,7 +72,7 @@ test_that("section search", {
 
   SegmentLossFUN <- SegmentLoss(n_obs = NROW(x), lambda = 0.05, method = "summed_regression")
 
-  rec <- SectionSearch(1:NROW(x), x = x, SegmentLossFUN = SegmentLossFUN,
+  rec <- SectionSearch(1:NROW(x), x = x, n_obs = NROW(x), SegmentLossFUN = SegmentLossFUN,
                        stepsize = stepsize, min_points = min_points, start = 1,
                        end = NROW(x))
 

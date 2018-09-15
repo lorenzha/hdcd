@@ -4,14 +4,16 @@
 \alias{SectionSearch}
 \title{SectionSearch}
 \usage{
-SectionSearch(x, split_candidates, SegmentLossFUN, start, end, min_points = 3,
-  stepsize = 0.5, k_sigma = 0)
+SectionSearch(x, split_candidates, n_obs, SegmentLossFUN, start, end,
+  min_points = 3, stepsize = 0.5, k_sigma = 0)
 }
 \arguments{
 \item{x}{A n times p matrix or data frame.}
 
 \item{split_candidates}{A vector of indices where splits of \code{x} can
 occur.}
+
+\item{n_obs}{The number of observations in the data set.}
 
 \item{SegmentLossFUN}{A loss function as created by closure \code{\link{SegmentLoss}}.}
 

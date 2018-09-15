@@ -26,7 +26,7 @@
 #' @return Returns a function with arguments left, mid, right, RecFUN where
 #'   RecFun should always be set to the object name of the function has been
 #'   assigned so the function can call itself recursively.
-SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
+SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end,
                           min_points = 3,
                           stepsize = 0.5,
                           k_sigma = 0) {
@@ -63,13 +63,13 @@ SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
 
   function(left, mid, right, RecFUN) {
 
-    n_obs <- right - left + 1
+    n_obs_seg <- right - left + 1
 
-    loss_tolerance <- k_sigma * sqrt(log(n_obs))
+    loss_tolerance <- k_sigma * sqrt(log(n_obs) / n_obs)
 
     # If no mid point is supplied start on cache status
     if (missing(mid)) {
-      step <- n_obs * stepsize
+      step <- n_obs_seg * stepsize
       if (cache_get("left")) {
         mid <- ceiling(left + step)
         cache_set("left", FALSE)
@@ -80,7 +80,7 @@ SectionSearch <- function(x, split_candidates, SegmentLossFUN, start, end,
     }
 
     # Stopping condition for recursion
-    if (n_obs <= min_points) {
+    if (n_obs_seg <= min_points) {
 
       # Check all remaining points for the minimum
       inds <- split_candidates[left:right]
