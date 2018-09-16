@@ -135,7 +135,7 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       f_new <- f(new)
       if (f_new >= f_mid + loss_tolerance) {
         RecFUN(left = left, mid = mid, right = new, RecFUN = RecFUN) # go left
-      } else if (f_new < f_mid  + loss_tolerance) {
+      } else if (f_new < f_mid - loss_tolerance) {
         RecFUN(left = mid, mid = new, right = right, RecFUN = RecFUN) # go right
       } else {
         loss_left  <- f_loss(x[left:mid],
@@ -157,7 +157,7 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       f_new <- f(new)
       if (f_new >= f_mid + loss_tolerance) {
         RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN) # go right
-      } else if (f_new < f_mid + loss_tolerance) {
+      } else if (f_new < f_mid - loss_tolerance) {
         RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
       } else {
         loss_left  <- f_loss(x[left:new],
