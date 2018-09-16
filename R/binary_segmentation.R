@@ -121,6 +121,12 @@ BinarySegmentation <- function(x, delta, lambda,
                                verbose = FALSE,
                                FUN = NULL,
                                ...) {
+
+  if(!is.matrix(x)){
+    x <- as.matrix(x)
+    warning("Input data x has been coerced to matrix by hdcd.")
+  }
+
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
