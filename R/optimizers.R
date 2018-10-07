@@ -139,11 +139,11 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
         RecFUN(left = mid, mid = new, right = right, RecFUN = RecFUN) # go right
       } else {
         loss_left  <- f_loss(x[left:mid],
-                             start = start + left - 1,
-                             end = start + mid - 1)
+                             start = start + split_candidates[left] - 1, # global indices!
+                             end = start + split_candidates[mid] - 1) # global indices!
         loss_right <- f_loss(x[new:right],
-                             start = start + new - 1,
-                             end = start + right - 1)
+                             start = start + split_candidates[new] - 1, # global indices!
+                             end = start + split_candidates[right] - 1) # global indices!
         if(loss_left >= loss_right ) {
           RecFUN(left = left, mid = mid, right = new, RecFUN = RecFUN) # go left
         } else {
@@ -161,11 +161,11 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
         RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
       } else {
         loss_left  <- f_loss(x[left:new],
-                             start = start + left - 1,
-                             end = start + new - 1)
+                             start = start + split_candidates[left] - 1, # global indices!
+                             end = start + split_candidates[new] - 1) # global indices!
         loss_right <- f_loss(x[mid:right],
-                             start = start + mid - 1,
-                             end = start + right - 1)
+                             start = start + split_candidates[mid] - 1, # global indices!
+                             end = start + split_candidates[right] - 1) # global indices!
         if(loss_left >= loss_right ) {
           RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
         } else {
