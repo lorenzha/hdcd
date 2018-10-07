@@ -80,7 +80,7 @@ GetChangePointsFromLeafs(tree)
 ```{r}
 
 ## OR: Get all possible trees according to altering gamma
-final_gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
+final_gamma <- c(0, sort(tree$Get("max_gain")))
 final_gamma <- final_gamma[which(final_gamma >= 0)]
 
 res <- PruneTreeGamma(tree, final_gamma)

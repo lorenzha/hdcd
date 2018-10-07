@@ -102,7 +102,7 @@ CrossValidation <- function(x,
       )
 
       if (is.null(gamma)) {
-        final_gamma <- c(0, sort(tree$Get("segment_loss") - tree$Get("min_loss")))
+        final_gamma <- c(0, sort(tree$Get("max_gain")))
         final_gamma <- final_gamma[which(final_gamma >= 0)]
       } else {
         final_gamma <- gamma

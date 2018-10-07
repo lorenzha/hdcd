@@ -157,9 +157,8 @@ BinarySegmentation <- function(x, delta, lambda,
         SegmentLossFUN, control, optimizer, gamma
       )
 
-      node$min_loss <- min(res[["loss"]])
-      node$loss <- res[["loss"]]
-      node$segment_loss <- res[["segment_loss"]]
+      node$max_gain <- max(res[["gain"]])
+      node$gain <- res[["gain"]]
       split_point <- res[["opt_split"]]
 
       if (is.na(split_point)) {
@@ -225,10 +224,9 @@ FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
     min(obs_count - 1, obs_count - min_seg_length + 1), 1
   )
 
-  segment_loss <- SegmentLossFUN(x, start, end)
   switch(opt,
     "line_search" = {
-      loss <- sapply(
+      split_loss <- sapply(
         split_candidates,
         function(y) SplitLoss(x, y,
             SegmentLossFUN = SegmentLossFUN,
@@ -236,7 +234,8 @@ FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
             end = end
           )
       )
-      result <- list(opt_split = split_candidates[which.min(loss)], loss = loss)
+      gain <- SegmentLossFUN(x, start, end) - split_loss
+      result <- list(opt_split = split_candidates[which.max(gain)], gain = gain)
     },
     "section_search" = {
       min_points <- control[["min_points"]]
@@ -262,9 +261,9 @@ FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
     }
   )
 
-  if (round(min(result[["loss"]]), 15) + gamma >= round(segment_loss, 15)) {
-    list(opt_split = NA, loss = result[["loss"]], segment_loss = segment_loss)
+  if (max(result[["gain"]]) - gamma <= 0) {
+    list(opt_split = NA, gain = result[["gain"]])
   } else {
-    list(opt_split = result[["opt_split"]], loss = result[["loss"]], segment_loss = segment_loss)
+    list(opt_split = result[["opt_split"]], gain = result[["gain"]])
   }
 }

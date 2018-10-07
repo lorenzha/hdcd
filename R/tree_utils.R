@@ -71,10 +71,10 @@ PenalizeSplitsFUN <- function(gamma) {
   function(node) {
     node <- data.tree::Navigate(node, "..") # We want to prune the parent tree where the split would've occured
 
-    if (is.null(node$min_loss) || is.null(node$segment_loss)) {
+    if (is.null(node$max_gain)) {
       TRUE
     } else {
-      node$min_loss + gamma < node$segment_loss
+      node$max_gain - gamma < 0
     }
   }
 }
@@ -90,5 +90,5 @@ PenalizeSplitsFUN <- function(gamma) {
 #'
 #' @export
 print.bs_tree <- function(x, ...) {
-  NextMethod(generic = NULL, object = NULL, "start", "end", "min_loss", "segment_loss", ...)
+  NextMethod(generic = NULL, object = NULL, "start", "end", "max_gain", ...)
 }

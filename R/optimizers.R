@@ -33,7 +33,8 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
 
   # Implement cache for storing already calculated values
   cache <- NULL
-  #split_candidates <- split_candidates
+
+  seg_loss <- SegmentLossFUN(x, start, end)
 
   cache_reset <- function() {
     cache <<- new.env(TRUE, emptyenv())
@@ -88,8 +89,8 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
           SegmentLossFUN = SegmentLossFUN,
           start = start, end = end
         ))
-
-      return(list(opt_split = inds[which.min(loss)], loss = min(loss)))
+      gain <- seg_loss - loss
+      return(list(opt_split = inds[which.max(gain)], gain = max(gain)))
     }
 
     # check if given index has already been computed before if not compute it and store in cache
@@ -98,7 +99,7 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       if (cache_has_key(key)) {
         cache_get(key)
       } else {
-        cache_set(key, SplitLoss(
+        cache_set(key, seg_loss - SplitLoss(
           x = x, split_point = split_candidates[ind],
           SegmentLossFUN = SegmentLossFUN, start = start, end = end
         ))
@@ -133,9 +134,9 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       step <- (right - mid) * stepsize
       new <- floor(right - step)
       f_new <- f(new)
-      if (f_new >= f_mid + loss_tolerance) {
+      if (f_new <= f_mid - loss_tolerance) {
         RecFUN(left = left, mid = mid, right = new, RecFUN = RecFUN) # go left
-      } else if (f_new < f_mid - loss_tolerance) {
+      } else if (f_new > f_mid + loss_tolerance) {
         RecFUN(left = mid, mid = new, right = right, RecFUN = RecFUN) # go right
       } else {
         loss_left  <- f_loss(x[left:mid],
@@ -155,9 +156,9 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       step <- (mid - left) * stepsize
       new <- ceiling(left + step)
       f_new <- f(new)
-      if (f_new >= f_mid + loss_tolerance) {
+      if (f_new <= f_mid - loss_tolerance) {
         RecFUN(left = new, mid = mid, right = right, RecFUN = RecFUN) # go right
-      } else if (f_new < f_mid - loss_tolerance) {
+      } else if (f_new > f_mid + loss_tolerance) {
         RecFUN(left = left, mid = new, right = mid, RecFUN = RecFUN) # go left
       } else {
         loss_left  <- f_loss(x[left:new],
