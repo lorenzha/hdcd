@@ -74,7 +74,7 @@ PenalizeSplitsFUN <- function(gamma) {
     if (is.null(node$max_gain)) {
       TRUE
     } else {
-      node$max_gain - gamma < 0
+      node$max_gain - gamma > 0
     }
   }
 }
