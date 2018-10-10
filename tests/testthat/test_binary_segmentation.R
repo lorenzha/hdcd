@@ -86,7 +86,7 @@ test_that("section search", {
   )
 
   expect_equal(
-    result$loss,
-    2.080238099
+    result$gain,
+    0.2005026969397061
   )
 })
