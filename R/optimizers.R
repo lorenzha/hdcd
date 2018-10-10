@@ -113,7 +113,7 @@ SectionSearch <- function(x, split_candidates, n_obs, SegmentLossFUN, start, end
       if (cache_has_key(key)) {
         cache_get(key)
       } else {
-        cache_set(key, SegmentLossFUN(x, start, end))
+        cache_set(key, SegmentLossFUN(x, start, end) / (end - start + 1)) # normalize by segment length
         cache_get(key)
       }
     }
