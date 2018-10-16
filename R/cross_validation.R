@@ -51,12 +51,12 @@ CrossValidation <- function(x,
       n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
+  } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){
+    SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda)
   } else {
-    stopifnot(c("x") %in% methods::formalArgs(FUN))
-    SegmentLossFUN <- FUN(x)
-    stopifnot(c("x", "start", "end") %in% methods::formalArgs(SegmentLossFUN))
+    SegmentLossFUN <- FUN()
   }
-
+  stopifnot(c("x","start","end") %in% methods::formalArgs(SegmentLossFUN))
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
@@ -70,12 +70,10 @@ CrossValidation <- function(x,
   `%:%` <- foreach::`%:%`
 
   # choose lambda as grid around the asymptotic value
-  if (is.null(lambda) && is.null(FUN) && NCOL(x) > 1) {
-    cov_mat <- cov(x)
+  if (is.null(lambda) && NCOL(x) > 1) {
+    cov_mat <- cov(x, use='pairwise')
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
-  } else if (!is.null(FUN)) {
-    lambda <- c(1, 2)
   }
 
   n_lambdas <- length(lambda)

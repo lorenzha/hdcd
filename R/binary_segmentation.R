@@ -128,11 +128,13 @@ BinarySegmentation <- function(x, delta, lambda,
       n_obs = n_obs, lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
+  } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){
+    SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda)
   } else {
-    stopifnot(c("x") %in% methods::formalArgs(FUN))
-    SegmentLossFUN <- FUN(x)
-    stopifnot(c("x", "start", "end") %in% methods::formalArgs(SegmentLossFUN))
+    SegmentLossFUN <- FUN()
   }
+  stopifnot(c("x","start","end") %in% methods::formalArgs(SegmentLossFUN))
+
 
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
