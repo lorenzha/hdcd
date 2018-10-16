@@ -216,7 +216,7 @@ FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
   min_seg_length <- ceiling(delta * n_obs)
 
   if (obs_count < 2 * min_seg_length || obs_count < 4) {
-    return(list(opt_split = NA, loss = NA))
+    return(list(opt_split = NA, gain = NA))
   }
 
   split_candidates <- seq(
