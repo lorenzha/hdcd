@@ -1,4 +1,4 @@
-Package: hdcd
+Package: hdcd_malte
 Type: Package
 Title: High-Dimensional Changepoint Detection
 Version: 0.2.0
