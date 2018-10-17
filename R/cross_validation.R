@@ -87,7 +87,7 @@ CrossValidation <- function(x,
   n_delta <- length(delta)
 
   if (verbose) cat("\n")
-  cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F,.packages=hdcd, .verbose = F) %:% #add .packages=hdcd
+  cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F,.packages='hdcd', .verbose = F) %:%
     foreach::foreach(del = delta, .inorder = T) %:%
     foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
       test_inds <- seq(fold, n_obs, n_folds)
