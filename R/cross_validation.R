@@ -53,12 +53,10 @@ CrossValidation <- function(x,
     )
   } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){
     SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda)
-    stopifnot(c("x","start","end") %in% methods::formalArgs(SegmentLossFUN))
   } else {
     SegmentLossFUN <- FUN()
-    stopifnot(c("x","start","end") %in% methods::formalArgs(SegmentLossFUN))
   }
-
+  stopifnot(c("x") %in% methods::formalArgs(SegmentLossFUN))
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
