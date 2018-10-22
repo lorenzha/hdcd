@@ -129,9 +129,9 @@ BinarySegmentation <- function(x, delta, lambda,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){ #how can I do this nicer?
-    SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda)
+    SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda, ...)
   } else {
-    SegmentLossFUN <- FUN()
+    SegmentLossFUN <- FUN(...)
   }
   stopifnot(c('x') %in% methods::formalArgs(SegmentLossFUN))
 
@@ -220,7 +220,7 @@ FindBestSplit <- function(x, start, end, delta, n_obs, control, SegmentLossFUN,
     min(obs_count - 1, obs_count - min_seg_length + 1), 1
   )
 
-  segment_loss <- SegmentLossFUN(x, start, end)
+  segment_loss <- SegmentLossFUN(x) #, start, end)
   switch(opt,
     "line_search" = {
       loss <- sapply(

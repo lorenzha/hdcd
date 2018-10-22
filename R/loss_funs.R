@@ -7,8 +7,8 @@
 #'
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(x, split_point, SegmentLossFUN, start, end) {
-  SegmentLossFUN(x[1:(split_point - 1), , drop = F], start = start, end = start + (split_point - 2)) +
-    SegmentLossFUN(x[split_point:NROW(x), , drop = F], start = start + (split_point - 1), end = end)
+  SegmentLossFUN(x[1:(split_point - 1), , drop = F]) + #, start = start, end = start + (split_point - 2)) +
+    SegmentLossFUN(x[split_point:NROW(x), , drop = F])# , start = start + (split_point - 1), end = end)
 }
 
 #' SegmentLoss
