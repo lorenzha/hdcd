@@ -128,12 +128,12 @@ BinarySegmentation <- function(x, delta, lambda,
       n_obs = n_obs, lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
-  } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){
+  } else if ('lambda' %in% methods::formalArgs(FUN) && 'n_obs' %in% methods::formalArgs(FUN)){ #how can I do this nicer?
     SegmentLossFUN <- FUN(n_obs = n_obs, lambda = lambda)
   } else {
     SegmentLossFUN <- FUN()
   }
-  stopifnot(c("x","start","end") %in% methods::formalArgs(SegmentLossFUN))
+  stopifnot(c('x') %in% methods::formalArgs(SegmentLossFUN))
 
 
 

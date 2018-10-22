@@ -40,10 +40,10 @@ test <- function(){
 
   for (p in pvalues){
     for (mth in method){
-      res[[method]][[as.character(p)]] <- hdcd(x_missing[[as.character(0)]],lambda=0.1, gamma=0.1, optimizer='section_search', parallel=F,
-                                               FUN=NULL, method='glasso'
-                                               #NA_SegmentLoss(mth)
-                                               , n_folds=5, delta=0.1)
+      res[[mth]][[as.character(p)]] <- hdcd(x_missing[[as.character(0)]], optimizer='section_search', parallel=T,
+                                               FUN=NA_SegmentLoss(mth),
+                                               #method='glasso',
+                                               n_folds=5, delta=0.1)
     }
   }
 

@@ -49,7 +49,7 @@ NA_SegmentLoss <- function(NA_method){
              standardize = TRUE,
              threshold = 1e-07){
 
-      function(x,start,end){
+      function(x, start, end){
 
         n_p <- NCOL(x)
         x_av <- x
@@ -91,7 +91,7 @@ NA_SegmentLoss <- function(NA_method){
              standardize = TRUE,
              threshold = 1e-07){
 
-      function(x,start,end){
+      function(x, start, end){
 
         obs_count <- NROW(x)
         obs_share <- obs_count / n_obs
