@@ -47,20 +47,15 @@ hdcd <- function(x,
                  parallel = T,
                  FUN = NULL,
                  ...) {
-  stopifnot(NROW(x) > 1)
-
-  if(!is.matrix(x)){
-    x <- as.matrix(x)
-    warning("Input data x has been coerced to matrix by hdcd.")
-  }
-
+  stopifnot(nrow(x) > 1)
+  x_mat <- as.matrix(x)
   cv <- FALSE
 
   if ((is.null(lambda) || is.null(gamma) || is.null(delta)) | length(c(gamma, lambda, delta)) > 3) {
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
-      x = x, delta = delta, method = method, lambda = lambda,
+      x = x_mat, delta = delta, method = method, lambda = lambda,
       lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
@@ -79,7 +74,7 @@ hdcd <- function(x,
   }
 
   tree <- BinarySegmentation(
-    x = x, delta = delta, lambda = lambda, method = method,
+    x = x_mat, delta = delta, lambda = lambda, method = method,
     threshold = threshold, penalize_diagonal = penalize_diagonal,
     optimizer = optimizer, control = control, standardize = standardize,
     FUN = FUN,
