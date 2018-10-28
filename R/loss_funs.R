@@ -6,9 +6,8 @@
 #' @param split_point Index on which to split the segment
 #'
 #' @return Sum of the loss for both new segments after split.
-SplitLoss <- function(x, split_point, SegmentLossFUN, start, end) {
-  SegmentLossFUN(x[1:(split_point - 1), , drop = F], start = start, end = start + (split_point - 2)) +
-    SegmentLossFUN(x[split_point:NROW(x), , drop = F], start = start + (split_point - 1), end = end)
+SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
+  SegmentLossFUN(start = start, end = split_point) + SegmentLossFUN(start = split_point + 1, end = end)
 }
 
 #' SegmentLoss
@@ -26,7 +25,7 @@ SplitLoss <- function(x, split_point, SegmentLossFUN, start, end) {
 #' @importFrom stats var deviance
 #'
 #' @return A parametrized loss function
-SegmentLoss <- function(n_obs,
+SegmentLoss <- function(x,
                         lambda,
                         penalize_diagonal = FALSE,
                         standardize = TRUE,
@@ -36,14 +35,16 @@ SegmentLoss <- function(n_obs,
   args <- list(...)
   mth <- match.arg(method)
 
+  n_obs <- NROW(x)
+
   if (mth == "nodewise_regression") {
     p <- args[["node"]]
     stopifnot(length(p) == 1 && is.numeric(p))
   }
 
   if (mth == "glasso") {
-    function(x, ...) {
-      obs_count <- NROW(x)
+    function(start, end, ...) {
+      obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to calculate the covariance matrix
@@ -51,7 +52,7 @@ SegmentLoss <- function(n_obs,
 
       n_p <- NCOL(x)
 
-      cov_mat <- (obs_count - 1) / obs_count * cov(x)
+      cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ])
 
       glasso_output <- glasso::glasso(
         cov_mat,
@@ -67,22 +68,23 @@ SegmentLoss <- function(n_obs,
       ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
       - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
     }
+
   } else if (mth == "nodewise_regression") {
-    function(x, ...) {
-      obs_count <- NROW(x)
+    function(start, end, ...) {
+      obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
       # We need more than one observation
       stopifnot(obs_count > 1)
 
       if (standardize) {
-        s_dev_y <- sqrt((obs_count - 1) / obs_count * var(x[, p, drop = F]))
+        s_dev_y <- sqrt((obs_count - 1) / obs_count * var(x[start : end, p, drop = F]))
       } else {
         s_dev_y <- 1
       }
 
       fit <- glmnet::glmnet(
-        x[, -p, drop = F], x[, p, drop = F],
+        x[start : end, -p, drop = F], x[start : end, p, drop = F],
         alpha = 1, lambda = lambda / sqrt(obs_share) * s_dev_y,
         thresh = threshold,
         standardize = FALSE
@@ -90,14 +92,14 @@ SegmentLoss <- function(n_obs,
       deviance(fit) / n_obs
     }
   } else if (mth == "ratio_regression") {
-    function(x, ...) {
-      obs_count <- NROW(x)
+    function(start, end, ...) {
+      obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to caclculate the covariance matrix
       stopifnot(obs_count > 1)
 
-      cov_mat <- (obs_count - 1) / obs_count * cov(x)
+      cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ])
 
       if (standardize) {
         var_x <- diag(cov_mat)
@@ -114,22 +116,22 @@ SegmentLoss <- function(n_obs,
         )$wi
       }, warning = HandleGlassoNaN)
 
-      mean_vec <- colMeans(x)
+      mean_vec <- colMeans(x[start : end, ])
       intercepts <- mean_vec - colSums(glasso_output * mean_vec)
-      ss <- t(t(x - x %*% glasso_output) - intercepts)^2
+      ss <- t(t(x[start : end, ] - x[start : end, ] %*% glasso_output) - intercepts)^2
       loss <- obs_count * log(colSums(ss) / obs_count)
 
       mean(loss / n_obs)
     }
   } else if (mth == "summed_regression") {
-    function(x, ...) {
-      obs_count <- NROW(x)
+    function(start, end, ...) {
+      obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
       # We need more than one observation to caclculate the covariance matrix
       stopifnot(obs_count > 1)
 
-      cov_mat <- (obs_count - 1) / obs_count * cov(x)
+      cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ])
 
       if (standardize) {
         var_x <- diag(cov_mat)
@@ -146,9 +148,9 @@ SegmentLoss <- function(n_obs,
         )$wi
       }, warning = HandleGlassoNaN)
 
-      mean_vec <- colMeans(x)
+      mean_vec <- colMeans(x[start : end, ])
       intercepts <- mean_vec - colSums(glasso_output * mean_vec)
-      ss <- t(t(x - x %*% glasso_output) - intercepts)^2
+      ss <- t(t(x[start : end, ] - x[start : end, ] %*% glasso_output) - intercepts)^2
       loss <- colSums(ss)
 
       mean(loss / n_obs)
@@ -169,7 +171,7 @@ InitSquaredLoss <- function(x) {
 
   n_obs <- NROW(x)
 
-  function(x, start, end) {
+  function(start, end) {
     seg_length <- (end - start + 1)
 
     stopifnot(end >= start && end <= n_obs && start >= 1)
@@ -191,7 +193,7 @@ InitSquaredLoss <- function(x) {
 InitNaiveSquaredLoss <- function(x) {
   n_obs <- NROW(x)
 
-  function(x, start, end) {
+  function(start, end) {
     stopifnot(end >= start && end <= n_obs && start >= 1)
 
     sum((x - mean(x))^2) / n_obs

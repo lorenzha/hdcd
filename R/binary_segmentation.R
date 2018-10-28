@@ -122,38 +122,40 @@ BinarySegmentation <- function(x, delta, lambda,
                                FUN = NULL,
                                ...) {
 
-  if(!is.matrix(x)){
-    x <- as.matrix(x)
-    warning("Input data x has been coerced to matrix by hdcd.")
-  }
-
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
-      n_obs = n_obs, lambda = lambda, penalize_diagonal = penalize_diagonal,
+      x, lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN))
-    SegmentLossFUN <- FUN(x)
-    stopifnot(c("x", "start", "end") %in% methods::formalArgs(SegmentLossFUN))
+
+    if ('lambda' %in% methods::formalArgs(FUN)){
+      SegmentLossFUN <- FUN(x, lambda = lambda)
+    } else {
+      SegmentLossFUN <- FUN(x)
+    }
   }
+
+  stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
 
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
   class(tree) <- c("bs_tree", class(tree))
 
 
-  Rec <- function(x, n_obs, delta, SegmentLossFUN, node, optimizer) {
-    n_selected_obs <- NROW(x)
+  Rec <- function(x, delta, SegmentLossFUN, node, optimizer) {
+
+    n_selected_obs <- node$end - node$start + 1
 
     if (verbose) print(tree)
 
     if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
 
       res <- FindBestSplit(
-        x, node$start, node$end, delta, n_obs,
+        node$start, node$end, delta, n_obs,
         SegmentLossFUN, control, optimizer, gamma
       )
 
@@ -165,33 +167,28 @@ BinarySegmentation <- function(x, delta, lambda,
         return(NA)
       } else {
         start <- node$start
+        end <- node$end
 
         child_left <- node$AddChild(
           as.character(start),
           start = start,
-          end = start + split_point - 2
+          end = split_point
         )
-        Rec(
-          x[1:(split_point - 1), , drop = F], n_obs, delta,
-          SegmentLossFUN, child_left, optimizer
-        )
+        Rec(x, delta, SegmentLossFUN, child_left, optimizer)
 
         child_right <- node$AddChild(
-          as.character(start + split_point - 1),
-          start = start + split_point - 1,
-          end = start + n_selected_obs - 1
+          as.character(split_point),
+          start = split_point + 1,
+          end = end
         )
-        Rec(
-          x[split_point:n_selected_obs, , drop = F], n_obs, delta,
-          SegmentLossFUN, child_right, optimizer
-        )
+        Rec(x, delta, SegmentLossFUN, child_right, optimizer)
       }
     } else {
       return(NA)
     }
   }
   Rec(
-    x = x, n_obs = n_obs, delta = delta, SegmentLossFUN = SegmentLossFUN,
+    x = x, delta = delta, SegmentLossFUN = SegmentLossFUN,
     node = tree, optimizer = optimizer
   )
   tree
@@ -206,35 +203,36 @@ BinarySegmentation <- function(x, delta, lambda,
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
 #' @param start The start index of the given segment \code{x}.
 #' @param end The end index of the given segment \code{x}.
-FindBestSplit <- function(x, start, end, delta, n_obs, SegmentLossFUN,
+FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
                           control = NULL,
                           optimizer = c("line_search", "section_search"),
                           gamma = 0) {
+
   opt <- match.arg(optimizer)
 
-  obs_count <- NROW(x)
-  min_seg_length <- ceiling(delta * n_obs)
+  obs_count <- end - start + 1
+  min_seg_length <- max(1, ceiling(delta * n_obs))
 
   if (obs_count < 2 * min_seg_length || obs_count < 4) {
     return(list(opt_split = NA, gain = NA))
   }
 
   split_candidates <- seq(
-    max(3, min_seg_length + 1),
-    min(obs_count - 1, obs_count - min_seg_length + 1), 1
+    start + min_seg_length, # need at least two points to estimate loss
+    end - max(2, min_seg_length), 1
   )
 
   switch(opt,
     "line_search" = {
       split_loss <- sapply(
         split_candidates,
-        function(y) SplitLoss(x, y,
+        function(y) SplitLoss(y,
             SegmentLossFUN = SegmentLossFUN,
             start = start,
             end = end
           )
       )
-      gain <- SegmentLossFUN(x, start, end) - split_loss
+      gain <- SegmentLossFUN(start, end) - split_loss
       result <- list(opt_split = split_candidates[which.max(gain)], gain = gain)
     },
     "section_search" = {

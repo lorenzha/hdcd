@@ -43,19 +43,9 @@ CrossValidation <- function(x,
                             verbose = T,
                             FUN = NULL,
                             ...) {
+
   n_obs <- NROW(x)
   n_p <- NCOL(x)
-
-  if (is.null(FUN)) {
-    SegmentLossFUN <- SegmentLoss(
-      n_obs = NROW(x), lambda = lambda, penalize_diagonal = penalize_diagonal,
-      method = method, standardize = standardize, threshold = threshold, ...
-    )
-  } else {
-    stopifnot(c("x") %in% methods::formalArgs(FUN))
-    SegmentLossFUN <- FUN(x)
-    stopifnot(c("x", "start", "end") %in% methods::formalArgs(SegmentLossFUN))
-  }
 
 
   # necessary because parser won't allow 'foreach' directly after a foreach object
@@ -70,13 +60,23 @@ CrossValidation <- function(x,
   `%:%` <- foreach::`%:%`
 
   # choose lambda as grid around the asymptotic value
-  if (is.null(lambda) && is.null(FUN) && NCOL(x) > 1) {
-    cov_mat <- cov(x)
+  if (is.null(lambda) && NCOL(x) > 1) {
+
+    #function to estimate covariance of x if some values are missing
+    get_cov_mat <- function(x){
+      if (sum(is.na(x))>0){
+        cov_mat <- cov(x, use = 'pairwise')
+        cov_mat[is.na(cov_mat)] <- 0
+        cov_mat
+      } else{
+        cov(x)
+      }
+    }
+
+    cov_mat <- get_cov_mat(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
-  } else if (!is.null(FUN)) {
-    lambda <- c(1, 2)
-  }
+ }
 
   n_lambdas <- length(lambda)
 
