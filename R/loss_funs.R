@@ -166,6 +166,7 @@ SegmentLoss <- function(x,
 #'
 #' @export
 InitSquaredLoss <- function(x) {
+
   csum <- cumsum(x)
   csum_2 <- cumsum(x^2)
 
@@ -191,11 +192,12 @@ InitSquaredLoss <- function(x) {
 #'
 #' @export
 InitNaiveSquaredLoss <- function(x) {
+
   n_obs <- NROW(x)
 
   function(start, end) {
     stopifnot(end >= start && end <= n_obs && start >= 1)
 
-    sum((x - mean(x))^2) / n_obs
+    sum((x[start : end] - mean(x[start : end]))^2) / n_obs
   }
 }

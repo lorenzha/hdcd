@@ -250,12 +250,19 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
         k_sigma <- 0
       } # set default value if necessary
 
-      rec <- SectionSearch(x = x, split_candidates = split_candidates, n_obs = n_obs,
-                           SegmentLossFUN = SegmentLossFUN, start = start,
-                           end = end, min_points = min_points,
-                           stepsize = stepsize, k_sigma = k_sigma)
 
-      result <- rec(left = 1, right = length(split_candidates), RecFUN = rec)
+      result <- SectionSearch(split_candidates = split_candidates, n_obs = n_obs,
+                              SegmentLossFUN = SegmentLossFUN, start = start, end = end,
+                              min_points = min_points, stepsize = stepsize, k_sigma = k_sigma)
+      #
+      #
+      #
+      # rec <- SectionSearch(x = x, split_candidates = split_candidates, n_obs = n_obs,
+      #                      SegmentLossFUN = SegmentLossFUN, start = start,
+      #                      end = end, min_points = min_points,
+      #                      stepsize = stepsize, k_sigma = k_sigma)
+      #
+      # result <- rec(left = 1, right = length(split_candidates), RecFUN = rec)
     }
   )
 
