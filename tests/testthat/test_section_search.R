@@ -5,31 +5,26 @@ load(test_dat)
 
 test_that("multivariate section search", {
   expect_equal_to_reference({
-    rec <- SectionSearch(test_data, split_candidates = 10:290,
-                         n_obs = 300, start = 1, end = 300,
-                         SegmentLossFUN = SegmentLoss(n_obs = 300,
-                                                      lambda = 0.01,
-                                                      method = "summed_regression"))
-    rec(left = 1, right = 290, RecFUN = rec)
+    SegmentLossFUN <-  SegmentLoss(test_data, n_obs = 300, lambda = 0.01,
+                                 method = "summed_regression")
+    SectionSearch(split_candidates = 10:290, n_obs = 300,
+                       SegmentLossFUN = SegmentLossFUN,
+                       start = 1, end = 300)
   }, test_path("reference_objects/section-search"))
 })
 
 test_that("univariate section search", {
   expect_equal_to_reference({
-    rec <- SectionSearch(test_data[,1], split_candidates = 10:290,
-                         n_obs = 300, start = 1, end = 300,
+    SectionSearch(split_candidates = 10:290, n_obs = 300,
                          SegmentLossFUN = InitSquaredLoss(test_data[,1]),
-                         k_sigma = 0)
-    rec(left = 1, right = 290, RecFUN = rec)
+                          start = 1, end = 300, k_sigma = 0)
   }, test_path("reference_objects/section-search-k_sigma"))
 })
 
 test_that("univariate section search with k_sigma > 0", {
   expect_equal_to_reference({
-    rec <- SectionSearch(test_data[,1], split_candidates = 10:290,
-                         n_obs = 300, start = 1, end = 300,
+    SectionSearch(split_candidates = 10:290, n_obs = 300, start = 1, end = 300,
                          SegmentLossFUN = InitSquaredLoss(test_data[,1]),
                          k_sigma = 0.00001)
-    rec(left = 1, right = 290, RecFUN = rec)
   }, test_path("reference_objects/section-search-k_sigma"))
 })
