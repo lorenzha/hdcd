@@ -43,33 +43,34 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
     }
   }
 
+  loss <-  rep(NA, n_obs)
+
   SectionSearch_recursive <- function(cur_left, cur_middle, cur_right){
-    print(c(cur_left, cur_middle, cur_right))
     if (cur_right - cur_left <= min_points){
-      loss <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
-      return(list(gain = seg_loss - min(loss), opt_split = which.min(loss) + cur_left - 1))
+      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
+      return(list(gain = seg_loss - loss, opt_split = which.min(loss)))
     }
 
     if (cur_right - cur_middle > cur_middle - cur_left){
       w <- cur_right - ceiling((cur_right - cur_middle) * stepsize)
-      SplitLoss1 <- SplitLoss(cur_middle, SegmentLossFUN, start, end)
-      SplitLoss2 <- SplitLoss(w, SegmentLossFUN, start, end)
+      loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
+      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
 
-      if ( SplitLoss2 + tol <= SplitLoss1 ){
+      if ( loss[w] + tol <= loss[cur_middle] ){
         SectionSearch_recursive(cur_middle, w, cur_right)
-      } else if (SplitLoss1 + tol <= SplitLoss2) {
+      } else if (loss[cur_middle] + tol <= loss[w]) {
         SectionSearch_recursive(cur_left, cur_middle, w)
       } else {
         select_via_variance(cur_left, cur_middle, w, cur_right)
       }
     } else {
       w <- cur_left + ceiling((cur_middle - cur_left) * stepsize)
-      SplitLoss1 <- SplitLoss(w, SegmentLossFUN, start, end)
-      SplitLoss2 <- SplitLoss(cur_middle, SegmentLossFUN, start, end)
+      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
+      loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
 
-      if ( SplitLoss1 + tol <= SplitLoss2){
+      if ( loss[w] + tol <= loss[cur_middle]){
         SectionSearch_recursive(cur_left, w, cur_middle)
-      } else if (SplitLoss2 + tol <= SplitLoss1) {
+      } else if (loss[cur_middle] + tol <= loss[w]) {
         SectionSearch_recursive(w, cur_middle, cur_right)
       } else {
         select_via_variance(cur_left, w, cur_middle, cur_right)
@@ -79,7 +80,7 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
 
   left <- split_candidates[1]
   right <- split_candidates[length(split_candidates)]
-  SectionSearch_recursive(left, left + ceiling( stepsize * (right - left) ), right) # Which direction to go first?
+  SectionSearch_recursive(left, ceiling( (start + stepsize * end)/(1 + stepsize)), right) #generates symmetrical setup in next step
 }
 
 
