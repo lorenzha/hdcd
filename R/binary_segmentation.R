@@ -141,12 +141,28 @@ BinarySegmentation <- function(x, delta, lambda,
 
   stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
 
+  cache <- new.env(TRUE, emptyenv())
 
+  key <- function(start, end){
+    paste(start, end, sep = '-')
+  }
+
+  getSegmentLoss <- function(start, end){
+    if(!exists(key(start, end), envir = cache, inherits = FALSE)){
+     assign(key(start, end),
+            SegmentLossFUN(start, end),
+            envir = cache)
+    }
+    get(key(start, end), envir = cache, inherits = FALSE)
+
+  }
+
+  #getSegmentLoss(1, n_obs)
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
   class(tree) <- c("bs_tree", class(tree))
 
 
-  Rec <- function(x, delta, SegmentLossFUN, node, optimizer) {
+  BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
 
     n_selected_obs <- node$end - node$start + 1
 
@@ -156,10 +172,10 @@ BinarySegmentation <- function(x, delta, lambda,
 
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
-        SegmentLossFUN, control, optimizer, gamma
+        SegmentLossFUN, control, optimizer
       )
 
-      node$max_gain <- max(res[["gain"]])
+      node$max_gain <- max(res[["gain"]], na.rm = T)
       node$gain <- res[["gain"]]
       split_point <- res[["opt_split"]]
 
@@ -174,23 +190,21 @@ BinarySegmentation <- function(x, delta, lambda,
           start = start,
           end = split_point
         )
-        Rec(x, delta, SegmentLossFUN, child_left, optimizer)
+        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
 
         child_right <- node$AddChild(
-          as.character(split_point),
+          as.character(split_point + 1),
           start = split_point + 1,
           end = end
         )
-        Rec(x, delta, SegmentLossFUN, child_right, optimizer)
+        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
       }
     } else {
       return(NA)
     }
   }
-  Rec(
-    x = x, delta = delta, SegmentLossFUN = SegmentLossFUN,
-    node = tree, optimizer = optimizer
-  )
+  BinarySegmentation_recursive(delta = delta, n_obs = n_obs, SegmentLossFUN = getSegmentLoss,
+    node = tree, optimizer = optimizer)
   tree
 }
 
@@ -219,7 +233,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
 
   split_candidates <- seq(
     start + min_seg_length, # need at least two points to estimate loss
-    end - max(2, min_seg_length), 1
+    end - max(2, min_seg_length + 1), 1
   )
 
   switch(opt,
@@ -266,7 +280,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
     }
   )
 
-  if (max(result[["gain"]]) - gamma <= 0) {
+  if (max(result[["gain"]], na.rm = T) - gamma <= 0) {
     list(opt_split = NA, gain = result[["gain"]])
   } else {
     list(opt_split = result[["opt_split"]], gain = result[["gain"]])
