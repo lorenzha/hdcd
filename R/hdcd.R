@@ -57,6 +57,13 @@ hdcd <- function(x,
 
   cv <- FALSE
 
+
+  if( !is.null(FUN) ){
+    stopifnot('x' %in% methods::formalArgs(FUN))
+    if ( is.null(lambda) && !('lambda' %in% methods::formalArgs(FUN(x))))
+      lambda <- 0 #don't do lambda CV if FUN doesn't depend on lambda
+  }
+
   if ((is.null(lambda) || is.null(gamma) || is.null(delta)) | length(c(gamma, lambda, delta)) > 3) {
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
