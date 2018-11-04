@@ -169,7 +169,6 @@ BinarySegmentation <- function(x, delta, lambda,
     if (verbose) print(tree)
 
     if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
-
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
         SegmentLossFUN, control, optimizer
@@ -225,7 +224,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
   opt <- match.arg(optimizer)
 
   obs_count <- end - start + 1
-  min_seg_length <- max(1, ceiling(delta * n_obs))
+  min_seg_length <- max(2, ceiling(delta * n_obs))
 
   if (obs_count < 2 * min_seg_length || obs_count < 4) {
     return(list(opt_split = NA, gain = NA))
@@ -233,7 +232,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
 
   split_candidates <- seq(
     start + min_seg_length, # need at least two points to estimate loss
-    end - max(2, min_seg_length + 1), 1
+    end - min_seg_length + 1, 1
   )
 
   switch(opt,

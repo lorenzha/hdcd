@@ -27,7 +27,7 @@
 #'   RecFun should always be set to the object name of the function has been
 #'   assigned so the function can call itself recursively.
 SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
-                          min_points = 3,
+                          min_points = 4,
                           stepsize = 0.5,
                           k_sigma = 0) {
 
@@ -46,7 +46,8 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
   loss <-  rep(NA, n_obs)
 
   SectionSearch_recursive <- function(cur_left, cur_middle, cur_right){
-    if (cur_right - cur_left <= min_points){
+
+    if (cur_right - cur_left + 1 <= min_points){
       loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
       return(list(gain = seg_loss - loss, opt_split = which.min(loss)))
     }
@@ -68,7 +69,7 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
       loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
       loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
 
-      if ( loss[w] + tol <= loss[cur_middle]){
+      if ( loss[w] + tol <= loss[cur_middle] ){
         SectionSearch_recursive(cur_left, w, cur_middle)
       } else if (loss[cur_middle] + tol <= loss[w]) {
         SectionSearch_recursive(w, cur_middle, cur_right)
