@@ -7,7 +7,7 @@
 #'
 #' @return Sum of the loss for both new segments after split.
 SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
-  SegmentLossFUN(start = start, end = split_point) + SegmentLossFUN(start = split_point + 1, end = end)
+  SegmentLossFUN(start = start, end = split_point - 1) + SegmentLossFUN(start = split_point, end = end)
 }
 
 #' SegmentLoss
@@ -25,6 +25,63 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
 #' @importFrom stats var deviance
 #'
 #' @return A parametrized loss function
+NA_SegmentLoss <- function(x,
+                           lambda,
+                           penalize_diagonal = FALSE,
+                           standardize = TRUE,
+                           threshold = 1e-7,
+                           ...){
+
+  n_obs <- nrow(x)
+  mis <- is.na(x)
+
+  function(start, end){
+
+    x_est <- x[start : end, ]
+
+    obs_count <- end - start + 1
+    obs_share <- obs_counts / n_obs
+
+    max_step <- function(x){
+      cov <- cov(x, use = 'pairwise')
+      mu <- apply(x, 2, function(y) mean(y, na.rm = T))
+      fit <- glasso::glasso(cov,
+            rho = lambda / sqrt(obs_share) * diag(cov),
+            penalize.diagonal = penalize_diagonal,
+            thr = threshold
+      )$wi
+      list(mu = mu, K = K)
+    }
+
+    e_step <- function(x, K, mu, mis){
+      for (i in 1:nrow(x)){
+        mis_i <- mis[i,]
+        if(any(mis_i)){
+          x_i <- x[i, ]
+
+          x_i[mis_i] <- mu[mis_i] - solve(K[mis_i, mis_i], K[mis_i, !mis_i] %*% (x_i[!mis_i] - mu[!mis_i]))
+          x[i, ] <- x_i
+        }
+      }
+      x
+    }
+
+    beta_old <- NULL
+
+    for (i in 1:5){
+      beta <- max_step(x)
+      x <- e_step(x, beta$K, beta$mu, mis)
+
+      if(!is.null(beta_old)){
+        print(norm(beta$K - beta_old$K, type = 'f'))
+      }
+      beta_old <- beta
+    }
+    beta
+  }
+}
+
+
 SegmentLoss <- function(x,
                         lambda,
                         penalize_diagonal = FALSE,

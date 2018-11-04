@@ -157,12 +157,12 @@ BinarySegmentation <- function(x, delta, lambda,
 
   }
 
-  #getSegmentLoss(1, n_obs)
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
   class(tree) <- c("bs_tree", class(tree))
 
 
   BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
+
 
     n_selected_obs <- node$end - node$start + 1
 
@@ -188,13 +188,13 @@ BinarySegmentation <- function(x, delta, lambda,
         child_left <- node$AddChild(
           as.character(start),
           start = start,
-          end = split_point
+          end = split_point - 1
         )
         BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
 
         child_right <- node$AddChild(
-          as.character(split_point + 1),
-          start = split_point + 1,
+          as.character(split_point),
+          start = split_point,
           end = end
         )
         BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)

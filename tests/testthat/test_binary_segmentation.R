@@ -84,7 +84,7 @@ test_that("section search", {
 
   expect_equal(
     result$opt_split,
-    96 #### Should this be 97? Bias of 1???
+    97
   )
 
   expect_equal(
