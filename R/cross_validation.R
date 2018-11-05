@@ -27,7 +27,8 @@
 #' CrossValidation(dat, method = "summed_regression")
 #' }
 CrossValidation <- function(x,
-                            delta = c(0.1, 0.25),
+                            y = y,
+                            delta = NULL,
                             lambda = NULL,
                             lambda_min_ratio = 0.01,
                             lambda_grid_size = 10,
@@ -35,6 +36,7 @@ CrossValidation <- function(x,
                             n_folds = 10,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                             penalize_diagonal = F,
+                            alpha = 1,
                             optimizer = c("line_search", "section_search"),
                             control = NULL,
                             standardize = T,
@@ -95,8 +97,8 @@ CrossValidation <- function(x,
       n_g <- length(test_inds)
 
       tree <- BinarySegmentation(
-        x = x[train_inds, , drop = F], delta = del, lambda = lam,
-        method = method, penalize_diagonal = penalize_diagonal,
+        x = x[train_inds, , drop = F], y = y[train_inds], delta = del, lambda = lam,
+        method = method, penalize_diagonal = penalize_diagonal, alpha = alpha,
         optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, FUN = FUN, ...
       )
@@ -115,7 +117,7 @@ CrossValidation <- function(x,
       cpts <- list()
       for (gam in seq_along(final_gamma)) {
         fit <- FullRegression(
-          x[train_inds, , drop = F],
+          x[train_inds, , drop = F],## TODO: understand whats going on here
           cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
           lambda = lam, standardize = standardize, threshold = threshold
         )

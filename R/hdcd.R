@@ -31,13 +31,15 @@
 #' hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
 #' }
 hdcd <- function(x,
+                 y= NULL,
                  delta = 0.1,
                  lambda = NULL,
                  lambda_min_ratio = 0.01,
                  lambda_grid_size = 10,
                  gamma = NULL,
-                 method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+                 method = c("nodewise_regression", "summed_regression", "ratio_regression", 'elastic_net'),
                  penalize_diagonal = F,
+                 alpha = 1,
                  optimizer = c("line_search", "section_search"),
                  control = NULL,
                  standardize = T,
@@ -68,13 +70,14 @@ hdcd <- function(x,
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
-      x = x, delta = delta, method = method, lambda = lambda,
+      x = x, y = y, delta = delta, method = method, lambda = lambda,
       lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
       control = control,
       standardize = standardize,
       penalize_diagonal = penalize_diagonal,
+      alpha = alpha,
       verbose = verbose,
       parallel = parallel,
       threshold = threshold,
@@ -87,8 +90,8 @@ hdcd <- function(x,
   }
 
   tree <- BinarySegmentation(
-    x = x, delta = delta, lambda = lambda, method = method,
-    threshold = threshold, penalize_diagonal = penalize_diagonal,
+    x = x, y = y, delta = delta, lambda = lambda, method = method,
+    threshold = threshold, penalize_diagonal = penalize_diagonal, alpha = alpha,
     optimizer = optimizer, control = control, standardize = standardize,
     FUN = FUN,
     ...

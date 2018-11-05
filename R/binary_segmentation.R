@@ -110,7 +110,7 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, delta, lambda,
+BinarySegmentation <- function(x, y = 0, delta = 0.1, lambda = 0.1,
                                gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                penalize_diagonal = F,
@@ -126,11 +126,11 @@ BinarySegmentation <- function(x, delta, lambda,
 
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
-      x, lambda = lambda, penalize_diagonal = penalize_diagonal,
+      x, y = y, lambda = lambda, penalize_diagonal = penalize_diagonal,
       method = method, standardize = standardize, threshold = threshold, ...
     )
   } else {
-    stopifnot(c("x") %in% methods::formalArgs(FUN))
+    stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
 
     if ('lambda' %in% methods::formalArgs(FUN)){
       SegmentLossFUN <- FUN(x, lambda = lambda)
