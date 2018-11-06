@@ -10,6 +10,130 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
   SegmentLossFUN(start = start, end = split_point - 1) + SegmentLossFUN(start = split_point, end = end)
 }
 
+
+
+#' av_SegmentLoss
+av_SegmentLoss <- function(x,
+                           lambda,
+                           penalize_diagonal = FALSE,
+                           standardize = TRUE,
+                           threshold = 1e-07){
+  n_obs <- nrow(x)
+  n_p <- ncol(x)
+
+  function(start, end){
+
+    for(i in 1:n_p){
+      x[start : end, i][is.na(x[start : end, i]==T)] <- mean(x[start : end, i], na.rm=T)
+    }
+
+    obs_count <- end - start + 1
+    obs_share <- obs_count / n_obs
+
+    # We need more than one observation to caclculate the covariance matrix
+    stopifnot(obs_count > 1)
+
+
+    cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ], use = 'pairwise')
+    cov_mat[is.na(cov_mat)] <- 0 # adapt value
+    cov_mat <- as.matrix(nearPD(cov_mat)$mat)
+
+
+
+    glasso_output <- glasso::glasso(
+      cov_mat,
+      rho = lambda / sqrt(obs_share) * diag(cov_mat),
+      penalize.diagonal = penalize_diagonal,
+      thr = threshold
+    )
+
+    if (!penalize_diagonal) {
+      diag(glasso_output$wi) <- 0
+    }
+
+    ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
+      - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
+  }
+}
+
+#' EM_SegmentLoss
+EM_SegmentLoss <- function(x,
+                           lambda,
+                           method,
+                           penalize_diagonal = FALSE,
+                           standardize = TRUE,
+                           threshold = 1e-7,
+                           ...){
+
+  n_obs <- nrow(x)
+  n_p <- ncol(x)
+  mis <- is.na(x)
+
+  function(start, end){
+
+    mis <- mis[start : end, ]
+    x_est <- x[start : end, ]
+
+    obs_count <- end - start + 1
+    obs_share <- obs_count / n_obs
+
+    # INIT: Do 1 cov & mean estimation using complete data
+    cov_mat <- (obs_count - 1) / obs_count * cov(x_est, use = 'pairwise') #use = 'pairwise' works with missing data
+    cov_mat[is.na(cov_mat)] <- 0 # adapt value
+    cov_mat <- as.matrix(nearPD(cov_mat)$mat)
+
+    mu <- apply(x_est, 2, function(y) mean(y, na.rm = T))
+
+    #### Do a first glasso fit
+    K <- glasso::glasso(cov_mat,
+                        rho = lambda / sqrt(obs_share) * diag(cov_mat),
+                        penalize.diagonal = penalize_diagonal,
+                        thr = threshold
+    )$wi
+
+    #### Do covariance imputation on missing values
+    # TODO: can this be done more elegantly / faster?
+
+    for (i in 1:nrow(x_est)){
+
+      mis_i <- mis[i,]
+
+      if(all(mis_i)){
+        x_est[i, ] <- mu
+      } else if(sum(!mis_i) == 1){
+        x_est_i <- x_est[i, ]
+        x_est_i[mis_i] <- mu[mis_i] - solve(K[mis_i, mis_i], K[mis_i, which(!mis_i)] * (x_est_i[!mis_i] - mu[!mis_i]))
+        x_est[i, ] <- x_est_i
+      } else {
+        x_est_i <- x_est[i, ]
+        x_est_i[mis_i] <- mu[mis_i] - solve(K[mis_i, mis_i], K[mis_i, !mis_i] %*% (x_est_i[!mis_i] - mu[!mis_i]))
+        x_est[i, ] <- x_est_i
+      }
+    }
+
+    ##### Do an other glasso fit on imputed data
+    cov_mat <- cov(x_est)
+    mu <- apply(x_est, 2, function(y) mean(y, na.rm = T))
+
+    glasso_output <- glasso::glasso(
+      cov_mat,
+      rho = lambda / sqrt(obs_share) * diag(cov_mat),
+      penalize.diagonal = penalize_diagonal,
+      thr = threshold
+    )
+
+    # prepare output
+    if (!penalize_diagonal) {
+      diag(glasso_output$wi) <- 0
+    }
+
+    ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
+      - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
+  }
+}
+
+
+
 #' SegmentLoss
 #'
 #' This closure returns a function which calculates the loss for the given segment of the data.
@@ -171,7 +295,7 @@ SegmentLoss <- function(x,
 
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
-      fit <- glmnet(x[start : end, ], y[start : end], alpha = alpha, lambda = sqrt(obs_share) * lambda, standardize = standardize, family = family, thres = threshold)
+      fit <- glmnet::glmnet(x[start : end, ], y[start : end], alpha = alpha, lambda = sqrt(obs_share) * lambda, standardize = standardize, family = family, thres = threshold)
       deviance(fit)
 
     }

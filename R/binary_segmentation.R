@@ -110,7 +110,7 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, y = 0, delta = 0.1, lambda = 0.1,
+BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
                                gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                penalize_diagonal = F,
