@@ -51,8 +51,8 @@
 #'  controls the total objective value. This value is ignored if FUN is not
 #'  NULL.
 #' @param verbose Boolean. If TRUE additional information will be printed.
-#' @param FUN A loss function with formal arguments, \code{x}, \code{n_obs} and
-#'  \code{standardize} which returns a scalar representing the loss for the
+#' @param FUN A loss function with formal arguments, \code{x} and \code{lambda},
+#' which returns a function handle taking arguments \code{start} and \code{end}, representing the loss for the
 #'  segment the function is applied to.
 #' @param ... Supply additional arguments for a specific method (e.g. \code{node}
 #'  for \strong{nodewise_regression}) or own loss function \code{FUN}
@@ -110,9 +110,10 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
+BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
                                gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+                               NA_handling = NULL,
                                penalize_diagonal = F,
                                optimizer = c("line_search", "section_search"),
                                control = NULL,
@@ -126,8 +127,8 @@ BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
 
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
-      x, y = y, lambda = lambda, penalize_diagonal = penalize_diagonal,
-      method = method, standardize = standardize, threshold = threshold, ...
+      x, lambda = lambda, penalize_diagonal = penalize_diagonal,
+      method = method, NA_handling = NA_handing, standardize = standardize, threshold = threshold, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
@@ -140,22 +141,6 @@ BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
   }
 
   stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
-
-  cache <- new.env(TRUE, emptyenv())
-
-  key <- function(start, end){
-    paste(start, end, sep = '-')
-  }
-
-  getSegmentLoss <- function(start, end){
-    if(!exists(key(start, end), envir = cache, inherits = FALSE)){
-     assign(key(start, end),
-            SegmentLossFUN(start, end),
-            envir = cache)
-    }
-    get(key(start, end), envir = cache, inherits = FALSE)
-
-  }
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
   class(tree) <- c("bs_tree", class(tree))
@@ -202,7 +187,7 @@ BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
       return(NA)
     }
   }
-  BinarySegmentation_recursive(delta = delta, n_obs = n_obs, SegmentLossFUN = getSegmentLoss,
+  BinarySegmentation_recursive(delta = delta, n_obs = n_obs, SegmentLossFUN = SegmentLossFUN,
     node = tree, optimizer = optimizer)
   tree
 }
@@ -211,11 +196,24 @@ BinarySegmentation <- function(x, y = NULL, delta = 0.1, lambda = 0.1,
 #'
 #' Takes a segment of the data and dispatches the choosen \code{method} to the different optimizers.
 #'
-#' @inheritParams BinarySegmentation
+#'
+#' @param start The start index of the given segment saved in \code{SegmentLossFUN}.
+#' @param end The end index of the given segment saved in \code{SegmentLossFUN}.
 #' @param n_obs The number of observations in the data set.
 #' @param SegmentLossFUN A loss function as created by closure \code{\link{SegmentLoss}}.
-#' @param start The start index of the given segment \code{x}.
-#' @param end The end index of the given segment \code{x}.
+#' @param control A list with parameters that is accessed by the selected
+#'  optimizer: \itemize{ \item \strong{stepsize}: Numeric value between 0 and
+#'  0.5. Used by section search. \item \strong{min_points}: Integer value larger
+#'  than 3. Used by section search.}
+#'  @param optimizer Which search technique should be used for performing
+#'  individual splits in the binary segmentation alogrithm? Possible choices are
+#'  \itemize{ \item \strong{line_search}: Exhaustive linear search. All possivle
+#'  split candidates are evaluated and the index with maximal loss reduction is
+#'  returned. \item \strong{section_search}: Iteratively cuts the search space
+#'  according by a flexible ratio as determined by parameter \code{stepsize} in
+#'  \code{control} parameter list and approximately finds an index at a local
+#'  maximum. See Haubner (2018) for details. }
+#'  @param gamma Tuning parameter that controls sensitivity to finding splits.
 FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
                           control = NULL,
                           optimizer = c("line_search", "section_search"),

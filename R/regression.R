@@ -18,14 +18,10 @@ FullRegression <- function(x, cpts,
                            lambda = 0.1,
                            standardize = T,
                            threshold = 1e-7) {
-  est_mean <- est_wi <- est_intercepts <- list()
+  est_mean <- est_wi <- est_intercepts <- est_coefs <-  list()
   n_obs <- NROW(x)
 
   cpts <- c(1, cpts, (NROW(x) + 1))
-
-  est_mean <- list()
-  est_intercepts <- list()
-  est_coefs <- list()
 
   for (i in 1:(length(cpts) - 1)) {
     start <- cpts[i]
@@ -34,7 +30,7 @@ FullRegression <- function(x, cpts,
     obs_count <- end - start + 1
     obs_share <- obs_count / n_obs
 
-    cov_mat <- (obs_count - 1) / obs_count * cov(x[start:end, , drop = F])
+    cov_mat <- (obs_count - 1) / obs_count * get_cov_mat(x[start:end, , drop = F], nearPD = TRUE)
 
     if (standardize) {
       var_x <- diag(cov_mat)
@@ -42,7 +38,7 @@ FullRegression <- function(x, cpts,
       var_x <- 1
     }
 
-    est_mean[[i]] <- colMeans(x[start:end, , drop = F])
+    est_mean[[i]] <- colMeans(x[start:end, , drop = F], na.rm = TRUE)
     if (NCOL(x) > 1) {
       withCallingHandlers({
         est_coefs[[i]] <- glasso::glasso(

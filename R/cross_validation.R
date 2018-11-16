@@ -27,14 +27,13 @@
 #' CrossValidation(dat, method = "summed_regression")
 #' }
 CrossValidation <- function(x,
-                            y = y,
                             delta = NULL,
                             lambda = NULL,
                             lambda_min_ratio = 0.01,
                             lambda_grid_size = 10,
                             gamma = NULL,
                             n_folds = 10,
-                            method = c("nodewise_regression", "summed_regression", "ratio_regression"),
+                            method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
                             penalize_diagonal = F,
                             alpha = 1,
                             optimizer = c("line_search", "section_search"),
@@ -44,6 +43,7 @@ CrossValidation <- function(x,
                             parallel = T,
                             verbose = T,
                             FUN = NULL,
+                            cv.FUN = NULL,
                             ...) {
 
   n_obs <- NROW(x)
@@ -63,22 +63,10 @@ CrossValidation <- function(x,
 
   # choose lambda as grid around the asymptotic value
   if (is.null(lambda) && NCOL(x) > 1) {
-
-    #function to estimate covariance of x if some values are missing
-    get_cov_mat <- function(x){
-      if (sum(is.na(x))>0){
-        cov_mat <- cov(x, use = 'pairwise')
-        cov_mat[is.na(cov_mat)] <- 0
-        cov_mat
-      } else{
-        cov(x)
-      }
-    }
-
     cov_mat <- get_cov_mat(x)
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
- }
+  }
 
   n_lambdas <- length(lambda)
 
@@ -88,16 +76,17 @@ CrossValidation <- function(x,
   }
   n_delta <- length(delta)
 
+  mth <- match.arg(method)
+
   if (verbose) cat("\n")
   cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(del = delta, .inorder = T) %:%
     foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
       test_inds <- seq(fold, n_obs, n_folds)
       train_inds <- setdiff(1:n_obs, test_inds)
-      n_g <- length(test_inds)
 
       tree <- BinarySegmentation(
-        x = x[train_inds, , drop = F], y = y[train_inds], delta = del, lambda = lam,
+        x = x[train_inds, , drop = F], delta = del, lambda = lam,
         method = method, penalize_diagonal = penalize_diagonal, alpha = alpha,
         optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, FUN = FUN, ...
@@ -110,54 +99,43 @@ CrossValidation <- function(x,
         final_gamma <- gamma
       }
 
+      if (is.null(cv.FUN)){
+        cv.LossFUN <- cv.Loss(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam,
+                              method = method, penalize_diagonal = penalize_diagonal, alpha = alpha)
+      } else {
+        cv.LossFUN <- cv.FUN(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam)
+        stopifnot(all(c('start_train', 'end_train', 'start_test', 'end_test') %in% formalArgs(cv.LossFUN)))
+      }
+
       res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
       loss_gamma <- numeric(length(final_gamma))
       n_params_gamma <- numeric(length(final_gamma))
       cpts <- list()
+
       for (gam in seq_along(final_gamma)) {
-        fit <- FullRegression(
-          x[train_inds, , drop = F],## TODO: understand whats going on here
-          cpts = res$cpts[[gam]], # TODO: Can we somehow cache the fits from before instead of refitting the model? Should be the endpoints of the pruned tree!
-          lambda = lam, standardize = standardize, threshold = threshold
-        )
-
-        segment_bounds <- c(1, train_inds[res$cpts[[gam]]], n_obs) # transform cpts back to original indices
-
         loss <- 0
-        n_params <- 0
-
-        for (seg in seq_len(length(segment_bounds) - 1)) {
-          seg_test_inds <- test_inds[which(test_inds >= segment_bounds[seg] & test_inds < segment_bounds[seg + 1])]
-
-          if (length(seg_test_inds) == 0) {
-            warning("Segment had no test data. Consider reducing the number of folds.")
-            next
-          }
-
-          wi <- fit$est_coefs[[seg]]
-          intercepts <- fit$est_intercepts[[seg]]
-
-          # TODO: Instead of calculating the RSS, we could take the likelihood ratio here again, can we store the loss for one segment per
-          #  dimension before and reuse it here?
-
-          if (n_p > 1) {
-            loss <- loss +
-              sum(sapply(1:n_p, function(z) RSS(x[seg_test_inds, -z, drop = F], x[seg_test_inds, z, drop = F], wi[-z, z, drop = F], intercepts[z]))) / n_obs
-            n_params <- n_params + length(which(wi[upper.tri(wi)] != 0))
+        alpha <- c(1, train_inds[res$cpts[[gam]]], n_obs + 1) # transform cpts back to original indices
+        for (i in 1:(length(alpha) - 1)){
+          train_start <- min(which(train_inds >= alpha[i]))
+          train_end <- max(which(train_inds <= alpha[i + 1] - 1))
+          test_start <- min(which(test_inds >= alpha[i]))
+          test_end  <- max(which(test_inds <= alpha[i + 1] - 1))
+          if (test_end < test_start){
+            warning("Segment has no test data. Consider reducing the number of folds.")
           } else {
-            loss <- loss + RSS(x[seg_test_inds, , drop = F], x[seg_test_inds, , drop = F], wi, intercepts) / n_obs
+            loss <- loss + cv.LossFUN(train_start, train_end, test_start, test_end)
           }
         }
+        n_params <- 0# What is this?? Add mean params to count
 
-        n_params <- n_params + (length(segment_bounds) - 1) * n_p # Add mean params to count
-
-        loss_gamma[gam] <- loss / n_g
+        loss_gamma[gam] <- loss
         n_params_gamma[gam] <- n_params
-        cpts[[gam]] <- segment_bounds
+        cpts[[gam]] <- train_inds[res$cpts[[gam]]]
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
+
       list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts, n_params = n_params_gamma)
     }
 

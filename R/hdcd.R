@@ -38,6 +38,7 @@ hdcd <- function(x,
                  lambda_grid_size = 10,
                  gamma = NULL,
                  method = c("nodewise_regression", "summed_regression", "ratio_regression", 'elastic_net'),
+                 NA_handling = NULL,
                  penalize_diagonal = F,
                  alpha = 1,
                  optimizer = c("line_search", "section_search"),
@@ -55,7 +56,14 @@ hdcd <- function(x,
     warning("Input data x has been coerced to matrix by hdcd.")
   }
 
+  stopifnot(!is.null(NA_handling) ||  !any(is.na(x)))
+
   stopifnot(nrow(x) > 1)
+
+  if(!is.null(y)){
+    stopifnot(nrow(x) == length(y))
+    x <- cbind(y, x)
+  }
 
   cv <- FALSE
 
@@ -70,8 +78,9 @@ hdcd <- function(x,
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
     cv_res <- CrossValidation(
-      x = x, y = y, delta = delta, method = method, lambda = lambda,
+      x = x, delta = delta, method = method, lambda = lambda,
       lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
+      NA_handling = NA_handling,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
       control = control,
@@ -90,7 +99,7 @@ hdcd <- function(x,
   }
 
   tree <- BinarySegmentation(
-    x = x, y = y, delta = delta, lambda = lambda, method = method,
+    x = x, delta = delta, lambda = lambda, method = method, NA_handling = NA_handling,
     threshold = threshold, penalize_diagonal = penalize_diagonal, alpha = alpha,
     optimizer = optimizer, control = control, standardize = standardize,
     FUN = FUN,
