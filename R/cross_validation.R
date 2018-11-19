@@ -34,6 +34,7 @@ CrossValidation <- function(x,
                             gamma = NULL,
                             n_folds = 10,
                             method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
+                            NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
                             penalize_diagonal = F,
                             alpha = 1,
                             optimizer = c("line_search", "section_search"),
@@ -63,7 +64,8 @@ CrossValidation <- function(x,
 
   # choose lambda as grid around the asymptotic value
   if (is.null(lambda) && NCOL(x) > 1) {
-    cov_mat <- get_cov_mat(x)
+    cov_mat <- cov(x, use = 'pairwise')
+    cov_mat[is.na(cov_mat)] <- 0
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
   }
@@ -76,8 +78,6 @@ CrossValidation <- function(x,
   }
   n_delta <- length(delta)
 
-  mth <- match.arg(method)
-
   if (verbose) cat("\n")
   cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(del = delta, .inorder = T) %:%
@@ -87,7 +87,7 @@ CrossValidation <- function(x,
 
       tree <- BinarySegmentation(
         x = x[train_inds, , drop = F], delta = del, lambda = lam,
-        method = method, penalize_diagonal = penalize_diagonal, alpha = alpha,
+        method = method, NA_method = NA_method, penalize_diagonal = penalize_diagonal,
         optimizer = optimizer, control = control, threshold = threshold,
         standardize = standardize, FUN = FUN, ...
       )
@@ -101,7 +101,7 @@ CrossValidation <- function(x,
 
       if (is.null(cv.FUN)){
         cv.LossFUN <- cv.Loss(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam,
-                              method = method, penalize_diagonal = penalize_diagonal, alpha = alpha)
+                              method = method, NA_method = NA_method, penalize_diagonal = penalize_diagonal, ...)
       } else {
         cv.LossFUN <- cv.FUN(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam)
         stopifnot(all(c('start_train', 'end_train', 'start_test', 'end_test') %in% formalArgs(cv.LossFUN)))
@@ -132,9 +132,11 @@ CrossValidation <- function(x,
         loss_gamma[gam] <- loss
         n_params_gamma[gam] <- n_params
         cpts[[gam]] <- train_inds[res$cpts[[gam]]]
+        cat(paste('Changepoints corresponding to Gamma = ', final_gamma[gam], ' are ', paste(cpts[[gam]], collapse = ', '), 'corresponding to loss = ', loss, '\n'))
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
+
 
       list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts, n_params = n_params_gamma)
     }

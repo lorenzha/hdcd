@@ -196,8 +196,8 @@ cv.Loss <- function(x_train, x_test,
                     penalize_diagonal = FALSE,
                     standardize = TRUE,
                     threshold = 1e-07,
-                    alpha = 0,
                     method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
+                    NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
                     ...){
 
   mth <- match.arg(method)
@@ -206,33 +206,40 @@ cv.Loss <- function(x_train, x_test,
   stopifnot(ncol(x_train) == ncol(x_test))
   n_obs_train <- nrow(x_train)
 
+  SegmentLossFUN <- SegmentLoss(x_train, lambda = lambda, penalize_diagonal = penalize_diagonal,
+                                threshold = threshold, method = method, NA_method = NA_method, cv = TRUE, ...)
+
   if (mth %in% c("nodewise_regression", "summed_regression", 'glasso', "ratio_regression")){
     function(start_train, end_train, start_test, end_test){
 
-      obs_count_train <- end_train - start_train + 1
-      obs_share_train <- obs_count_train / n_obs_train
+      stopifnot(end_train - start_train >= 1 & end_test - start_test >= 0)
 
-      stopifnot(end_train - start_train > 1 & end_test - start_test > 0)
+      glasso_output <- SegmentLossFUN(start_train, end_train)
 
-      cov_mat_train <- get_cov_mat(x_train[start_train : end_train, , drop = F])
-      cov_mat_test <- get_cov_mat(x_test[start_test : end_test, , drop = F],
-                                  mu = apply(x_train[start_train : end_train, , drop = F], 2, mean))
+      R <- chol(glasso_output$w)
 
-      glasso_output <- glasso::glasso(
-        cov_mat_train,
-        rho = lambda / sqrt(obs_share_train) * diag(cov_mat_train),
-        penalize.diagonal = penalize_diagonal,
-        thr = threshold
-      )
+      mu <- apply(x[start_train : end_train, glasso_output$inds, drop = F], 2, function(y) mean(y, na.rm = T))
 
-      obs_count_train * (- log(det(abs(glasso_output$wi))) + sum(diag( cov_mat_test %*% glasso_output$wi )))
+      lossfun <- function(y){
+        R_cur <- R
+        v <- y - mu
+        v[is.na(y)] <- 0
+        R_cur[, is.na(y)] <- 0
+        diag(R_cur)[is.na(y)] <- 1
+        t(v) %*% chol2inv(R_cur) %*% v + log(abs(det(R_cur)))
+      }
+
+      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun))
+      # (- log(det(abs(glasso_output$wi))) + sum(diag( cov_mat_test %*% glasso_output$wi )))
     }
+
   } else if (mth == 'elastic_net'){
-    if (is.null(args[['family']])){
-      family <- 'gaussian'
-    } else {
-      family <-  args[['family']]
-    }
+
+    family <-  args[['family']]
+    if(is.null(family)) family <- 'gaussian'
+
+    alpha <- args[['alpha']]
+    if (is.null(args[['alpha']])) alpha <- 0
 
     function(start_train, end_train, start_test, end_test){
 
@@ -264,62 +271,37 @@ cv.Loss <- function(x_train, x_test,
 #' @return A parametrized loss function
 SegmentLoss <- function(x,
                         lambda = 0,
-                        NA_handling = NULL,
                         penalize_diagonal = FALSE,
                         standardize = TRUE,
                         threshold = 1e-07,
                         use_cache = TRUE,
+                        cv = FALSE,
+                        NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                         ...) {
 
-  if (!any(is.na(x))){
-    get_cov_mat <- function(start, end){
-      cov(x[start : end, , drop = F])
-    }
-  } else {
-    get_cov_mat <- function(start, end){
-      if (!any(is.na(x[start : end, ]))){
-        cov(x[start : end, ,drop = F])
-      } else {
-        inds <- apply(!is.na(x[start : end, ]), 2, sum) >= max(0.1 * (end - start + 1), 2)
-        stopifnot(any(inds))
-        cov_mat <- cov(x[start : end, inds, drop = F], use = 'pairwise')
-        cov_mat[is.na(cov_mat)] <- 0
-        as.matrix(Matrix::nearPD(cov_mat)$mat)
-      }
-    }
-  }
 
   args <- list(...)
   mth <- match.arg(method)
+  NA_mth <- match.arg(NA_method)
   n_obs <- NROW(x)
   n_p <- NCOL(x)
 
-  if (mth == "nodewise_regression") {
-    p <- args[["node"]]
-    stopifnot(length(p) == 1 && is.numeric(p))
-  }
-
-  if (mth == 'elastic_net'){
-    alpha <- args[['alpha']]
-    stopifnot(is.numeric(alpha) && 0 <= alpha && alpha <= 1)
-
-    if (is.null(args[['family']])){
-      family <- 'gaussian'
-    } else {
-      family <-  args[['family']]
-    }
-  }
-
   if (mth == "glasso") {
+
+    get_cov_mat <- get_covFUN(x, NA_mth)
+
     get_loss <- function(start, end, ...) {
+
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
       # We need more than one observation to calculate the covariance matrix
       stopifnot(obs_count > 1)
 
-      cov_mat <- (obs_count - 1) / obs_count * get_cov_mat(start, end)
-      cur_p <- NROW(cov_mat)
+      cov_mat_output <- get_cov_mat(start, end)
+      inds <- cov_mat_output$inds
+      cur_p <- sum(inds)
+      cov_mat <- cov_mat_output$mat
 
       glasso_output <- glasso::glasso(
         cov_mat,
@@ -328,19 +310,29 @@ SegmentLoss <- function(x,
         thr = threshold
       )
 
-      if (!penalize_diagonal) {
-        diag(glasso_output$wi) <- 0
+      if (cv){
+        glasso_output[['inds']] <- inds
+        glasso_output
+      } else {
+        if (!penalize_diagonal) {
+          diag(glasso_output$wi) <- 0
+        }
+        # Needed to undo transformation of likelihood in glasso package
+        # equivalent to ' - log(det(glasso_output$wi)) + psych::tr(cov_mat %*% glasso_output$wi)' before setting diag() <- 0
+        #- 2 * glasso_output$loglik / n_p
+        #      - lambda  / sqrt(obs_share) * as.numeric(sqrt(diag(cov_mat)) %*% abs(glasso_output$wi) %*% sqrt(diag(cov_mat) ))
+        n_p / cur_p * (((glasso_output$loglik / (-cur_p / 2) # Needed to undo transformation of likelihood in glasso package
+          - lambda * (log(cur_p) / log(n_p)) / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share)) # Remove regularizer added in glasso package
+
+        #n_p * 2 * -glasso_output$loglik - (n_p / cur_p) * lambda * log(cur_p) / log(n_p) * sum(abs(glasso_output$wi)) * sqrt(obs_share)
       }
-
-      # Needed to undo transformation of likelihood in glasso package
-      # equivalent to ' - log(det(glasso_output$wi)) + psych::tr(cov_mat %*% glasso_output$wi)' before setting diag() <- 0
-      #- 2 * glasso_output$loglik / n_p
-      #      - lambda  / sqrt(obs_share) * as.numeric(sqrt(diag(cov_mat)) %*% abs(glasso_output$wi) %*% sqrt(diag(cov_mat) ))
-      (n_p * cur_p) * ((glasso_output$loglik / (-cur_p / 2) - lambda / sqrt(obs_share) * log(cur_p) / log(n_p) * sum(abs(glasso_output$wi))) * obs_share)
-
     }
 
   } else if (mth == "nodewise_regression") {
+
+    p <- args[["node"]]
+    stopifnot(length(p) == 1 && is.numeric(p))
+
     get_loss <- function(start, end, ...) {
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
@@ -362,6 +354,7 @@ SegmentLoss <- function(x,
       )
       deviance(fit) / n_obs
     }
+
   } else if (mth == "ratio_regression") {
     get_loss <- function(start, end, ...) {
       obs_count <- end - start + 1
@@ -394,6 +387,7 @@ SegmentLoss <- function(x,
 
       mean(loss / n_obs)
     }
+
   } else if (mth == "summed_regression") {
     get_loss <- function(start, end, ...) {
       obs_count <- end - start + 1
@@ -426,8 +420,18 @@ SegmentLoss <- function(x,
 
       mean(loss / n_obs)
     }
+
   } else if (mth == "elastic_net") {
 
+    alpha <- args[['alpha']]
+
+    stopifnot(is.numeric(alpha) && 0 <= alpha && alpha <= 1)
+
+    family <-  args[['family']]
+
+    if (is.null(family)){
+      family <- 'gaussian'
+    }
 
     get_loss <- function(start, end, ...){
 
@@ -454,6 +458,53 @@ SegmentLoss <- function(x,
                envir = cache)
       }
     get(key(start, end), envir = cache, inherits = FALSE)
+    }
+  }
+}
+
+
+get_covFUN <- function(x, NA_mth){
+  if (NA_mth == 'complete_observations'){
+    function(start, end){
+      list(mat = cov(x[start : end, , drop = F], use = 'na.or.complete'), inds = rep(T, ncol(x)))
+    }
+
+  } else if (NA_mth  == 'pairwise_covariance_estimation'){
+    mis <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(is.na(y))))
+    function(start, end){
+      cur_mis <- mis[end + 1, ] - mis[start, ]
+      if(all(cur_mis == 0)){
+        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)))
+      } else {
+        obs_count <- end - start + 1
+        inds <- (obs_count - cur_mis >= 2) # for which predictors can we even estimate covariance?
+        stopifnot(any(inds))
+        cov_mat <- cov(x[start : end, inds, drop = F], use = 'pairwise')
+        cov_mat[is.na(cov_mat)] <- 0
+        cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat)
+        list(mat = cov_mat, inds = inds)
+      }
+    }
+
+  } else if (NA_mth == 'loh_wainwright_bias_correction') {
+    mis <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(is.na(y))))
+    function(start, end){
+      cur_mis <- mis[end + 1, ] - mis[start, ]
+      if(all(cur_mis == 0)){
+        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)))
+      } else {
+        obs_count <-  end - start + 1
+        inds <- (obs_count - cur_mis >= 2)
+        stopifnot(any(inds))
+        rho = cur_mis / obs_count # estimate prob of misssingness per column
+        z <- scale(x[start : end, inds, drop = F], T, F) # center
+        z[is.na(z)] <- 0 # impute with mean
+        z <- z %*% diag(1 - rho) #loh-wainwright correction
+        cov_mat <- cov(z)
+        cov_mat <- cov_mat - diag((1 - rho) * diag(cov_mat)) # loh-wainwright correction
+        cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat)
+        list(mat = cov_mat, inds = inds)
+      }
     }
   }
 }

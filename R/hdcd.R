@@ -37,8 +37,8 @@ hdcd <- function(x,
                  lambda_min_ratio = 0.01,
                  lambda_grid_size = 10,
                  gamma = NULL,
-                 method = c("nodewise_regression", "summed_regression", "ratio_regression", 'elastic_net'),
-                 NA_handling = NULL,
+                 method = c('glasso', "nodewise_regression", "summed_regression", "ratio_regression", 'elastic_net'),
+                 NA_method = 'complete_observations',
                  penalize_diagonal = F,
                  alpha = 1,
                  optimizer = c("line_search", "section_search"),
@@ -49,14 +49,13 @@ hdcd <- function(x,
                  verbose = T,
                  parallel = T,
                  FUN = NULL,
+                 max_depth = Inf,
                  ...) {
 
   if(!is.matrix(x)){
     x <- as.matrix(x)
     warning("Input data x has been coerced to matrix by hdcd.")
   }
-
-  stopifnot(!is.null(NA_handling) ||  !any(is.na(x)))
 
   stopifnot(nrow(x) > 1)
 
@@ -80,7 +79,7 @@ hdcd <- function(x,
     cv_res <- CrossValidation(
       x = x, delta = delta, method = method, lambda = lambda,
       lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
-      NA_handling = NA_handling,
+      NA_method = NA_method,
       gamma = gamma, n_folds = n_folds,
       optimizer = optimizer,
       control = control,
@@ -91,6 +90,7 @@ hdcd <- function(x,
       parallel = parallel,
       threshold = threshold,
       FUN = FUN,
+      max_depth = max_depth,
       ...
     )
     lambda <- cv_res$opt$lambda
@@ -99,10 +99,10 @@ hdcd <- function(x,
   }
 
   tree <- BinarySegmentation(
-    x = x, delta = delta, lambda = lambda, method = method, NA_handling = NA_handling,
+    x = x, delta = delta, lambda = lambda, method = method, NA_method = NA_method,
     threshold = threshold, penalize_diagonal = penalize_diagonal, alpha = alpha,
     optimizer = optimizer, control = control, standardize = standardize,
-    FUN = FUN,
+    FUN = FUN, max_depth = max_depth,
     ...
   )
   res <- PruneTreeGamma(tree, gamma)
@@ -113,7 +113,7 @@ hdcd <- function(x,
 
   if (cv) {
     res <- list(
-      changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
+      tree = res[['pruned_tree']], changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
       cv_gamma = gamma, cv_lambda = lambda, cv_delta = delta
     )
     class(res) <- "bs_cv"

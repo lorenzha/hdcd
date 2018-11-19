@@ -113,7 +113,7 @@
 BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
                                gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-                               NA_handling = NULL,
+                               NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
                                penalize_diagonal = F,
                                optimizer = c("line_search", "section_search"),
                                control = NULL,
@@ -121,6 +121,7 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
                                threshold = 1e-7,
                                verbose = FALSE,
                                FUN = NULL,
+                               max_depth = Inf,
                                ...) {
 
   n_obs <- NROW(x)
@@ -128,7 +129,7 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
       x, lambda = lambda, penalize_diagonal = penalize_diagonal,
-      method = method, NA_handling = NA_handing, standardize = standardize, threshold = threshold, ...
+      method = method, NA_method = NA_method, standardize = standardize, threshold = threshold, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
@@ -139,7 +140,6 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
       SegmentLossFUN <- FUN(x)
     }
   }
-
   stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
 
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
@@ -148,12 +148,11 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
 
   BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
 
-
     n_selected_obs <- node$end - node$start + 1
 
     if (verbose) print(tree)
 
-    if (n_selected_obs / n_obs >= 2 * delta) { # check whether segment is still long enough
+    if (n_selected_obs / n_obs >= 2 * delta & length(tree$path) - 1 < max_depth) { # check whether segment is still long enough
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
         SegmentLossFUN, control, optimizer
