@@ -54,8 +54,12 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
 
     if (cur_right - cur_middle > cur_middle - cur_left){
       w <- cur_right - ceiling((cur_right - cur_middle) * stepsize)
-      loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
+      #loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
       loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
+
+      if(is.na(loss[w])){
+        w <- w - 1
+      }
 
       if ( loss[w] + tol <= loss[cur_middle] ){
         SectionSearch_recursive(cur_middle, w, cur_right)
@@ -67,7 +71,11 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
     } else {
       w <- cur_left + ceiling((cur_middle - cur_left) * stepsize)
       loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
-      loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
+      #loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
+
+      if (is.na(loss[w])){
+        w <- w + 1
+      }
 
       if ( loss[w] + tol <= loss[cur_middle] ){
         SectionSearch_recursive(cur_left, w, cur_middle)
@@ -81,7 +89,9 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
 
   left <- split_candidates[1]
   right <- split_candidates[length(split_candidates)]
-  SectionSearch_recursive(left, ceiling( (start + stepsize * end)/(1 + stepsize)), right) #generates symmetrical setup in next step
+  mid <-  ceiling( (start + stepsize * end)/(1 + stepsize))
+  loss[mid] <- SplitLoss(mid, SegmentLossFUN, start, end)
+  SectionSearch_recursive(left, mid , right) #generates symmetrical setup in next step
 }
 
 

@@ -162,6 +162,7 @@ cv.Loss <- function(x_train, x_test,
 
   stopifnot(ncol(x_train) == ncol(x_test))
   n_obs_train <- nrow(x_train)
+  n_obs_test <- nrow(x_test)
 
   SegmentLossFUN <- SegmentLoss(x_train, lambda = lambda, penalize_diagonal = penalize_diagonal,
                                 threshold = threshold, method = method, NA_method = NA_method, cv = TRUE, ...)
@@ -173,20 +174,22 @@ cv.Loss <- function(x_train, x_test,
 
       glasso_output <- SegmentLossFUN(start_train, end_train)
 
-      R <- chol(glasso_output$w)
+      #R <- chol(glasso_output$w)
 
-      mu <- apply(x[start_train : end_train, glasso_output$inds, drop = F], 2, function(y) mean(y, na.rm = T))
+      mu <- colMeans(x[start_train : end_train, glasso_output$inds, drop = F], na.rm = T)
 
+      # optimize this!
       lossfun <- function(y){
-        R_cur <- R
+        Sigma <- glasso_output$w[!is.na(y), !is.na(y), drop = F]
+       # R_cur <- R
         v <- y - mu
-        v[is.na(y)] <- 0
-        R_cur[, is.na(y)] <- 0
-        diag(R_cur)[is.na(y)] <- 1
-        t(v) %*% chol2inv(R_cur) %*% v + log(abs(det(R_cur)))
+        v <- v[!is.na(y)]
+       # R_cur[, is.na(y)] <- 0
+        #diag(R_cur)[is.na(y)] <- 1
+        t(v) %*% solve(Sigma, v) + log(abs(det(Sigma)))
       }
 
-      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun))
+      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun)) / n_obs_test
       # (- log(det(abs(glasso_output$wi))) + sum(diag( cov_mat_test %*% glasso_output$wi )))
     }
 
@@ -258,6 +261,10 @@ SegmentLoss <- function(x,
       inds <- cov_mat_output$inds # which predictors have sufficient non-missing values
       cur_p <- sum(inds)
       cov_mat <- cov_mat_output$mat
+
+      if (cur_p == 0){
+        return(NA)
+      }
 
       glasso_output <- glasso::glasso( # correction with log(cur_p) / log(n_p) / sqrt(obs_share) from asymptotic theory
         cov_mat,
@@ -449,7 +456,7 @@ get_covFUN <- function(x, NA_mth){
         obs_count <-  end - start + 1
         inds <- (obs_count - cur_mis >= 2) # need at least two observations to estimate variance
         stopifnot(any(inds))
-        mis_frac = cur_mis / obs_count # estimate prob of misssingness per column
+        mis_frac = cur_mis[inds] / obs_count  # estimate prob of misssingness per column
         z <- scale(x[start : end, inds, drop = F], T, F) # center
         z[is.na(z)] <- 0 # impute with mean (since centered)
         z <- z %*% diag(1 - mis_frac) #first step in the loh-wainwright correction
