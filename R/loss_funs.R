@@ -180,6 +180,9 @@ cv.Loss <- function(x_train, x_test,
 
       # optimize this!
       lossfun <- function(y){
+        if(all(is.na(y))){
+          0
+        } else {
         Sigma <- glasso_output$w[!is.na(y), !is.na(y), drop = F]
        # R_cur <- R
         v <- y - mu
@@ -187,6 +190,7 @@ cv.Loss <- function(x_train, x_test,
        # R_cur[, is.na(y)] <- 0
         #diag(R_cur)[is.na(y)] <- 1
         t(v) %*% solve(Sigma, v) + log(abs(det(Sigma)))
+        }
       }
 
       sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun)) / n_obs_test
