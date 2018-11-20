@@ -152,7 +152,8 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
 
     if (verbose) print(tree)
 
-    if (n_selected_obs / n_obs >= 2 * delta & length(tree$path) - 1 < max_depth) { # check whether segment is still long enough
+    # check whether segment is still long enough & tree not already to deep
+    if (n_selected_obs / n_obs >= 2 * delta & length(tree$path) - 1 < max_depth) {
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
         SegmentLossFUN, control, optimizer
@@ -223,7 +224,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
   obs_count <- end - start + 1
   min_seg_length <- max(2, ceiling(delta * n_obs))
 
-  if (obs_count < 2 * min_seg_length || obs_count < 4) {
+  if (obs_count < 2 * min_seg_length) {
     return(list(opt_split = NA, gain = NA))
   }
 
@@ -232,9 +233,11 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
     end - min_seg_length + 1, 1
   )
 
+  split_loss <- rep(NA, n_obs)
+
   switch(opt,
     "line_search" = {
-      split_loss <- sapply(
+      split_loss[split_candidates] <- sapply(
         split_candidates,
         function(y) SplitLoss(y,
             SegmentLossFUN = SegmentLossFUN,
@@ -243,7 +246,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
           )
       )
       gain <- SegmentLossFUN(start, end) - split_loss
-      result <- list(opt_split = split_candidates[which.max(gain)], gain = gain)
+      result <- list(opt_split = which.max(gain), gain = gain)
     },
     "section_search" = {
       min_points <- control[["min_points"]]

@@ -143,51 +143,8 @@ EM_SegmentLoss <- function(x,
   }
 }
 
-# SegmentLoss <- function(x,
-#                            lambda,
-#                            method,
-#                            penalize_diagonal = FALSE,
-#                            standardize = TRUE,
-#                            threshold = 1e-7,
-#                            ...){
-#
-#   n_obs <- nrow(x)
-#   n_p <- ncol(x)
-#   mis <- is.na(x)
-#
-#   function(start, end){
-#
-#     inds <- apply(mis[start : end, ], 1, function(y) (sum(!is.na(y)) > 1))
-#
-#     obs_count <- end - start + 1
-#     pred_count <- sum(inds)
-#
-#     log_p_ratio <- log(pred_count) - log(n_p)
-#     obs_share <- obs_count / n_obs
-#
-#     # INIT: Do 1 cov & mean estimation using complete data
-#     cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, inds], use = 'pairwise') # use = 'pairwise' works with missing data
-#     cov_mat[is.na(cov_mat)] <- runif(sum(is.na(cov_mat))) # adapt value
-#     cov_mat <- as.matrix(Matrix::nearPD(cov_mat, posd.tol = 1e-3, eig.tol = 1e-3)$mat)
-#
-#     #### Do a first glasso fit
-#     glasso_output <- glasso::glasso(cov_mat,
-#                         rho = lambda / sqrt(obs_share) * diag(cov_mat),
-#                         penalize.diagonal = penalize_diagonal,
-#                         thr = threshold
-#     )
-#
-#     # prepare output
-#     if (!penalize_diagonal) {
-#       diag(glasso_output$wi) <- 0
-#     }
-#
-#     ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-#       - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
-#   }
-# }
 
-##### CV.LOSS
+#' cv.Loss
 #
 #
 
@@ -288,22 +245,21 @@ SegmentLoss <- function(x,
   n_p <- NCOL(x)
 
   if (mth == "glasso") {
-
     get_cov_mat <- get_covFUN(x, NA_mth)
 
     get_loss <- function(start, end, ...) {
 
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
-      # We need more than one observation to calculate the covariance matrix
-      stopifnot(obs_count > 1)
+
+      stopifnot(obs_count > 1) # We need more than one observation to calculate the covariance matrix
 
       cov_mat_output <- get_cov_mat(start, end)
-      inds <- cov_mat_output$inds
+      inds <- cov_mat_output$inds # which predictors have sufficient non-missing values
       cur_p <- sum(inds)
       cov_mat <- cov_mat_output$mat
 
-      glasso_output <- glasso::glasso(
+      glasso_output <- glasso::glasso( # correction with log(cur_p) / log(n_p) / sqrt(obs_share) from asymptotic theory
         cov_mat,
         rho = lambda / sqrt(obs_share) * log(cur_p) / log(n_p) * diag(cov_mat),
         penalize.diagonal = penalize_diagonal,
@@ -321,6 +277,7 @@ SegmentLoss <- function(x,
         # equivalent to ' - log(det(glasso_output$wi)) + psych::tr(cov_mat %*% glasso_output$wi)' before setting diag() <- 0
         #- 2 * glasso_output$loglik / n_p
         #      - lambda  / sqrt(obs_share) * as.numeric(sqrt(diag(cov_mat)) %*% abs(glasso_output$wi) %*% sqrt(diag(cov_mat) ))
+        # MESS!!! TODO: cleanup!
         n_p / cur_p * (((glasso_output$loglik / (-cur_p / 2) # Needed to undo transformation of likelihood in glasso package
           - lambda * (log(cur_p) / log(n_p)) / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share)) # Remove regularizer added in glasso package
 
@@ -360,8 +317,7 @@ SegmentLoss <- function(x,
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
-      # We need more than one observation to caclculate the covariance matrix
-      stopifnot(obs_count > 1)
+      stopifnot(obs_count > 1)  # We need more than one observation to calculate the covariance matrix
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ])
 
@@ -393,8 +349,7 @@ SegmentLoss <- function(x,
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
 
-      # We need more than one observation to caclculate the covariance matrix
-      stopifnot(obs_count > 1)
+      stopifnot(obs_count > 1) # We need more than one observation to calculate the covariance matrix
 
       cov_mat <- (obs_count - 1) / obs_count * cov(x[start : end, ])
 
@@ -424,11 +379,9 @@ SegmentLoss <- function(x,
   } else if (mth == "elastic_net") {
 
     alpha <- args[['alpha']]
-
     stopifnot(is.numeric(alpha) && 0 <= alpha && alpha <= 1)
 
     family <-  args[['family']]
-
     if (is.null(family)){
       family <- 'gaussian'
     }
@@ -438,12 +391,12 @@ SegmentLoss <- function(x,
       obs_count <- end - start + 1
       obs_share <- obs_count / n_obs
       fit <- glmnet::glmnet(x[start : end, -1], x[start : end, 1], alpha = alpha, lambda = sqrt(obs_share) * lambda, standardize = standardize, family = family, thres = threshold)
-      deviance(fit)
-
+      deviance(fit) / n_obs
     }
   }
 
 
+  # If
   if (!use_cache){
     get_loss
   } else {
@@ -487,21 +440,21 @@ get_covFUN <- function(x, NA_mth){
     }
 
   } else if (NA_mth == 'loh_wainwright_bias_correction') {
-    mis <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(is.na(y))))
+    mis <- rbind(0, apply(x, 2, function(y) cumsum(is.na(y))))
     function(start, end){
       cur_mis <- mis[end + 1, ] - mis[start, ]
       if(all(cur_mis == 0)){
         list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)))
       } else {
         obs_count <-  end - start + 1
-        inds <- (obs_count - cur_mis >= 2)
+        inds <- (obs_count - cur_mis >= 2) # need at least two observations to estimate variance
         stopifnot(any(inds))
-        rho = cur_mis / obs_count # estimate prob of misssingness per column
+        mis_frac = cur_mis / obs_count # estimate prob of misssingness per column
         z <- scale(x[start : end, inds, drop = F], T, F) # center
-        z[is.na(z)] <- 0 # impute with mean
-        z <- z %*% diag(1 - rho) #loh-wainwright correction
+        z[is.na(z)] <- 0 # impute with mean (since centered)
+        z <- z %*% diag(1 - mis_frac) #first step in the loh-wainwright correction
         cov_mat <- cov(z)
-        cov_mat <- cov_mat - diag((1 - rho) * diag(cov_mat)) # loh-wainwright correction
+        cov_mat <- cov_mat - diag(mis_frac * diag(cov_mat)) # second step loh-wainwright correction
         cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat)
         list(mat = cov_mat, inds = inds)
       }
