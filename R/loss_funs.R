@@ -178,6 +178,8 @@ cv.Loss <- function(x_train, x_test,
 
       mu <- colMeans(x[start_train : end_train, glasso_output$inds, drop = F], na.rm = T)
 
+      n_eff_obs_test <- sum(!is.na(x_test[start_test : end_test, ])) / ncol(x_test)
+
       # optimize this!
       lossfun <- function(y){
         if(all(is.na(y))){
@@ -193,7 +195,7 @@ cv.Loss <- function(x_train, x_test,
         }
       }
 
-      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun)) / n_obs_test
+      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun))
       # (- log(det(abs(glasso_output$wi))) + sum(diag( cov_mat_test %*% glasso_output$wi )))
     }
 
@@ -240,24 +242,22 @@ SegmentLoss <- function(x,
                         threshold = 1e-07,
                         use_cache = TRUE,
                         cv = FALSE,
-                        NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
+                        NA_method = 'complete_observations',
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                         ...) {
 
 
   args <- list(...)
   mth <- match.arg(method)
-  NA_mth <- match.arg(NA_method)
   n_obs <- NROW(x)
   n_p <- NCOL(x)
 
   if (mth == "glasso") {
-    get_cov_mat <- get_covFUN(x, NA_mth)
+    get_cov_mat <- get_covFUN(x, NA_method)
 
     get_loss <- function(start, end, ...) {
 
       obs_count <- end - start + 1
-      obs_share <- obs_count / n_obs
 
       stopifnot(obs_count > 1) # We need more than one observation to calculate the covariance matrix
 
@@ -265,6 +265,8 @@ SegmentLoss <- function(x,
       inds <- cov_mat_output$inds # which predictors have sufficient non-missing values
       cur_p <- sum(inds)
       cov_mat <- cov_mat_output$mat
+
+      obs_share <- cov_mat_output$n_eff_obs / n_obs
 
       if (cur_p == 0){
         return(NA)
@@ -427,47 +429,51 @@ SegmentLoss <- function(x,
 }
 
 
-get_covFUN <- function(x, NA_mth){
+get_covFUN <- function(x, NA_method = c('complete_observations', 'pairwise_covariance_estimation',
+                                        'loh_wainwright_bias_correction')){
+  NA_mth <- match.arg(NA_method)
   if (NA_mth == 'complete_observations'){
     function(start, end){
-      list(mat = cov(x[start : end, , drop = F], use = 'na.or.complete'), inds = rep(T, ncol(x)))
+      cov_mat <- cov(x[start : end, , drop = F], use = 'na.or.complete')
+      list(mat = cov_mat, inds = inds, rep(T, ncol(x)), n_eff_obs = sum(complete.cases(x[start : end, , drop = F])))
     }
 
   } else if (NA_mth  == 'pairwise_covariance_estimation'){
-    mis <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(is.na(y))))
+    av_obs <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(!is.na(y))))
     function(start, end){
-      cur_mis <- mis[end + 1, ] - mis[start, ]
-      if(all(cur_mis == 0)){
-        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)))
+      cur_av <- av_obs[end + 1, ] - av_obs[start, ]
+      obs_count <- end - start + 1
+      if(all(cur_av == obs_count)){
+        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)), n_eff_obs = obs_count)
       } else {
-        obs_count <- end - start + 1
-        inds <- (obs_count - cur_mis >= 2) # for which predictors can we even estimate covariance?
-        stopifnot(any(inds))
+        inds <- (cur_av >= 2) # for which predictors can we even estimate covariance?
         cov_mat <- cov(x[start : end, inds, drop = F], use = 'pairwise')
         cov_mat[is.na(cov_mat)] <- 0
-        cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat)
-        list(mat = cov_mat, inds = inds)
+        cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat) #TODO: this de-debiasing should be differen
+        list(mat = cov_mat, inds = inds, n_eff_obs = sum(cur_av) / sum(inds))
       }
     }
 
   } else if (NA_mth == 'loh_wainwright_bias_correction') {
-    mis <- rbind(0, apply(x, 2, function(y) cumsum(is.na(y))))
+    av_obs <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(!is.na(y))))
     function(start, end){
-      cur_mis <- mis[end + 1, ] - mis[start, ]
-      if(all(cur_mis == 0)){
-        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)))
+      cur_av <- av_obs[end + 1, ] - av_obs[start, ]
+      obs_count <- end - start + 1
+      if(all(cur_av == obs_count)){
+        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)), n_eff_obs = obs_count)
       } else {
         obs_count <-  end - start + 1
-        inds <- (obs_count - cur_mis >= 2) # need at least two observations to estimate variance
+        inds <- (cur_av >= 2) # need at least two observations to estimate variance
         stopifnot(any(inds))
-        mis_frac = cur_mis[inds] / obs_count  # estimate prob of misssingness per column
+        mis_frac = 1 - cur_av[inds] / obs_count  # estimate prob of misssingness per column
         z <- scale(x[start : end, inds, drop = F], T, F) # center
         z[is.na(z)] <- 0 # impute with mean (since centered)
         z <- z %*% diag(1 - mis_frac) #first step in the loh-wainwright correction
         cov_mat <- cov(z)
         cov_mat <- cov_mat - diag(mis_frac * diag(cov_mat)) # second step loh-wainwright correction
-        cov_mat <- (obs_count - 1) / obs_count * as.matrix(Matrix::nearPD(cov_mat)$mat)
-        list(mat = cov_mat, inds = inds)
+        n_eff_obs <- sum(cur_av) / sum(inds)
+        cov_mat <- (obs_count - 1) / n_eff_obs * as.matrix(Matrix::nearPD(cov_mat)$mat) #TODO: divide bz n_eff_obs???
+        list(mat = cov_mat, inds = inds, n_eff_obs = n_eff_obs)
       }
     }
   }

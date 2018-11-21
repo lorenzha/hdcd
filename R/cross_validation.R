@@ -64,8 +64,7 @@ CrossValidation <- function(x,
 
   # choose lambda as grid around the asymptotic value
   if (is.null(lambda) && NCOL(x) > 1) {
-    cov_mat <- cov(x, use = 'pairwise')
-    cov_mat[is.na(cov_mat)] <- 0
+    cov_mat <- get_covFUN(x, NA_method)(1, nrow(x))$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
   }
@@ -110,7 +109,6 @@ CrossValidation <- function(x,
       res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
       loss_gamma <- numeric(length(final_gamma))
-      n_params_gamma <- numeric(length(final_gamma))
       cpts <- list()
 
       for (gam in seq_along(final_gamma)) {
@@ -127,10 +125,8 @@ CrossValidation <- function(x,
             loss <- loss + cv.LossFUN(train_start, train_end, test_start, test_end)
           }
         }
-        n_params <- 0# What is this?? Add mean params to count
 
         loss_gamma[gam] <- loss
-        n_params_gamma[gam] <- n_params
         cpts[[gam]] <- train_inds[res$cpts[[gam]]]
         cat(paste('Changepoints corresponding to Gamma = ', final_gamma[gam], ' are ', paste(cpts[[gam]], collapse = ', '), 'corresponding to loss = ', loss, '\n'))
       }
@@ -138,7 +134,7 @@ CrossValidation <- function(x,
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))
 
 
-      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts, n_params = n_params_gamma)
+      list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts)
     }
 
   res <- data.frame()
@@ -151,8 +147,7 @@ CrossValidation <- function(x,
           lambda = r[["lambda"]],
           delta = r[["delta"]],
           gamma = r[["gamma"]],
-          loss = r[["loss"]],
-          n_params = r[["n_params"]]
+          loss = r[["loss"]]
         )
         # Need to assign those separately since it is a list
         new_res$cpts <- r[["cpts"]]
@@ -196,7 +191,6 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
             lambda = formatC(x[["lambda"]], format = "e", digits = 2),
             gamma = x[["loss"]][, 1],
             loss = rowMeans(x[["loss"]][, -1]),
-            n_params = rowMeans(x[["n_params"]][, -1]),
             n_cpts = 0
           )
         } else {
@@ -205,17 +199,15 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
             lambda = formatC(x[["lambda"]], format = "e", digits = 2),
             gamma = x[["loss"]][, 1],
             loss = rowMeans(x[["loss"]][, -1]),
-            n_params = rowMeans(x[["n_params"]][, -1]),
             n_cpts = rowMeans(apply(x[["cpts"]][, -1, drop = F], 2, function(x) sapply(x, length) - 2))
           )
         }
     )
   ) # substract first and last segment boundary
 
-  res_long <- reshape2::melt(res_long, measure.vars = c("loss", "n_cpts", "n_params"), value.name = "value", variable.name = "metric")
+  res_long <- reshape2::melt(res_long, measure.vars = c("loss", "n_cpts"), value.name = "value", variable.name = "metric")
 
   metrics_names <- c(
-    "n_params" = "# of parameters",
     "loss" = "cv-loss",
     "n_cpts" = "# of changepoints"
   )
@@ -261,7 +253,6 @@ SolutionPaths <- function(dat) {
   list(
     lambda = dat$lambda[1], delta = dat$delta[1],
     loss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "loss")),
-    n_params = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "n_params")),
     cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA))
   )
 }

@@ -89,8 +89,11 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
 
   left <- split_candidates[1]
   right <- split_candidates[length(split_candidates)]
-  mid <-  ceiling( (start + stepsize * end)/(1 + stepsize))
-  loss[mid] <- SplitLoss(mid, SegmentLossFUN, start, end)
+  mid <-  ceiling( (start + stepsize * end)/(1 + stepsize)) - 1
+  while (is.na(loss[mid])){
+    mid <- mid + 1
+    loss[mid] <- SplitLoss(mid, SegmentLossFUN, start, end)
+  }
   SectionSearch_recursive(left, mid , right) #generates symmetrical setup in next step
 }
 
