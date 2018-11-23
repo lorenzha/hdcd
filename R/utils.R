@@ -13,3 +13,11 @@ HandleGlassoNaN <- function(w) {
     invokeRestart("muffleWarning")
   }
 }
+
+catch <- function(x){
+  if (length(x) > 0){
+    x
+  } else {
+    NA
+  }
+}

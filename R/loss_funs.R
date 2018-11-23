@@ -435,7 +435,7 @@ get_covFUN <- function(x, NA_method = c('complete_observations', 'pairwise_covar
   if (NA_mth == 'complete_observations'){
     function(start, end){
       cov_mat <- cov(x[start : end, , drop = F], use = 'na.or.complete')
-      list(mat = cov_mat, inds = rep(T, ncol(x)), n_eff_obs = sum(complete.cases(x[start : end, , drop = F])))
+      list(mat = cov_mat, inds = rep(!any(is.na(cov_mat)), ncol(x)), n_eff_obs = sum(complete.cases(x[start : end, , drop = F])))
     }
 
   } else if (NA_mth  == 'pairwise_covariance_estimation'){

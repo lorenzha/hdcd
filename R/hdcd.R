@@ -106,21 +106,19 @@ hdcd <- function(x,
     ...
   )
   res <- PruneTreeGamma(tree, gamma)
-  if (verbose) {
-    cat("\nFinal tree for cross-validated gamma and lambda:\n \n")
-    print(res[["pruned_tree"]])
-  }
 
   if (cv) {
     res <- list(
-      tree = res, changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
+      res = res, changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
       cv_gamma = gamma, cv_lambda = lambda, cv_delta = delta
     )
+    if (verbose) cat('\nFinal tree for cross-validated gamma = ', gamma,' and lambda = ', lambda,':\n \n')
     class(res) <- "bs_cv"
   } else {
     res <- list(changepoints = res[["cpts"]][[1]], tree = tree)
     class(res) <- "bs"
   }
+  print(res[["pruned_tree"]])
   res
 }
 

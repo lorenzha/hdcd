@@ -113,7 +113,7 @@
 BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
                                gamma = 0,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
-                               NA_method = c('complete_observations', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
+                               NA_method = 'complete_observations',
                                penalize_diagonal = F,
                                optimizer = c("line_search", "section_search"),
                                control = NULL,
@@ -153,10 +153,12 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
     if (verbose) print(tree)
 
     # check whether segment is still long enough & tree not already to deep
-    if (n_selected_obs / n_obs >= 2 * delta & length(tree$path) - 1 < max_depth) {
+    if (n_selected_obs / n_obs >= 2 * delta & length(node$path) - 1 < max_depth) {
+
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
-        SegmentLossFUN, control, optimizer
+        SegmentLossFUN, control, optimizer,
+        gamma
       )
 
       node$max_gain <- max(res[["gain"]], na.rm = T)
@@ -217,7 +219,8 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
 FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
                           control = NULL,
                           optimizer = c("line_search", "section_search"),
-                          gamma = 0) {
+                          gamma = 0
+                          ) {
 
   opt <- match.arg(optimizer)
 
@@ -246,7 +249,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
           )
       )
       gain <- SegmentLossFUN(start, end) - split_loss
-      result <- list(opt_split = which.max(gain), gain = gain)
+      result <- list(opt_split = catch(which.max(gain)), gain = gain) #this will return NA if all(is.na(gain))
     },
     "section_search" = {
       min_points <- control[["min_points"]]
@@ -263,23 +266,13 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
         k_sigma <- 0
       } # set default value if necessary
 
-
       result <- SectionSearch(split_candidates = split_candidates, n_obs = n_obs,
                               SegmentLossFUN = SegmentLossFUN, start = start, end = end,
                               min_points = min_points, stepsize = stepsize, k_sigma = k_sigma)
-      #
-      #
-      #
-      # rec <- SectionSearch(x = x, split_candidates = split_candidates, n_obs = n_obs,
-      #                      SegmentLossFUN = SegmentLossFUN, start = start,
-      #                      end = end, min_points = min_points,
-      #                      stepsize = stepsize, k_sigma = k_sigma)
-      #
-      # result <- rec(left = 1, right = length(split_candidates), RecFUN = rec)
     }
   )
 
-  if (max(result[["gain"]], na.rm = T) - gamma <= 0) {
+  if (any(!is.na(max(result[["gain"]]))) & max(result[["gain"]], na.rm = T) - gamma <= 0) {
     list(opt_split = NA, gain = result[["gain"]])
   } else {
     list(opt_split = result[["opt_split"]], gain = result[["gain"]])

@@ -36,7 +36,7 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
   tol <- k_sigma * sqrt(log(n_obs) / n_obs)
 
   select_via_variance <- function(start1, end1, start2, end2){
-    if (SegmentLossFUN(start1, end1) / (end1-start1 + 1) >= SegmentLossFUN(start2, end2) / (end2 - start2 + 1)){
+    if (SegmentLossFUN(start1, end1) / (end1 - start1) >= SegmentLossFUN(start2, end2) / (end2 - start2)){
       SectionSearch_recursive(start1, end1, start2)
     } else {
       SectionSearch_recursive(end1, start2, end2)
@@ -45,10 +45,34 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
 
   loss <-  rep(NA, n_obs)
 
-  SectionSearch_recursive <- function(cur_left, cur_middle, cur_right){
+  SectionSearch_recursive_2 <- function(cur_left, w_left, w_right, cur_right){
+    if (!is.na(loss[w_left]) & !is.na(loss[w_right]) & w_right - w_left >= 2){
+      if ( loss[w_left] + tol <= loss[w_right] ){
+        SectionSearch_recursive_1(cur_left, w_left, w_right)
+      } else if ( loss[w_right] + tol <= loss[w_left] ) {
+        SectionSearch_recursive_1(w_left, w_right, cur_right)
+      } else {
+        select_via_variance(cur_left, w_left, w_right, cur_right)
+      }
+
+    } else if (w_right - w_left < 2) {#TODO is this optimal handing of NA values?
+      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
+      return(list(gain = seg_loss - loss, opt_split = catch(which.min(loss))))
+    } else if (is.na(loss[w_left])) {
+      w_left <- w_left + 1
+      loss[w_left] <<- SplitLoss(w_left, SegmentLossFUN, start, end)
+      SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
+    } else {
+      w_right <- w_right - 1
+      loss[w_right] <<- SplitLoss(w_right, SegmentLossFUN, start, end)
+      SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
+    }
+  }
+
+  SectionSearch_recursive_1 <- function(cur_left, cur_middle, cur_right){
 
     if (cur_right - cur_left + 1 <= min_points){
-      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
+      loss[cur_left : cur_right] <<- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
       return(list(gain = seg_loss - loss, opt_split = which.min(loss)))
     }
 
@@ -57,44 +81,23 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
       #loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
       loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
 
-      if(is.na(loss[w])){
-        w <- w - 1
-      }
+      SectionSearch_recursive_2(cur_left, cur_middle, w, cur_right)
 
-      if ( loss[w] + tol <= loss[cur_middle] ){
-        SectionSearch_recursive(cur_middle, w, cur_right)
-      } else if (loss[cur_middle] + tol <= loss[w]) {
-        SectionSearch_recursive(cur_left, cur_middle, w)
-      } else {
-        select_via_variance(cur_left, cur_middle, w, cur_right)
-      }
     } else {
       w <- cur_left + ceiling((cur_middle - cur_left) * stepsize)
       loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
       #loss[cur_middle] <<- SplitLoss(cur_middle, SegmentLossFUN, start, end)
 
-      if (is.na(loss[w])){
-        w <- w + 1
-      }
-
-      if ( loss[w] + tol <= loss[cur_middle] ){
-        SectionSearch_recursive(cur_left, w, cur_middle)
-      } else if (loss[cur_middle] + tol <= loss[w]) {
-        SectionSearch_recursive(w, cur_middle, cur_right)
-      } else {
-        select_via_variance(cur_left, w, cur_middle, cur_right)
-      }
+      SectionSearch_recursive_2(cur_left, w, cur_middle, cur_right)
     }
   }
 
   left <- split_candidates[1]
   right <- split_candidates[length(split_candidates)]
   mid <-  ceiling( (start + stepsize * end)/(1 + stepsize)) - 1
-  while (is.na(loss[mid])){
-    mid <- mid + 1
-    loss[mid] <- SplitLoss(mid, SegmentLossFUN, start, end)
-  }
-  SectionSearch_recursive(left, mid , right) #generates symmetrical setup in next step
+  loss[mid] <- SplitLoss(mid, SegmentLossFUN, start, end)
+
+  SectionSearch_recursive_1(left, mid , right) #generates symmetrical setup in next step
 }
 
 
