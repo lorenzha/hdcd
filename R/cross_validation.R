@@ -128,7 +128,7 @@ CrossValidation <- function(x,
 
         loss_gamma[gam] <- loss
         cpts[[gam]] <- train_inds[res$cpts[[gam]]]
-        cat(paste('Changepoints corresponding to Gamma = ', final_gamma[gam], ' are ', paste(cpts[[gam]], collapse = ', '), 'corresponding to loss = ', loss, '\n'))
+        if(verbose) cat(paste('Changepoints corresponding to Gamma = ', final_gamma[gam], ' are ', paste(cpts[[gam]], collapse = ', '), 'corresponding to loss = ', loss, '\n'))
       }
       rm(res)
       if (verbose) cat(paste(Sys.time(), "  FINISHED fit -  Fold: ", fold, " Lambda: ", round(lam, 3), " Delta: ", round(del, 3), " \n"))

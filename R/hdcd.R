@@ -109,7 +109,7 @@ hdcd <- function(x,
 
   if (cv) {
     res <- list(
-      res = res, changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
+      res = res[['pruned_tree']], changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
       cv_gamma = gamma, cv_lambda = lambda, cv_delta = delta
     )
     if (verbose) cat('\nFinal tree for cross-validated gamma = ', gamma,' and lambda = ', lambda,':\n \n')
@@ -118,7 +118,7 @@ hdcd <- function(x,
     res <- list(changepoints = res[["cpts"]][[1]], tree = tree)
     class(res) <- "bs"
   }
-  print(res[["pruned_tree"]])
+  print(res)
   res
 }
 

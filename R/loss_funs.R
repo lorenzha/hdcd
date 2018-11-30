@@ -12,138 +12,6 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
 
 
 
-#' av_SegmentLoss
-av_SegmentLoss <- function(x,
-                           lambda,
-                           penalize_diagonal = FALSE,
-                           standardize = TRUE,
-                           threshold = 1e-07){
-  n_obs <- nrow(x)
-  n_p <- ncol(x)
-
-  function(start, end){
-
-    x_est <- x[start : end, ]
-
-    mis_completely <- apply(x_est, 2, function(y) (sum(!is.na(y)) < 2))
-
-    for(i in 1:n_p){
-      if (mis_completely[i]){
-        x_est[is.na(x_est[, i]), i] <- rnorm(sum(is.na(x_est[, i])))
-      } else {
-        x_est[is.na(x_est[, i]), i] <- mean(x_est[, i], na.rm=T)
-      }
-    }
-
-#     if (any(!is.finite(x_est))){
-#       x_est[!is.finite(x_est)] <- runif(sum(!is.finite(x_est)))
-#       ('warning in av_Segloss: whole pred missing NA')
-#     }
-
-    obs_count <- end - start + 1
-    obs_share <- obs_count / n_obs
-
-    # We need more than one observation to caclculate the covariance matrix
-    stopifnot(obs_count > 1)
-
-
-    cov_mat <- (obs_count - 1) / obs_count * cov(x_est)
-    #cov_mat <- as.matrix(Matrix::nearPD(cov_mat)$mat)
-
-
-    glasso_output <- glasso::glasso(
-      cov_mat,
-      rho = lambda / sqrt(obs_share) * diag(cov_mat),
-      penalize.diagonal = penalize_diagonal,
-      thr = threshold
-    )
-
-    if (!penalize_diagonal) {
-      diag(glasso_output$wi) <- 0
-    }
-
-    ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-      - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
-  }
-}
-
-#' EM_SegmentLoss
-EM_SegmentLoss <- function(x,
-                           lambda,
-                           method,
-                           penalize_diagonal = FALSE,
-                           standardize = TRUE,
-                           threshold = 1e-7,
-                           ...){
-
-  n_obs <- nrow(x)
-  n_p <- ncol(x)
-  mis <- is.na(x)
-
-  function(start, end){
-    mis <- mis[start : end, ]
-    x_est <- x[start : end, ]
-
-    obs_count <- end - start + 1
-    obs_share <- obs_count / n_obs
-
-    # INIT: Do 1 cov & mean estimation using complete data
-    cov_mat <- (obs_count - 1) / obs_count * cov(x_est, use = 'pairwise') #use = 'pairwise' works with missing data
-    cov_mat[is.na(cov_mat)] <- runif(sum(is.na(cov_mat))) # adapt value
-    cov_mat <- as.matrix(Matrix::nearPD(cov_mat, posd.tol = 1e-3, eig.tol = 1e-3)$mat)
-
-    mu <- apply(x_est, 2, function(y) mean(y, na.rm = T))
-    mu[!is.finite(mu)] <- 0
-    #### Do a first glasso fit
-    K <- glasso::glasso(cov_mat,
-                        rho = lambda / sqrt(obs_share) * diag(cov_mat),
-                        penalize.diagonal = penalize_diagonal,
-                        thr = threshold
-    )$wi
-
-    #### Do covariance imputation on missing values
-    # TODO: can this be done more elegantly / faster?
-
-    for (i in 1:nrow(x_est)){
-
-      mis_i <- mis[i,]
-
-      if (all(mis_i)) {
-        x_est[i, ] <- mu
-      } else if(sum(!mis_i) == 1) {
-        x_est_i <- x_est[i, ]
-        x_est_i[mis_i] <- mu[mis_i] - solve(K[mis_i, mis_i], K[mis_i, !mis_i] * (x_est_i[!mis_i] - mu[!mis_i]))
-        x_est[i, ] <- x_est_i
-      } else if (any(mis_i)) {
-        x_est_i <- x_est[i, ]
-        x_est_i[mis_i] <- mu[mis_i] - solve(K[mis_i, mis_i], K[mis_i, !mis_i] %*% (x_est_i[!mis_i] - mu[!mis_i]))
-        x_est[i, ] <- x_est_i
-      }
-
-    }
-
-    ##### Do an other glasso fit on imputed data
-    cov_mat <- cov(x_est)
-    mu <- apply(x_est, 2, function(y) mean(y, na.rm = T))
-
-    glasso_output <- glasso::glasso(
-      cov_mat,
-      rho = lambda / sqrt(obs_share) * diag(cov_mat),
-      penalize.diagonal = penalize_diagonal,
-      thr = threshold
-    )
-
-    # prepare output
-    if (!penalize_diagonal) {
-      diag(glasso_output$wi) <- 0
-    }
-
-    ((glasso_output$loglik / (-n_p / 2) # Needed to undo transformation of likelihood in glasso package
-      - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share) # Remove regularizer added in glasso package
-  }
-}
-
-
 #' cv.Loss
 #
 #
@@ -195,7 +63,7 @@ cv.Loss <- function(x_train, x_test,
         }
       }
 
-      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun))
+      sum(apply(x_test[start_test : end_test, glasso_output$inds, drop = F], 1, lossfun)) / n_obs_test
       # (- log(det(abs(glasso_output$wi))) + sum(diag( cov_mat_test %*% glasso_output$wi )))
     }
 
@@ -430,7 +298,7 @@ SegmentLoss <- function(x,
 
 
 get_covFUN <- function(x, NA_method = c('complete_observations', 'pairwise_covariance_estimation',
-                                        'loh_wainwright_bias_correction')){
+                                        'loh_wainwright_bias_correction', 'average_imputation')){
   NA_mth <- match.arg(NA_method)
   if (NA_mth == 'complete_observations'){
     function(start, end){
@@ -464,21 +332,43 @@ get_covFUN <- function(x, NA_method = c('complete_observations', 'pairwise_covar
       } else {
         obs_count <-  end - start + 1
         inds <- (cur_av >= 2) # need at least two observations to estimate variance
-        stopifnot(any(inds))
-        mis_frac = 1 - cur_av[inds] / obs_count  # estimate prob of misssingness per column
+        if (!any(inds)){
+          return(list(mat = NA, inds = inds, n_eff_obs = 0))
+        }
+        mis_frac = 1 - cur_av[inds, drop = F] / obs_count  # estimate prob of misssingness per column
         z <- scale(x[start : end, inds, drop = F], T, F) # center
         z[is.na(z)] <- 0 # impute with mean (since centered)
-        z <- z %*% diag(1 - mis_frac) #first step in the loh-wainwright correction
+        z <- z %*% diag(1 - mis_frac, nrow = length(mis_frac)) #first step in the loh-wainwright correction
         cov_mat <- cov(z)
-        cov_mat <- cov_mat - diag(mis_frac * diag(cov_mat)) # second step loh-wainwright correction
+        cov_mat <- cov_mat - diag(mis_frac * diag(cov_mat), nrow = length(mis_frac)) # second step loh-wainwright correction
         n_eff_obs <- sum(cur_av) / sum(inds)
         cov_mat <- (obs_count - 1) / n_eff_obs * as.matrix(Matrix::nearPD(cov_mat)$mat) #TODO: divide bz n_eff_obs???
         list(mat = cov_mat, inds = inds, n_eff_obs = n_eff_obs)
       }
     }
+  } else if (NA_mth == 'average_imputation') {
+    av_obs <- rbind(rep(0, ncol(x)), apply(x, 2, function(y) cumsum(!is.na(y))))
+    function(start, end){
+      cur_av <- av_obs[end + 1, ] - av_obs[start, ]
+      obs_count <- end - start + 1
+      if(all(cur_av == obs_count)){
+        list(mat = cov(x[start : end, , drop = F]), inds = rep(T, ncol(x)), n_eff_obs = obs_count)
+      } else {
+        obs_count <-  end - start + 1
+        inds <- (cur_av >= 2) # need at least two observations to estimate variance
+
+        if (!any(inds)){
+          return(list(mat = NA, inds = inds, n_eff_obs = 0))
+        }
+        z <- scale(x[start : end, inds, drop = F], T, F) # center
+        z[is.na(z)] <- 0 # impute with mean (since centered)
+        n_eff_obs <- sum(cur_av) / sum(inds)
+        cov_mat <- cov(z) ## TODO: divide by n_eff_obs??
+        list(mat = cov_mat, inds = inds, n_eff_obs = n_eff_obs)
+      }
+    }
   }
 }
-
 #### Custom loss functions used with the FUN argument ####
 
 #' Square loss with updates
