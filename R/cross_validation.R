@@ -116,7 +116,7 @@ CrossValidation <- function(x,
           if (length(test_range) == 0){
             warning("Segment has no test data. Consider reducing the number of folds.")
           } else {
-            loss <- loss + cv.Loss(x_train = x[train_range, , drop = F], x_test = x[test_range, , drop = F], n_obs_train = length(train_inds),
+            loss <- loss + CrossValidationLoss(x_train = x[train_range, , drop = F], x_test = x[test_range, , drop = F], n_obs_train = length(train_inds),
                                    lambda = lam, penalize_diagonal = penalize_diagonal, threshold = threshold,
                                    method = method, NA_method = NA_method)
           }

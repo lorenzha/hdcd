@@ -12,116 +12,125 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
 
 
 
-#' cv.Loss
-#
-#
+#' CrossValidationLoss
+#'
+#' This function returns the loss after fitting a glasso or elastic-net fit on \emph{x_train} and evaluating on \emph{x_test}
+#'
+#' If data with missing values is supplied then a first estimate of the covariance matrix is estimated with the \emph{NA_method}.
+#' Then the fit is improved by doing \emph{nrep_EM} Expectation-Maximisation fits.
+#'
+#' @inheritParams BinarySegmentation
+#' @param x_train Training observations
+#' @param x_test Test observations
+#' @n_obs_train Total amount of training observations in the whole model
+#'
+#' @return Loss
+CrossValidationLoss <-  function(x_train, x_test, n_obs_train,
+                        lambda = 0,
+                        penalize_diagonal = FALSE,
+                        standardize = TRUE,
+                        threshold = 1e-07,
+                        method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
+                        NA_method = c('complete_observations', 'average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
+                        ...){
 
-cv.Loss <- function(x_train, x_test, n_obs_train,
-                    lambda = 0,
-                    penalize_diagonal = FALSE,
-                    standardize = TRUE,
-                    threshold = 1e-07,
-                    method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
-                    NA_method = c('complete_observations', 'average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
-                    ...){
+      nrep_EM <- 5
 
-  mth <- match.arg(method)
-  NA_mth <- match.arg(NA_method)
-  args <- list(...)
-  obs_count_train <- nrow(x_train)
-  obs_share_train <- obs_count_train / n_obs_train
+      mth <- match.arg(method)
+      NA_mth <- match.arg(NA_method)
+      args <- list(...)
+      obs_count_train <- nrow(x_train)
+      obs_share_train <- obs_count_train / n_obs_train
 
-  stopifnot(ncol(x_train) == ncol(x_test))
+      stopifnot(ncol(x_train) == ncol(x_test))
 
-  if (mth %in% c("nodewise_regression", "summed_regression", 'glasso', "ratio_regression")){
+      if (mth %in% c("nodewise_regression", "summed_regression", 'glasso', "ratio_regression")){
 
-    if (NA_mth == 'complete_observations'){
+        if (NA_mth == 'complete_observations'){
 
-      cov_mat_output <- get_covFUN(x_train, NA_method = NA_mth)(1, nrow(x_train))
-      cov_mat <- cov_mat_output$mat
-      inds <- cov_mat_output$inds
+          cov_mat_output <- get_covFUN(x_train, NA_method = NA_mth)(1, obs_count_train)
+          cov_mat <- cov_mat_output$mat
+          inds <- cov_mat_output$inds
 
-      if(!any(inds)){
-        warning('Not enough observations in training, Loss 0 returned')
-        return(0)
-      }
+          if(!any(inds)){
+            warning('Not enough observations in training, Loss 0 returned')
+            return(0)
+          }
 
-      mu <- colMeans(x_train[complete.cases(x_train), ])
+          mu <- colMeans(x_train[complete.cases(x_train), ])
 
-      cov_mat <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share_train) * diag(cov_mat),
-        penalize.diagonal = penalize_diagonal,
-        thr = threshold
-      )$w
+          cov_mat <- glasso::glasso(
+            cov_mat,
+            rho = lambda / sqrt(obs_share_train) * diag(cov_mat),
+            penalize.diagonal = penalize_diagonal,
+            thr = threshold
+          )$w
 
-    } else if (NA_mth %in% c('average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction') ){
+        } else if (NA_mth %in% c('average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction') ){
 
-      cov_mat_output <- get_covFUN(x_train, NA_method = NA_mth)(1, nrow(x_train))
+          cov_mat_output <- get_covFUN(x_train, NA_method = NA_mth)(1, nrow(x_train))
 
-      inds <- cov_mat_output$inds
+          inds <- cov_mat_output$inds
 
-      if (!any(inds)){
-        warning('Not enough observations to learn. Loss 0 returned')
-        return(0)
-      }
+          if (!any(inds)){
+            warning('Not enough observations to learn. Loss 0 returned')
+            return(0)
+          }
 
-      cov_mat <- cov_mat_output$mat
+          cov_mat <- cov_mat_output$mat
 
-      x_impute <- x_train[, inds, drop = F]
-      mis <- is.na(x_train[, inds, drop = F])
-      mu <- colMeans(x_impute, na.rm = T)
+          x_impute <- x_train[, inds, drop = F]
+          mis <- is.na(x_train[, inds, drop = F])
+          mu <- colMeans(x_impute, na.rm = T)
 
-      for (i in 1:5) {
-        for (j in 1 : obs_count_train) {
-          x_impute[j, mis[j, ]] <- EM_impute(x_train[j, inds, drop = F], mu, cov_mat)[mis[j, ]]
+          for (i in 1:nrep_EM) {
+            for (j in 1 : obs_count_train) {
+              x_impute[j, ] <- EM_impute(x_train[j, inds, drop = F], mu, cov_mat)
+            }
+
+            cov_mat <- (obs_count_train - 1) / obs_count_train * cov(x_impute)
+
+            cov_mat <- glasso::glasso(
+              cov_mat,
+              rho = lambda / sqrt(obs_share_train) * diag(cov_mat),
+              penalize.diagonal = penalize_diagonal,
+              thr = threshold
+            )$w
+          }
         }
 
-        cov_mat <- glasso::glasso(
-          cov_mat,
-          rho = lambda / sqrt(obs_share_train) * diag(cov_mat),
-          penalize.diagonal = penalize_diagonal,
-          thr = threshold
-        )$w
+        lossfun <- function(y){
+          if(all(is.na(y))){
+            0
+          } else {
+            Sigma <- cov_mat[!is.na(y), !is.na(y), drop = F]
+            # R_cur <- R
+            v <- y - mu
+            v <- v[!is.na(y)]
+            # R_cur[, is.na(y)] <- 0
+            #diag(R_cur)[is.na(y)] <- 1
+            t(v) %*% solve(Sigma, v) + log(abs(det(Sigma)))
+          }
+        }
+
+        sum(apply(x_test[, inds, drop = F], 1, lossfun))
+
+      } else if (mth == 'elastic_net'){
+
+        family <-  args[['family']]
+        if(is.null(family)) family <- 'gaussian'
+
+        alpha <- args[['alpha']]
+        if (is.null(args[['alpha']])) alpha <- 0
+
+        glmnet_output <- glmnet(x = x_train[, -1], y = x_train[, 1],
+                                lambda = lambda / sqrt(obs_share_train), alpha = alpha, family = family)
+
+        y_pred <- predict(glmnet_output, x_test[, -1])
+
+        mean( (x_test[, 1] - y_pred)^2 )
       }
     }
-
-    lossfun <- function(y){
-      if(all(is.na(y))){
-        0
-      } else {
-        Sigma <- cov_mat[!is.na(y), !is.na(y), drop = F]
-        # R_cur <- R
-        v <- y - mu
-        v <- v[!is.na(y)]
-        # R_cur[, is.na(y)] <- 0
-        #diag(R_cur)[is.na(y)] <- 1
-        t(v) %*% solve(Sigma, v) + log(abs(det(Sigma)))
-      }
-    }
-
-    sum(apply(x_test[, inds, drop = F], 1, lossfun))
-
-  } else if (mth == 'elastic_net'){
-  #
-  #   family <-  args[['family']]
-  #   if(is.null(family)) family <- 'gaussian'
-  #
-  #   alpha <- args[['alpha']]
-  #   if (is.null(args[['alpha']])) alpha <- 0
-  #
-  #   function(start_train, end_train, start_test, end_test){
-  #
-  #     obs_share_train <- (end_train - start_train + 1) / n_obs_train
-  #
-  #     glmnet_output <- glmnet(x = x_train[start_train : end_train, -1], y = x_train[start_train : end_train, 1],
-  #                             lambda = lambda / sqrt(obs_share_train), alpha = alpha, family = family)
-  #     y_pred <- predict(glmnet_output, x_test[start_test : end_test, -1])
-  #
-  #     sum( (x_test[start_test : end_test, 1] - y_pred)^2 ) / (end_test - start_test + 1)
-  #   }
-  }
-}
 
 #' SegmentLoss
 #'
