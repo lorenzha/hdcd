@@ -32,7 +32,7 @@
 #' }
 hdcd <- function(x,
                  y= NULL,
-                 delta = 0.1,
+                 delta = NULL,
                  lambda = NULL,
                  lambda_min_ratio = 0.01,
                  lambda_grid_size = 10,
@@ -52,6 +52,7 @@ hdcd <- function(x,
                  max_depth = Inf,
                  ...) {
 
+
   if(!is.matrix(x)){
     x <- as.matrix(x)
     warning("Input data x has been coerced to matrix by hdcd.")
@@ -59,6 +60,7 @@ hdcd <- function(x,
 
   stopifnot(nrow(x) > 1)
 
+  # If y is supplied, it is bound to x
   if(!is.null(y)){
     stopifnot(nrow(x) == length(y))
     x <- cbind(y, x)
@@ -66,16 +68,18 @@ hdcd <- function(x,
 
   cv <- FALSE
 
-
+  # If a individual loss function is supplied, check that it has the required form
   if( !is.null(FUN) ){
     stopifnot('x' %in% methods::formalArgs(FUN))
     if ( is.null(lambda) && !('lambda' %in% methods::formalArgs(FUN(x))))
       lambda <- 0 #don't do lambda CV if FUN doesn't depend on lambda
   }
 
+  # do cross-validation if any of lambda, gamma or delta is not supplied
   if ((is.null(lambda) || is.null(gamma) || is.null(delta)) | length(c(gamma, lambda, delta)) > 3) {
     cv <- TRUE
     if (verbose) cat("\nPerforming ", n_folds, "- fold cross-validation...\n")
+
     cv_res <- CrossValidation(
       x = x, delta = delta, method = method, lambda = lambda,
       lambda_min_ratio = lambda_min_ratio, lambda_grid_size = lambda_grid_size,
@@ -105,11 +109,13 @@ hdcd <- function(x,
     FUN = FUN, max_depth = max_depth,
     ...
   )
+
+  # Prune the tree to the cross validated gamma
   res <- PruneTreeGamma(tree, gamma)
 
   if (cv) {
     res <- list(
-      res = res[['pruned_tree']], changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
+      res = res[['pruned_tree']][[1]], changepoints = res[["cpts"]][[1]], cv_results = cv_res[["cv_results"]],
       cv_gamma = gamma, cv_lambda = lambda, cv_delta = delta
     )
     if (verbose) cat('\nFinal tree for cross-validated gamma = ', gamma,' and lambda = ', lambda,':\n \n')

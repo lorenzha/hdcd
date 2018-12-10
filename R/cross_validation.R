@@ -50,7 +50,6 @@ CrossValidation <- function(x,
   n_obs <- NROW(x)
   n_p <- NCOL(x)
 
-
   # necessary because parser won't allow 'foreach' directly after a foreach object
   if (foreach::getDoParWorkers() == 1 && parallel) {
     cat("\nNo parallel backend registered. \n\nCross-validation will be performed using a single compute node and might take a very long time. See for instance https://cran.r-project.org/web/packages/doParallel/index.html to install a parallel backend.\n")
@@ -78,9 +77,12 @@ CrossValidation <- function(x,
   n_delta <- length(delta)
 
   if (verbose) cat("\n")
-  cv_results <- foreach::foreach(lam = lambda, .inorder = F, .packages = "hdcd", .verbose = F) %:%
+  # for (lam in lambda){
+  #   for (del in delta){
+  #     for (fold in seq_len(n_folds)){
+  cv_results <- foreach::foreach(fold = seq_len(n_folds), .inorder = F, .packages = "hdcd", .verbose = F) %:%
     foreach::foreach(del = delta, .inorder = T) %:%
-    foreach::foreach(fold = seq_len(n_folds), .inorder = T) %hdcd_do% {
+    foreach::foreach(lam = lambda, .inorder = T) %hdcd_do% {
       test_inds <- seq(fold, n_obs, n_folds)
       train_inds <- setdiff(1:n_obs, test_inds)
 
@@ -98,14 +100,6 @@ CrossValidation <- function(x,
         final_gamma <- gamma
       }
 
-      if (is.null(cv.FUN)){
-        cv.LossFUN <- cv.Loss(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam,
-                              method = method, NA_method = NA_method, penalize_diagonal = penalize_diagonal, ...)
-      } else {
-        cv.LossFUN <- cv.FUN(x[train_inds, , drop = F], x[test_inds, , drop = F], lambda = lam)
-        stopifnot(all(c('start_train', 'end_train', 'start_test', 'end_test') %in% formalArgs(cv.LossFUN)))
-      }
-
       res <- PruneTreeGamma(tree, final_gamma)
       rm(tree)
       loss_gamma <- numeric(length(final_gamma))
@@ -115,18 +109,20 @@ CrossValidation <- function(x,
         loss <- 0
         alpha <- c(1, train_inds[res$cpts[[gam]]], n_obs + 1) # transform cpts back to original indices
         for (i in 1:(length(alpha) - 1)){
-          train_start <- min(which(train_inds >= alpha[i]))
-          train_end <- max(which(train_inds <= alpha[i + 1] - 1))
-          test_start <- min(which(test_inds >= alpha[i]))
-          test_end  <- max(which(test_inds <= alpha[i + 1] - 1))
-          if (test_end < test_start){
+
+          train_range <- intersect(train_inds, alpha[i] : (alpha[i + 1] - 1))
+          test_range <- intersect(test_inds, alpha[i] : (alpha[i + 1] - 1))
+
+          if (length(test_range) == 0){
             warning("Segment has no test data. Consider reducing the number of folds.")
           } else {
-            loss <- loss + cv.LossFUN(train_start, train_end, test_start, test_end)
+            loss <- loss + cv.Loss(x_train = x[train_range, , drop = F], x_test = x[test_range, , drop = F], n_obs_train = length(train_inds),
+                                   lambda = lam, penalize_diagonal = penalize_diagonal, threshold = threshold,
+                                   method = method, NA_method = NA_method)
           }
         }
 
-        loss_gamma[gam] <- loss
+        loss_gamma[gam] <- loss / length(test_inds)
         cpts[[gam]] <- train_inds[res$cpts[[gam]]]
         if(verbose) cat(paste('Changepoints corresponding to Gamma = ', final_gamma[gam], ' are ', paste(cpts[[gam]], collapse = ', '), 'corresponding to loss = ', loss, '\n'))
       }
@@ -135,7 +131,9 @@ CrossValidation <- function(x,
 
 
       list(fold = fold, lambda = lam, delta = del, gamma = final_gamma, loss = loss_gamma, cpts = cpts)
-    }
+    #   }
+    # }
+  }
 
   res <- data.frame()
   for (fold in seq_len(n_folds)) {
