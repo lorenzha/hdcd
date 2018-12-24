@@ -21,3 +21,13 @@ catch <- function(x){
     NA
   }
 }
+
+sample_folds <- function(n, k, randomize = TRUE){
+  if (randomize){
+    random_draw <- runif(n)
+    k_quantiles <- quantile(random_draw, 0:k/k)
+    cut(random_draw, k_quantiles, labels = 1:k, include.lowest = TRUE)
+  } else {
+    as.factor(rep(1:k, ceiling(n/k))[1:n])
+  }
+}

@@ -110,8 +110,7 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
-                               gamma = 0,
+BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta = NULL,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                NA_method = 'complete_observations',
                                penalize_diagonal = F,
@@ -122,6 +121,7 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
                                verbose = FALSE,
                                FUN = NULL,
                                max_depth = Inf,
+                               node = NULL,
                                ...) {
 
   n_obs <- NROW(x)
@@ -129,12 +129,11 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
       x, lambda = lambda, penalize_diagonal = penalize_diagonal,
-      method = method, NA_method = NA_method, standardize = standardize, threshold = threshold, ...
+      method = method, NA_method = NA_method, standardize = standardize, threshold = threshold, node = node, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
-
-    if ('lambda' %in% methods::formalArgs(FUN)){
+    if ("lambda" %in% methods::formalArgs(FUN)){
       SegmentLossFUN <- FUN(x, lambda = lambda)
     } else {
       SegmentLossFUN <- FUN(x)
@@ -161,7 +160,8 @@ BinarySegmentation <- function(x, delta = 0.1, lambda = 0.1,
         gamma
       )
 
-      node$max_gain <- max(res[["gain"]], na.rm = T)
+      max_gain <- max(res[["gain"]], na.rm = T)
+      node$max_gain <- ifelse(is.finite(max_gain), max_gain, NA)
       node$gain <- res[["gain"]]
       split_point <- res[["opt_split"]]
 

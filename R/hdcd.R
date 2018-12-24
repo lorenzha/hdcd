@@ -50,8 +50,8 @@ hdcd <- function(x,
                  parallel = T,
                  FUN = NULL,
                  max_depth = Inf,
+                 node = NULL,
                  ...) {
-
 
   if(!is.matrix(x)){
     x <- as.matrix(x)
@@ -95,6 +95,7 @@ hdcd <- function(x,
       threshold = threshold,
       FUN = FUN,
       max_depth = max_depth,
+      node = NULL,
       ...
     )
     lambda <- cv_res$opt$lambda
@@ -106,7 +107,7 @@ hdcd <- function(x,
     x = x, delta = delta, lambda = lambda, method = method, NA_method = NA_method,
     threshold = threshold, penalize_diagonal = penalize_diagonal, alpha = alpha,
     optimizer = optimizer, control = control, standardize = standardize,
-    FUN = FUN, max_depth = max_depth,
+    FUN = FUN, max_depth = max_depth, node = NULL,
     ...
   )
 
@@ -127,6 +128,91 @@ hdcd <- function(x,
   print(res)
   res
 }
+
+
+#'
+#'
+#'
+#
+cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observations",
+                    optimizer = "line_search", delta = NULL, lambda = NULL, gamma = NULL, node = NULL, alpha = NULL, control = NULL){
+
+  mth <- match.arg(method, c("glasso", "nodewise_regression", "summed_regression", "ratio_regression", "elastic_net"))
+  NA_mth <- match.arg(NA_method, c("complete_observations", "average_imputation", "loh_wainwright_bias_correction", "pairwise_covariance_estimation"))
+  opt <- match.arg(optimizer, c("line_search", "section_search"))
+
+  n <- nrow(x)
+
+  if(!is.matrix(x)){
+    x <- as.matrix(x)
+    warning("Input data x has been coerced to matrix by hdcd.")
+  }
+
+  if(!is.null(y) & method != "elastic_net"){
+    warning("Input y is ignored since method is not elastic_net")
+  }
+  if (!is.null(node) & method != "nodewise_regression") {
+    warning("Input node is ignored since method is not nodewise_regression")
+  }
+  if (!is.null(alpha) & method != "elastic_net"){
+    warning("Input alpha is ignored since method is not elastic_net")
+  }
+  if (NA_method == "complete_observations" & mean(complete.cases(x)) < 0.5){
+    warning("Less than 50% of observations are complete. Consider using a different NA_method")
+  }
+
+  if (!is.null(y) & method == "elastic_net"){
+    x <- cbind(y,x)
+  }
+
+  # choose lambda as grid around the asymptotic value
+  if (is.null(lambda) && NCOL(x) > 1) {
+    cov_mat <- get_cov_mat(x, NA_method)$mat
+    lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
+    lambda <- LogSpace(0.01 * lambda_max, lambda_max, length.out = 10)
+  }
+
+  # choose three sensible values for delta
+  if (is.null(delta)) {
+    delta <- c(0.05, 0.1, 0.2)
+  }
+
+  folds <- sample_folds(n, n_folds_outer, randomize)
+
+  for(outer in 1:n_folds_outer){
+    for(lam in lambda){
+      for (del in delta){
+
+        tree <- BinarySegmentation(x[folds != outer, , drop = F], method = mth,
+                                   NA_method = NA_mth, optimizer = opt, del, lambda = lam,
+                                   gamma = gam, node = node, alpha = alpha, control = control)
+        gam <- gamma
+        if (is.null(gam)) {
+          gam <- c(0, sort(tree$Get("max_gain")))
+          gam <- gam[which(gam >= 0)]
+        }
+
+        res <- PruneTreeGamma(tree, gam)
+        rm(tree)
+        loss <- numeric(length(gam))
+
+        for(i in seq_along(gamma)){
+          alpha <- c(1, train_inds[res[["cpts"]][[i]]], n + 1)
+          for (j in 1:(length(alpha) - 1)){
+            train_inds_segment <- intersect(alpha[j] : (alpha[j+1] - 1))
+            loss_output <- cv_loss(x[])
+          }
+        }
+      }
+    }
+  }
+
+
+
+
+
+}
+
 
 #' Print method for objects of class bs_cv
 #'

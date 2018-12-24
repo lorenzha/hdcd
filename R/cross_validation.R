@@ -1,3 +1,16 @@
+cv_hdcd <- function(x, method = "glasso", NA_method = "complete_observations", optimizer = "line_search", y = NULL, delta = NULL, lambda = NULL, gamma = NULL, cv_control = NULL, optimizer_control = NULL, method_control = NULL){
+
+  if (is.null(lambda) && NCOL(x) > 1) {
+    cov_mat <- get_covFUN(x, NA_method)(1, nrow(x))$mat
+    lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
+    lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
+  }
+
+
+}
+
+
+
 #' CrossValidation
 #'
 #' Cross-validation for the desired method and parameter combinations.
@@ -163,6 +176,13 @@ CrossValidation <- function(x,
   list(opt = opt[which.min(opt$loss), , drop = TRUE], cv_results = results)
 }
 
+#################
+cv.fit <- function(){
+
+
+
+
+}
 
 #' plot.bs_cv
 #'
@@ -286,4 +306,14 @@ GetOpt <- function(param_res) {
 
 LogSpace <- function(from, to, length.out) {
   exp(seq(log(from), log(to), length.out = length.out))
+}
+
+sample_folds <- function(n, k, randomize = TRUE){
+  if (randomize){
+    random_draw <- runif(n)
+    k_quantiles <- quantile(random_draw, 0:k/k)
+    cut(random_draw, k_quantiles, labels = 1:k, include.lowest = TRUE)
+  } else {
+    as.factor(rep(1:k, ceiling(n/k))[1:n])
+  }
 }
