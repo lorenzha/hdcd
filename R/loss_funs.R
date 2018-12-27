@@ -47,6 +47,9 @@ cv_loss <-  function(x_train, x_test, n_obs_train,
   standardize <- T
   threshold <- 1e-7
 
+  # TODO: after implementing control lambda should be passed as the current lambda value
+  # such that for n_fold_inner the outer lambda is chosen.
+
   n_cur_train <- nrow(x_train)
 
   folds_inner <- sample_folds(n_cur_train, n_folds_inner, randomize_inner)
@@ -61,6 +64,7 @@ cv_loss <-  function(x_train, x_test, n_obs_train,
       x_train_train <- x_train[folds_inner != inner, , drop = F]
       x_train_test <- x_train[folds_inner == inner, , drop = F]
 
+      # should we divide by something? if folds are not of equal size
       loss[["cv"]][i] <- loss[["cv"]][i] + cv_fit(x_train_train, x_train_test, lambda = lambda_inner[i], method = method, NA_method = NA_method, nrep_em = nrep_em, n_obs_train = n_obs_train)
 
     }
@@ -140,10 +144,12 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, nrep_em, n_obs_tr
       rm(glasso_output)
     }
 
+    # to speed up loss calculation, loss is calculated differently for observations that are fully available
     fully_available_inds <- apply(x_test[, inds, drop = F], 1, function(y) all(!is.na(y)))
     x_test_full <- x_test[fully_available_inds, inds, drop = F]
     x_test_notfull <- x_test[!fully_available_inds, inds, drop = F]
 
+    # calculate the loglikelihood
     sum(fully_available_inds) * log(abs(det(cov_mat))) +
       sum(diag( t(t(x_test_full) - mu) %*% cov_mat_inv %*% (t(x_test_full) - mu) )) +
       sum(apply(x_test_notfull, 1, loglikelihood, mu, cov_mat))
