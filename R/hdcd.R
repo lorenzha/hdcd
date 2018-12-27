@@ -143,6 +143,17 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
 
   n <- nrow(x)
 
+  ### Here should be something that reads parameters from control
+  n_folds_outer <- control[["n_folds_outer"]]
+  randomize_outer_folds <- control[["randomize_outer_folds"]]
+  verbose <- control[["verbose"]]
+
+  # This is used as long as no control functionality is enabled
+  n_folds_outer <- 10
+  randomize_outer_folds <- F
+  verbose <- T
+
+
   if(!is.matrix(x)){
     x <- as.matrix(x)
     warning("Input data x has been coerced to matrix by hdcd.")
@@ -170,47 +181,69 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
     cov_mat <- get_cov_mat(x, NA_method)$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(0.01 * lambda_max, lambda_max, length.out = 10)
+    if (verbose) cat("Values for lambda chosen by asymptotic theory are", round(lambda, 3), "\n", sep = " ")
   }
 
   # choose three sensible values for delta
   if (is.null(delta)) {
     delta <- c(0.05, 0.1, 0.2)
+    if (verbose) cat("Values for delta chosen are", delta, "\n", sep = " ")
   }
 
-  folds <- sample_folds(n, n_folds_outer, randomize)
+  folds_outer <- sample_folds(n, n_folds_outer, randomize_outer_folds)
 
-  for(outer in 1:n_folds_outer){
-    for(lam in lambda){
+  # do outer cross validation
+  cv_results <- data.table::data.table()
+  for (outer in 1:n_folds_outer){
+    for (lam in lambda){
       for (del in delta){
 
-        tree <- BinarySegmentation(x[folds != outer, , drop = F], method = mth,
-                                   NA_method = NA_mth, optimizer = opt, del, lambda = lam,
-                                   gamma = gam, node = node, alpha = alpha, control = control)
+        train_inds <- which(folds_outer != outer)
+        test_inds <- which(folds_outer == outer)
+
+        tree <- BinarySegmentation(x[train_inds, , drop = F], method = mth,
+                                   NA_method = NA_mth, optimizer = opt, delta = del, lambda = lam,
+                                   gamma = gamma, node = node, alpha = alpha, control = control)
+
+        cat("tree fit finished. \n")
         gam <- gamma
-        if (is.null(gam)) {
+        if (is.null(gamma)) {
           gam <- c(0, sort(tree$Get("max_gain")))
-          gam <- gam[which(gam >= 0)]
+          gam <- gam[gam >= 0]
         }
 
-        res <- PruneTreeGamma(tree, gam)
-        rm(tree)
-        loss <- numeric(length(gam))
+        cat("gamma =", gamma, "\n", sep = " ")
 
-        for(i in seq_along(gamma)){
-          alpha <- c(1, train_inds[res[["cpts"]][[i]]], n + 1)
+        # get changepoints for different gammas
+        res <- PruneTreeGamma(tree, gam) #this possibly creates duplcates. Fix this!
+        rm(tree)
+
+        for(g in gam){
+          test_loss <- train_loss <- 0
+          cpts <- train_inds[ res[["cpts"]][[as.character(g)]] ]
+          alpha <- c(1, cpts , n + 1)
           for (j in 1:(length(alpha) - 1)){
-            train_inds_segment <- intersect(alpha[j] : (alpha[j+1] - 1))
-            loss_output <- cv_loss(x[])
+            cat(g, j, sep = ', ')
+            segment <- alpha[j] : (alpha[j+1] - 1)
+            train_inds_segment <- intersect(train_inds, segment)
+            test_inds_segment <- intersect(test_inds, segment)
+            loss_output <- cv_loss(x[train_inds_segment, , drop = F], x[test_inds_segment, , drop = F], length(train_inds))
+            test_loss <- test_loss + loss_output$test_loss
+            train_loss <- train_loss + loss_output$train_loss
           }
+          cv_results <- rbind(cv_results, data.table::data.table(fold = outer, lambda = lam, delta = del, gamma = g, test_loss = test_loss, train_loss = train_loss, cpts = list(cpts)))
+        }
+        if (verbose){
+          temp <- cv_results[delta == del & lambda == lam & fold == outer, .(gamma, train_loss, test_loss, cpts)]
+          cpts_min_train <- temp[train_loss == min(train_loss), cpts][[1]]
+          cpts_min_test <- temp[test_loss == min(test_loss), cpts][[1]]
+          cat("Fit finished for lambda = ", lam, " and delta = ", del,". Changepoints corresponding to minimal train / test error are ",
+              cpts_min_train, " and ", cpts_min_test, " respectively. \n", sep = "")
         }
       }
     }
   }
-
-
-
-
-
+cv_results
 }
 
 

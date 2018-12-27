@@ -272,7 +272,8 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
     }
   )
 
-  if (any(!is.na(max(result[["gain"]]))) & max(result[["gain"]], na.rm = T) - gamma <= 0) {
+
+  if (is.na(result[["opt_split"]]) || result[["gain"]][result[["opt_split"]]] - ifelse(is.null(gamma), 0, gamma) <= 0){
     list(opt_split = NA, gain = result[["gain"]])
   } else {
     list(opt_split = result[["opt_split"]], gain = result[["gain"]])

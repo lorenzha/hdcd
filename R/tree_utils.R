@@ -24,13 +24,13 @@ PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
 
   cpts <- list()
   pruned_tree <- list()
-  for (i in seq_along(gamma)) {
-    FUN <- PenalizeSplitsFUN(gamma[i])
+  for (gam in gamma) {
+    FUN <- PenalizeSplitsFUN(gam)
 
     clone_tree <- data.tree::Clone(x, pruneFun = FUN) # TODO: Check if copy can be avoided
 
-    cpts[[i]] <- GetChangePointsFromLeafs(clone_tree)
-    pruned_tree[[i]] <- clone_tree
+    cpts[[as.character(gam)]] <- GetChangePointsFromLeafs(clone_tree)
+    pruned_tree[[as.character(gam)]] <- clone_tree
   }
   list(cpts = cpts, gamma = gamma, pruned_tree = pruned_tree)
 }

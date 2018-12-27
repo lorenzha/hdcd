@@ -1,16 +1,3 @@
-cv_hdcd <- function(x, method = "glasso", NA_method = "complete_observations", optimizer = "line_search", y = NULL, delta = NULL, lambda = NULL, gamma = NULL, cv_control = NULL, optimizer_control = NULL, method_control = NULL){
-
-  if (is.null(lambda) && NCOL(x) > 1) {
-    cov_mat <- get_covFUN(x, NA_method)(1, nrow(x))$mat
-    lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
-    lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
-  }
-
-
-}
-
-
-
 #' CrossValidation
 #'
 #' Cross-validation for the desired method and parameter combinations.
@@ -76,7 +63,7 @@ CrossValidation <- function(x,
 
   # choose lambda as grid around the asymptotic value
   if (is.null(lambda) && NCOL(x) > 1) {
-    cov_mat <- get_covFUN(x, NA_method)(1, nrow(x))$mat
+    cov_mat <- get_cov_mat(x, NA_method)$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     lambda <- LogSpace(lambda_min_ratio * lambda_max, lambda_max, length.out = lambda_grid_size)
   }
@@ -176,13 +163,6 @@ CrossValidation <- function(x,
   list(opt = opt[which.min(opt$loss), , drop = TRUE], cv_results = results)
 }
 
-#################
-cv.fit <- function(){
-
-
-
-
-}
 
 #' plot.bs_cv
 #'
