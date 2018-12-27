@@ -246,11 +246,11 @@ plot.bs_cv <- function(x, ..., show_legend = T) {
 }
 
 
-SolutionPaths <- function(dat) {
+SolutionPaths <- function(dat, var = "loss") {
   dat <- dat[order(dat$gamma), ]
   list(
     lambda = dat$lambda[1], delta = dat$delta[1],
-    loss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "loss")),
+    loss = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = var)),
     cpts = ImputeMatrix(reshape2::dcast(dat, gamma ~ fold, value.var = "cpts", fill = NA))
   )
 }

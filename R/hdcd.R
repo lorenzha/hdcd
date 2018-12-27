@@ -192,11 +192,15 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
 
   folds_outer <- sample_folds(n, n_folds_outer, randomize_outer_folds)
 
-  # do outer cross validation
+
+  # data.table to save results in
   cv_results <- data.table::data.table()
+
+  # do outer cross validation
   for (outer in 1:n_folds_outer){
     for (lam in lambda){
       for (del in delta){
+        print(c(outer, lam))
 
         train_inds <- which(folds_outer != outer)
         test_inds <- which(folds_outer == outer)
@@ -206,16 +210,16 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
                                    gamma = gamma, node = node, alpha = alpha, control = control)
 
         cat("tree fit finished. \n")
-        gam <- gamma
+
         if (is.null(gamma)) {
           gam <- c(0, sort(tree$Get("max_gain")))
           gam <- gam[gam >= 0]
+        } else {
+          gam <- gamma
         }
 
-        cat("gamma =", gamma, "\n", sep = " ")
-
         # get changepoints for different gammas
-        res <- PruneTreeGamma(tree, gam) #this possibly creates duplcates. Fix this!
+        res <- PruneTreeGamma(tree, gam) #this possibly creates duplicates, where multiple gamma correspond to the same tree. Fix this!
         rm(tree)
 
         for(g in gam){
@@ -223,27 +227,35 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
           cpts <- train_inds[ res[["cpts"]][[as.character(g)]] ]
           alpha <- c(1, cpts , n + 1)
           for (j in 1:(length(alpha) - 1)){
-            cat(g, j, sep = ', ')
             segment <- alpha[j] : (alpha[j+1] - 1)
             train_inds_segment <- intersect(train_inds, segment)
             test_inds_segment <- intersect(test_inds, segment)
-            loss_output <- cv_loss(x[train_inds_segment, , drop = F], x[test_inds_segment, , drop = F], length(train_inds))
+            loss_output <- cv_loss(x[train_inds_segment, , drop = F], x[test_inds_segment, , drop = F], length(train_inds), lambda_inner = lambda)
             test_loss <- test_loss + loss_output$test_loss
             train_loss <- train_loss + loss_output$train_loss
           }
           cv_results <- rbind(cv_results, data.table::data.table(fold = outer, lambda = lam, delta = del, gamma = g, test_loss = test_loss, train_loss = train_loss, cpts = list(cpts)))
         }
         if (verbose){
-          temp <- cv_results[delta == del & lambda == lam & fold == outer, .(gamma, train_loss, test_loss, cpts)]
-          cpts_min_train <- temp[train_loss == min(train_loss), cpts][[1]]
-          cpts_min_test <- temp[test_loss == min(test_loss), cpts][[1]]
-          cat("Fit finished for lambda = ", lam, " and delta = ", del,". Changepoints corresponding to minimal train / test error are ",
-              cpts_min_train, " and ", cpts_min_test, " respectively. \n", sep = "")
+          cat("Fit finished for fold = ", outer, ", lambda = ", lam, " and delta = ", del,". \n", sep = "")
         }
       }
     }
   }
-cv_results
+
+  if (n_folds_outer == 1){
+    var <- "train_loss"
+  } else {
+    var <- "test_loss"
+  }
+
+  single <- split(cv_results, f = list(cv_results$lambda, cv_results$delta), drop = T)
+
+  results <- lapply(single, SolutionPaths, var)
+
+  opt <- do.call(rbind, lapply(results, GetOpt))
+
+  list(opt = opt[which.min(opt$loss), , drop = TRUE], cv_results = results)
 }
 
 

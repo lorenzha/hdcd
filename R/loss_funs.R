@@ -26,10 +26,7 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
 #'
 #' @return Loss
 cv_loss <-  function(x_train, x_test, n_obs_train,
-                        lambda = 0,
-                        penalize_diagonal = FALSE,
-                        standardize = TRUE,
-                        threshold = 1e-07,
+                        lambda_inner = NULL,
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'),
                         NA_method = c('complete_observations', 'average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'),
                         control = NULL
@@ -37,14 +34,18 @@ cv_loss <-  function(x_train, x_test, n_obs_train,
 
   n_folds_inner <- control[["n_folds_inner"]]
   nrep_em <- control[["nrep_em"]]
-  lambda_inner <- control[['lambda_inner']]
   randomize_inner <- control[["randomize_inner"]]
+  penalize_diagonal <- control[["penalize_diagonal"]]
+  standardize <- control[["standardize"]]
+  threshold <- control[["threshold"]]
 
   #delete / adjust below
   n_folds_inner <- 10
-  nrep_em <- 10
-  lambda_inner <- c(0, 0.1, 1)
+  nrep_em <- 5
   randomize_inner <- FALSE
+  penalize_diagonal <- F
+  standardize <- T
+  threshold <- 1e-7
 
   n_cur_train <- nrow(x_train)
 
@@ -52,7 +53,7 @@ cv_loss <-  function(x_train, x_test, n_obs_train,
 
   stopifnot(is.null(x_test) | ncol(x_train) == ncol(x_test))
 
-  loss <- list(cv = numeric(length(lambda_inner)), lambda_min = NA, train = NA, test = NA)
+  loss <- list(cv = numeric(length(lambda_inner)))
 
   for (i in seq_along(lambda_inner)){
     for (inner in 1:n_folds_inner){
