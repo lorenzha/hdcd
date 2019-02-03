@@ -113,23 +113,19 @@
 BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta = NULL,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                NA_method = 'complete_observations',
-                               penalize_diagonal = F,
                                optimizer = c("line_search", "section_search"),
                                control = NULL,
-                               standardize = T,
-                               threshold = 1e-7,
-                               verbose = FALSE,
                                FUN = NULL,
-                               max_depth = Inf,
-                               node = NULL,
                                ...) {
+
+  max_depth <- control_get(control, "max_depth", Inf)
+  verbose <- control_get(control, "verbose", TRUE)
 
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
-      x, lambda = lambda, penalize_diagonal = penalize_diagonal,
-      method = method, NA_method = NA_method, standardize = standardize, threshold = threshold, node = node, ...
+      x, lambda = lambda, method = method, NA_method = NA_method, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
@@ -141,15 +137,17 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
   }
   stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
 
-  tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
+  cv_loss_global_output <- cv_loss(x, n_obs = n_obs, method = method, NA_method = NA_method, control = control)
+  cv_loss_global <- cv_loss_global_output$train_loss
+  cv_lambda_opt <- cv_loss_global_output$lambda_opt
+
+  tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x), cv_loss = cv_loss_global, cv_lambda_opt = cv_lambda_opt )
   class(tree) <- c("bs_tree", class(tree))
 
 
   BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
 
     n_selected_obs <- node$end - node$start + 1
-
-    if (verbose) print(tree)
 
     # check whether segment is still long enough & tree not already to deep
     if (n_selected_obs / n_obs >= 2 * delta & length(node$path) - 1 < max_depth) {
@@ -168,20 +166,27 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
       if (is.na(split_point)) {
         return(NA)
       } else {
+        cv_loss_left <- cv_loss(x[node$start : (split_point - 1), ], n_obs = n_obs, method = method, NA_method = NA_method, control = control)
+        cv_loss_right<- cv_loss(x[split_point : node$end, ], n_obs = n_obs, method = method, NA_method = NA_method, control = control)
+        node$cv_improvement <- node$cv_loss - cv_loss_left$train_loss - cv_loss_right$train_loss
         start <- node$start
         end <- node$end
 
         child_left <- node$AddChild(
           as.character(start),
           start = start,
-          end = split_point - 1
+          end = split_point - 1,
+          cv_loss = cv_loss_left$train_loss,
+          cv_lambda_opt = cv_loss_left$lambda_opt
         )
         BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
 
         child_right <- node$AddChild(
           as.character(split_point),
           start = split_point,
-          end = end
+          end = end,
+          cv_loss = cv_loss_right$train_loss,
+          cv_lambda_opt = cv_loss_right$lambda_opt
         )
         BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
       }

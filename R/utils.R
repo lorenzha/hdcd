@@ -14,6 +14,16 @@ HandleGlassoNaN <- function(w) {
   }
 }
 
+#returns, when specified, control$name, else returns default
+control_get <- function(control, name, default){
+  value <- control[[name]]
+  if(!is.null(value)){
+    value
+  } else {
+    default
+  }
+}
+
 # turns numeric(0) into NA
 catch <- function(x){
   if (length(x) > 0){

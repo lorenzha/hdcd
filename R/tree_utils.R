@@ -90,5 +90,5 @@ PenalizeSplitsFUN <- function(gamma) {
 #'
 #' @export
 print.bs_tree <- function(x, ...) {
-  NextMethod(generic = NULL, object = NULL, "start", "end", "max_gain", ...)
+  NextMethod(generic = NULL, object = NULL, "start", "end", "max_gain", "cv_loss", "cv_improvement", "cv_lambda_opt", ...)
 }
