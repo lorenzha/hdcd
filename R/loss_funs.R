@@ -52,9 +52,8 @@ cv_loss <- function(x_train, n_obs,
     }
   }
 
-  loss[["lambda_opt"]] <- lambda_inner[which.min(loss[["cv"]])] #SOMETHING GOES WRONG HERE!
+  loss[["lambda_opt"]] <- lambda_inner[which.min(loss[["cv"]])]
   loss[["train_loss"]] <- min(loss[["cv"]])
-  print(loss[["lambda_opt"]])
 
   if (!is.null(x_test)){
     loss[["test_loss"]] <- cv_fit(x_train, x_test, lambda = loss[["lambda_opt"]], method = method, NA_method = NA_method, n_obs_train = n_obs_train, control = control)
@@ -70,6 +69,9 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
   }
 
   mth <- match.arg(method, choices = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'))
+  NA_mth <- match.arg(NA_method, choices = c('complete_observations', 'pairwise_covariance_estimation',
+                                             'loh_wainwright_bias_correction', 'average_imputation',
+                                             'expectation_maximisation'))
 
   penalize_diagonal <- control_get(control, "penalize_diagonal", FALSE)
   standardize <- control_get(control, "standardize", TRUE)
