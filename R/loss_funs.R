@@ -63,14 +63,13 @@ cv_loss <- function(x_train, n_obs,
 }
 
 
-cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, control = NULL){
+cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, control = list()){
 
   if(nrow(x_test) == 0){
     return(0)
   }
 
   mth <- match.arg(method, choices = c("nodewise_regression", "summed_regression", "ratio_regression", 'glasso', 'elastic_net'))
-  NA_mth <- match.arg(NA_method, choices = c('complete_observations', 'average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction'))
 
   penalize_diagonal <- control_get(control, "penalize_diagonal", FALSE)
   standardize <- control_get(control, "standardize", TRUE)
@@ -82,7 +81,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
 
   if (mth %in% c("nodewise_regression", "summed_regression", "glasso", "ratio_regression")){
 
-    cov_mat_output <- get_cov_mat(x_train, NA_method = NA_mth)
+    cov_mat_output <- get_cov_mat(x_train, NA_method = NA_method)
     cov_mat <- cov_mat_output$mat
     inds <- cov_mat_output$inds
 
@@ -145,15 +144,16 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
 
 # calculates loglikelihood of x (with missing values) given mu, cov_mat. cov_mat_inv can be used to speed up calculaitons
 # of the inverse of the submatrix via the Woodbury matrix identity as a low rank update from cov_mat_inv
+# Maybe improve speed??
 loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
   p <- ncol(x)
-
-  inds <- is.na(x)
-  na_order <- do.call(order, lapply(1:ncol(inds), function(i) inds[, i]))
+  inds <- is.na(x) # missingness structure of x
+  na_order <- do.call(order, lapply(1:ncol(inds), function(i) inds[, i])) # order x by missingness structure
   cov_mat_inv_cur <- cov_mat_inv
   loss <- 0
 
   inds_old <- rep(F, ncol(x))
+
   for(i in 1:nrow(x)){
     inds_cur <- inds[na_order[i], ]
     if(any(inds_cur != inds_old)){
@@ -188,25 +188,18 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
 #' @importFrom stats var deviance
 #'
 #' @return A parametrized loss function
-SegmentLoss <- function(x_train,
-                        x_test = NULL,
+SegmentLoss <- function(x,
                         lambda = 0,
                         NA_method = "complete_observations",
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                         control = NULL,
                         ...) {
-
   args <- list(...)
   mth <- match.arg(method)
-  n_obs <- NROW(x)
-
-  alpha = control_get(control, "alpha", 1)
-  node = control_get(control, "node", 1)
-
+  n_obs <- nrow(x)
   p <- NCOL(x)
 
   if (mth == "glasso") {
-
     # load parameters for glasso from control
     penalize_diagonal <-  control_get(control, "penalize_diagonal", FALSE)
     standardize <-  control_get(control, "standardize", TRUE)
@@ -214,11 +207,9 @@ SegmentLoss <- function(x_train,
 
     function(start, end, ...) {
 
-      n_cur  <- end  - start  + 1 #How many training observations are available
       cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method)
       cov_mat <- cov_mat_output$mat
-      inds <- cov_mat_output$inds # which predictors have sufficient non-missing values
-      p_cur <- sum(inds) #
+      p_cur <- sum(cov_mat_output$inds) # which predictors have sufficient non-missing values
 
       if (p_cur == 0){
         return(NA)
@@ -249,6 +240,7 @@ SegmentLoss <- function(x_train,
 
   } else if (mth == "nodewise_regression") {
 
+    node = control_get(control, "node", 1)
     stopifnot(length(node) == 1 && is.numeric(node))
 
     function(start, end, ...) {
@@ -278,7 +270,7 @@ SegmentLoss <- function(x_train,
 
       stopifnot(n_cur > 1)  # We need more than one observation to calculate the covariance matrix
 
-      cov_mat_output <- get_cov_mat(x[start : end, , drop = F], NA_method)
+      cov_mat_output <- get_cov_mat(x[start : end, , drop = F], NA_mth)
 
       obs_share <- cov_mat_output$n_eff_obs / n_obs
 
@@ -314,7 +306,7 @@ SegmentLoss <- function(x_train,
 
       stopifnot(n_cur > 1) # We need more than one observation to calculate the covariance matrix
 
-      cov_mat_output <- get_cov_mat(xx[start : end, , drop = F], NA_method)
+      cov_mat_output <- get_cov_mat(x[start : end, , drop = F], NA_method)
       obs_share = cov_mat_output$n_eff_obs / n_obs
 
       if (standardize) {
@@ -345,13 +337,9 @@ SegmentLoss <- function(x_train,
 
   } else if (mth == "elastic_net") {
 
-    alpha <- args[['alpha']]
+    alpha = control_get(control, "alpha", 1)
     stopifnot(is.numeric(alpha) && length(alpha) == 1 && 0 <= alpha && alpha <= 1)
-
-    family <-  args[['family']]
-    if (is.null(family)){
-      family <- 'gaussian'
-    }
+    family <- control_get(control, "family", "gaussian")
 
     function(start, end, ...){
       n_cur <- end - start + 1
@@ -374,45 +362,41 @@ SegmentLoss <- function(x_train,
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance_estimation',
                                         'loh_wainwright_bias_correction', 'average_imputation',
                                         'expectation_maximisation')){
-
   n_obs <- nrow(x)
-  available_obs <- n_obs - apply(is.na(x), 2, sum)
-  inds <- (available_obs >= 2)
-
-  # If no missing values, for speed just use cov() function
-  if(all(available_obs[inds] == n_obs)){
-    cov_mat <- cov(x[, inds, drop = F])
-    list(mat = cov(x), inds = inds, n_eff_obs = n_obs)
+  NA_mth <- match.arg(NA_method)
+  if(NA_mth == "complete_observations"){
+    list(mat = cov(x, use = 'na.or.complete'), inds = rep(T, ncol(x)), n_eff_obs = n_obs)
   } else {
-    NA_mth <- match.arg(NA_method)
+    available_obs <- n_obs - apply(is.na(x), 2, sum)
+    inds <- (available_obs >= 2)
     cov_mat <- calc_cov_mat(x[, inds], NA_mth)
+    list(mat = cov_mat, inds = inds, n_eff_obs = sum(available_obs[inds]) / sum(inds))
   }
-  list(mat = cov_mat, inds = inds, n_eff_obs = sum(available_obs[inds]) / sum(inds))
 }
 
-
+# calculates the covariance method of x
 calc_cov_mat <- function(x, NA_mth){
-  if(NA_mth == "complete_observations"){
-    cov(x, use = 'na.or.complete')
-  } else if (NA_mth == "pairwise_covariance"){
+ if (NA_mth == "pairwise_covariance"){ # calculate pairwise covariances
     cov_mat <- cov(x, use = 'pairwise')
     cov_mat[is.na(cov_mat)] <- 0 # for some pairs of features there might not be two or more available observations
     as.matrix(Matrix::nearPD(cov_mat)$mat) # result might not be posd, which is required for e.g. glasso
   } else if (NA_mth == "loh_wainwright_bias_correction"){
-    z <- scale(x, T, F) #center
+    z <- scale(x, T, F) # center
     z[is.na(z)] <- 0 # impute mean
-    miss_frac <- apply(is.na(x), 2, mean)
-    z <- z %*% diag(1 - miss_frac, nrow = length(miss_frac)) # first step in the loh-wainwright correction
+    miss_frac <- apply(is.na(x), 2, mean) # estimate missingness per predictor
+    z <- z %*% diag(1 / (1 - miss_frac), nrow = length(miss_frac)) # first step in the loh-wainwright bias correction
     cov_mat <- cov(z)
     cov_mat <- cov_mat - diag(miss_frac * diag(cov_mat), nrow = length(miss_frac)) # second step loh-wainwright correction
     as.matrix(Matrix::nearPD(cov_mat)$mat)
   } else if (NA_mth == "average_imputation"){
-    z <- scale(x, T, F)
+    z <- scale(x, T, F) # center
     z[is.na(z)] <- 0 #impute mean
     cov(z)
   }
 }
 
+# Takes an input with missing values and imputes values using the max likelihood estimator
+# for a gaussian with mean mu and covariance cov_mat
 impute_em <- function(x, mu, cov_mat){
   if (!any(is.na(x))) {
     x
@@ -422,7 +406,7 @@ impute_em <- function(x, mu, cov_mat){
   x[is.na(x)] <- mu[is.na(x)] - solve(cov_mat[is.na(x), is.na(x), drop = F],
                                         cov_mat[is.na(x), !is.na(x), drop = F] %*% (x[!is.na(x), drop = F] - mu[!is.na(x), drop = F])
     )
-    x
+  x
   }
 }
 

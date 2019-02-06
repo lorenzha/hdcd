@@ -31,9 +31,9 @@
 #' hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
 #' }
 hdcd <- function(x,
+                 lambda,
                  y= NULL,
                  delta = 0.1,
-                 lambda = NULL,
                  gamma = 0,
                  method = c('glasso', "nodewise_regression", "summed_regression", "ratio_regression", 'elastic_net'),
                  NA_method = 'complete_observations',
@@ -54,12 +54,34 @@ hdcd <- function(x,
     x <- cbind(y, x)
   }
 
+  cv_inner <- control_get(control, "cv_inner", FALSE)
+  if(is.null(control$lambda_inner) & cv_inner){
+    lambda_inner_min_ratio = control_get(control, "lambda_inner_min_ratio", 0.01)
+    lambda_inner_grid_size = control_get(control, "lambda_inner_grid_size", 10)
+    # choose lambda as grid around the asymptotic value
+    cov_mat <- get_cov_mat(x, NA_method)$mat
+    lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
+    control$lambda_inner <- LogSpace(lambda_inner_min_ratio * lambda_max, lambda_max, length.out = lambda_inner_grid_size)
+  }
+
   # If a individual loss function is supplied, check that it has the required form
   if( !is.null(FUN) ){
     stopifnot('x' %in% methods::formalArgs(FUN))
     if ( is.null(lambda) && !('lambda' %in% methods::formalArgs(FUN(x))))
       lambda <- 0 #don't do lambda CV if FUN doesn't depend on lambda
   }
+
+  # NA_mth <- match.arg(NA_method)
+  # if(NA_mth == 'complete_observations'){
+  #   cases <- complete.cases(x)
+  #   x <- x[cases, ]
+  #   if (any(!cases)){
+  #     warning(paste('There are', sum(!cases), 'incomplete cases in x that are discarded. Maybe choose another NA_method', sep = ' '))
+  #   }
+  #   train_inds <- which(cases)
+  # } else {
+  #   train_inds <- 1 : nrow(x)
+  # }
 
   tree <- BinarySegmentation(
     x = x, delta = delta, lambda = lambda, method = method, NA_method = NA_method,
