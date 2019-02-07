@@ -35,7 +35,7 @@ catch <- function(x){
 
 # returns folds sampled randomly / equispaced folds. If k == 1 returns list of zeros
 # such that x_train = x[inds != 1, ] = x.
-sample_folds <- function(n, k, randomize = TRUE){
+sample_folds <- function(n, k, randomize = FALSE){
   if (k == 1){
     as.factor(rep(0, n))
   } else  if (randomize){

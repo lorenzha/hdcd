@@ -80,8 +80,19 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
 
     mu <- colMeans(x_train[, inds, drop = F], na.rm = T)
 
-    if (standardize == TRUE){
-
+    if (standardize == TRUE){ #apparently glassopath doesn't do standardisation
+      cov_mat <- cov_mat_inv <- array(NA, dim = c(dim(cov_mat_output$mat), length(lambda)))
+      for(j in seq_along(lambda)){
+        glasso_output <- glasso::glasso(
+          cov_mat_output$mat,
+          rho = lambda[j] / sqrt(obs_share_train) * diag(cov_mat_output$mat),
+          penalize.diagonal = penalize_diagonal,
+          thr = threshold,
+          trace = FALSE
+        )
+        cov_mat[, , j] <- glasso_output$w
+        cov_mat_inv[, , j] <- glasso_output$wi
+      }
     } else {
       glasso_output <- glasso::glassopath(
         cov_mat,
@@ -103,7 +114,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
         cov_mat[, , j] <- cov(x_impute)
         glasso_output <- glasso::glasso(
           cov_mat[, , j],
-          rho = lambda / sqrt(obs_share_train) * diag(cov_mat[, , j]),
+          rho = lambda[j] / sqrt(obs_share_train) * mean(diag(cov_mat[, , j])),
           penalize.diagonal = penalize_diagonal,
           thr = threshold
         )
@@ -111,8 +122,6 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
         cov_mat_inv[, , j] <- glasso_output$wi
       }
     }
-    rm(x_impute)
-    rm(glasso_output)
   }
 
   loss <- numeric(length(lambda))
