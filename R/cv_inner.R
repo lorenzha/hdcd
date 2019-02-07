@@ -22,32 +22,29 @@ cv_loss <- function(x_train, n_obs,
   n_cur_train <- nrow(x_train)
   n_folds_inner <- control_get(control, "n_folds_inner", 4)
   randomize_inner <- control_get(control, "randomize_inner", FALSE)
-  lambda_inner <- control_get(control, "lambda_inner", 1) #ADAPT!!!
+  lambda_inner <- control_get(control, "lambda_inner", 0) ### ADAPT THIS
 
   folds_inner <- sample_folds(n_cur_train, n_folds_inner, randomize_inner)
 
   # to store information about cv
-  loss <- list(cv = numeric(length(lambda_inner)))
+  loss <- numeric(length(lambda_inner))
 
-  for (i in seq_along(lambda_inner)){
-    for (inner in 1:n_folds_inner){
+  for (inner in 1:n_folds_inner){
+    x_train_train <- x_train[folds_inner != inner, , drop = F]
+    x_train_test <- x_train[folds_inner == inner, , drop = F]
 
-      x_train_train <- x_train[folds_inner != inner, , drop = F]
-      x_train_test <- x_train[folds_inner == inner, , drop = F]
-
-      # should we divide by something? if folds are not of equal size
-      loss[["cv"]][i] <- loss[["cv"]][i] + cv_fit(x_train_train, x_train_test, lambda = lambda_inner[i], method = method, NA_method = NA_method, n_obs_train = n_obs, control = control)
-
-    }
+    loss <- loss + cv_fit(x_train_train, x_train_test, lambda = lambda_inner, method = method, NA_method = NA_method, n_obs_train = n_obs, control = control)
   }
 
-  loss[["lambda_opt"]] <- lambda_inner[which.min(loss[["cv"]])]
-  loss[["train_loss"]] <- min(loss[["cv"]])
+  lambda_opt <- lambda_inner[which.min(loss)]
+  train_loss <- min(loss)
 
   if (!is.null(x_test)){
-    loss[["test_loss"]] <- cv_fit(x_train, x_test, lambda = loss[["lambda_opt"]], method = method, NA_method = NA_method, n_obs_train = n_obs_train, control = control)
+    test_loss <- cv_fit(x_train, x_test, lambda = lambda_opt, method = method, NA_method = NA_method, n_obs_train = n_obs_train, control = control)
+    list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
+  } else {
+    list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss)
   }
-  loss
 }
 
 
@@ -83,36 +80,47 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
 
     mu <- colMeans(x_train[, inds, drop = F], na.rm = T)
 
-    glasso_output <- glasso::glasso(
-      cov_mat,
-      rho = lambda / sqrt(obs_share_train) * mean(diag(cov_mat)),
-      penalize.diagonal = penalize_diagonal,
-      thr = threshold
-    )
+    if (standardize == TRUE){
 
-    cov_mat <- glasso_output$w
-    cov_mat_inv <- glasso_output$wi
+    } else {
+      glasso_output <- glasso::glassopath(
+        cov_mat,
+        rho = lambda / sqrt(obs_share_train) * mean(diag(cov_mat)),
+        penalize.diagonal = penalize_diagonal,
+        thr = threshold,
+        trace = FALSE
+      )
+      cov_mat <- glasso_output$w
+      cov_mat_inv <- glasso_output$wi
+    }
 
 
   if (NA_mth %in% c('average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction') & any(is.na(x_train))){
 
-    for (i in 1:nrep_em) {
-      x_impute <- t(apply(x_train[, inds, drop = F], 1, impute_em, mu = mu, cov_mat = cov_mat))
-      cov_mat <- cov(x_impute)
-      glasso_output <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share_train) * diag(cov_mat),
-        penalize.diagonal = penalize_diagonal,
-        thr = threshold
-      )
-      cov_mat <- glasso_output$w
-      cov_mat_inv <- glasso_output$wi
+    for (j in seq_along(lambda)){
+      for (i in seq_len(nrep_em)) {
+        x_impute <- t(apply(x_train[, inds, drop = F], 1, impute_em, mu = mu, cov_mat = cov_mat[, , j]))
+        cov_mat[, , j] <- cov(x_impute)
+        glasso_output <- glasso::glasso(
+          cov_mat[, , j],
+          rho = lambda / sqrt(obs_share_train) * diag(cov_mat[, , j]),
+          penalize.diagonal = penalize_diagonal,
+          thr = threshold
+        )
+        cov_mat[, , j] <- glasso_output$w
+        cov_mat_inv[, , j] <- glasso_output$wi
+      }
     }
     rm(x_impute)
     rm(glasso_output)
   }
 
-  loglikelihood(x_test, mu, cov_mat, cov_mat_inv)
+  loss <- numeric(length(lambda))
+
+  for (i in seq_along(lambda)){
+    loss[i] <- loglikelihood(x_test, mu, cov_mat[,,i], cov_mat_inv[,,i])
+  }
+  loss
 
   } else if (mth == 'elastic_net'){
 
