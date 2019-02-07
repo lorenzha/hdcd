@@ -57,7 +57,7 @@ hdcd <- function(x,
   cv_inner <- control_get(control, "cv_inner", FALSE)
   if(is.null(control$lambda_inner) & cv_inner){
     lambda_inner_min_ratio = control_get(control, "lambda_inner_min_ratio", 0.01)
-    lambda_inner_grid_size = control_get(control, "lambda_inner_grid_size", 10)
+    lambda_inner_grid_size = control_get(control, "lambda_inner_grid_size", 4)
     # choose lambda as grid around the asymptotic value
     cov_mat <- get_cov_mat(x, NA_method)$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))

@@ -121,7 +121,7 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
   max_depth <- control_get(control, "max_depth", Inf)
   verbose <- control_get(control, "verbose", TRUE)
   cv_inner <- control_get(control, "cv_inner", FALSE)
-
+  stop_early <- control_get(control, "stop_early", TRUE)
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
@@ -150,15 +150,14 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
   }
 
 
-
-
   BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
 
     n_selected_obs <- node$end - node$start + 1
 
     # check whether segment is still long enough & tree not already to deep
-    if (n_selected_obs / n_obs >= 2 * delta & length(node$path) - 1 < max_depth) {
-
+    if (n_selected_obs / n_obs < 2 * delta | length(node$path) - 1 >= max_depth){
+      return(NA)
+    } else {
       res <- FindBestSplit(
         node$start, node$end, delta, n_obs,
         SegmentLossFUN, control, optimizer,
@@ -198,11 +197,11 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
           node$cv_improvement <- (node$cv_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / n_selected_obs
         }
 
-        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
-        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
+        if(!stop_early || !cv_inner || node$cv_improvement > 0){
+          BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
+          BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
+        }
       }
-    } else {
-      return(NA)
     }
   }
   BinarySegmentation_recursive(delta = delta, n_obs = n_obs, SegmentLossFUN = SegmentLossFUN,
