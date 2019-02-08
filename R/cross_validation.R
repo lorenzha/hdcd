@@ -168,7 +168,7 @@ CrossValidation <- function(x,
 #'
 #
 cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observations",
-                    optimizer = "line_search", delta = NULL, lambda = NULL, gamma = NULL, node = NULL, alpha = NULL, control = NULL){
+                    optimizer = "line_search", delta = NULL, lambda = NULL, gamma = NULL, control = NULL){
 
   # parse values NA_method, method and optimizer
   mth <- match.arg(method, c("glasso", "nodewise_regression", "summed_regression", "ratio_regression", "elastic_net"))
@@ -190,12 +190,12 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
   if(!is.null(y) & method != "elastic_net"){
     warning("Input y is ignored since method is not elastic_net")
   }
-  if (!is.null(node) & method != "nodewise_regression") {
-    warning("Input node is ignored since method is not nodewise_regression")
-  }
-  if (!is.null(alpha) & method != "elastic_net"){
-    warning("Input alpha is ignored since method is not elastic_net")
-  }
+  # if (!is.null(node) & method != "nodewise_regression") {
+  #   warning("Input node is ignored since method is not nodewise_regression")
+  # }
+  # if (!is.null(alpha) & method != "elastic_net"){
+  #   warning("Input alpha is ignored since method is not elastic_net")
+  # }
   if (NA_method == "complete_observations" & mean(complete.cases(x)) < 0.5){
     warning("Less than 50% of observations are complete. Consider using a different NA_method")
   }
@@ -228,66 +228,18 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
       for (del in delta){
 
         if (verbose) cat(c(outer, lam), "\n", sep = "") # only for test purposes
+        test_inds <- pmax(1, cumsum(folds_outer == outer)[folds_outer != outer])
 
-        train_inds <- which(folds_outer != outer)
-        test_inds <- which(folds_outer == outer)
-
-        tree <- BinarySegmentation(x[train_inds, , drop = F], method = mth,
+        tree <- BinarySegmentation(x[folds_outer != outer, , drop = F],
+                                   x_test = x[folds_outer == outer, ], test_inds = test_inds,
+                                   method = mth,
                                    NA_method = NA_mth, optimizer = opt, delta = del, lambda = lam,
-                                   gamma = gamma, node = node, alpha = alpha, control = control)
+                                   gamma = gamma, control = control)
         if (verbose) cat("fit finished. \n")
-
-        # set different values of gamma to cv over. This can be optimized as multiple gamma might
-        # correspond to the same fit
-        if (is.null(gamma)) {
-          gammas_cv <- c(0, sort(tree$Get("max_gain")))
-          gammas_cv <- gammas_cv[gammas_cv >= 0]
-        } else {
-          gammas_cv <- gamma
-        }
-
-        # get changepoints for different gammas
-        res <- PruneTreeGamma(tree, gammas_cv) #this possibly creates duplicates, where multiple gamma correspond to the same tree. Fix this!
-        rm(tree)
-
-        for(g in gammas_cv){
-          test_loss <- train_loss <- 0
-          cpts <- train_inds[ res[["cpts"]][[as.character(g)]] ]
-          alpha <- c(1, cpts , n + 1)
-          for (j in 1:(length(alpha) - 1)){ #iterate over each segment
-            segment <- alpha[j] : (alpha[j+1] - 1)
-            train_inds_segment <- intersect(train_inds, segment)
-            test_inds_segment <- intersect(test_inds, segment)
-            loss_output <- cv_loss(x[train_inds_segment, , drop = F], x[test_inds_segment, , drop = F], length(train_inds), lambda_inner = lambda)
-            test_loss <- test_loss + loss_output$test_loss
-            train_loss <- train_loss + loss_output$train_loss
-          }
-          cv_results <- rbind(cv_results, data.table::data.table(fold = outer, lambda = lam, delta = del, gamma = g, test_loss = test_loss, train_loss = train_loss, cpts = list(cpts)))
-        }
-        if (verbose){
-          cat("Fit finished for fold = ", outer, ", lambda = ", lam, " and delta = ", del,". \n", sep = "")
-        }
-      }
-    }
+        print(tree)
+      }}}
+  tree
   }
-
-  if (n_folds_outer == 1){
-    var <- "train_loss"
-  } else {
-    var <- "test_loss"
-  }
-
-  single <- split(cv_results, f = list(cv_results$lambda, cv_results$delta), drop = T)
-
-  results <- lapply(single, SolutionPaths, var)
-
-  opt <- do.call(rbind, lapply(results, GetOpt))
-
-  list(opt = opt[which.min(opt$loss), , drop = TRUE], cv_results = results)
-}
-
-
-
 
 
 

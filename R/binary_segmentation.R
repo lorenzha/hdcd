@@ -110,7 +110,7 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta = NULL,
+BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL, gamma = NULL, delta = NULL,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                NA_method = 'complete_observations',
                                optimizer = c("line_search", "section_search"),
@@ -120,8 +120,9 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
 
   max_depth <- control_get(control, "max_depth", Inf)
   verbose <- control_get(control, "verbose", TRUE)
+  cv_outer <- control_get(control, "cv_outer", FALSE)
   cv_inner <- control_get(control, "cv_inner", FALSE)
-  stop_early <- control_get(control, "stop_early", TRUE)
+  stop_early <- control_get(control, "stop_early", FALSE)
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
@@ -144,11 +145,12 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
 
   if(cv_inner){
     # calculates cv_loss for whole training data
-    cv_loss_global_output <- cv_loss(x, n_obs = n_obs, method = method, NA_method = NA_method, control = control)
-    tree$cv_loss <- cv_loss_global_output$train_loss
+    cv_loss_global_output <- cv_loss(x, n_obs = n_obs, x_test = x_test,  method = method, NA_method = NA_method, control = control)
+    tree$cv_train_loss <- cv_loss_global_output$train_loss
+    tree$cv_loss <-  cv_loss_global_output$loss
+    tree$cv_test_loss <- cv_loss_global_output$test_loss
     tree$cv_lambda_opt <- cv_loss_global_output$lambda_opt
   }
-
 
   BinarySegmentation_recursive <- function(delta, n_obs, SegmentLossFUN, node, optimizer) {
 
@@ -172,6 +174,7 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
       if (is.na(split_point)) { #FindBestSplit will return NA if max(gain) <= gamma
         return(NA)
       } else {
+
         start <- node$start
         end <- node$end
 
@@ -188,16 +191,35 @@ BinarySegmentation <- function(x, y = NULL, lambda = NULL, gamma = NULL, delta =
         )
 
         if(cv_inner){
-          cv_loss_left <- cv_loss(x[start : (split_point - 1), ], n_obs = n_obs, method = method, NA_method = NA_method, control = control)
-          child_left$cv_loss <-  cv_loss_left$train_loss
+          if(cv_outer){
+            x_test_left <- x_test[test_inds[start] : test_inds[split_point - 1], ]
+            x_test_right <- x_test[test_inds[split_point] : test_inds[end], ]
+          } else {
+            x_test_left <- x_test_right <- NULL
+          }
+          cv_loss_left <- cv_loss(x[start : (split_point - 1), ],
+                                               n_obs = n_obs,
+                                               x_test = x_test_left,
+                                               method = method, NA_method = NA_method, control = control)
+          cv_loss_right<- cv_loss(x[split_point : end, ],
+                                    n_obs = n_obs,
+                                    x_test =  x_test_right,
+                                    method = method, NA_method = NA_method, control = control)
+          child_left$cv_train_loss <-  cv_loss_left$train_loss
+          child_left$cv_loss <- cv_loss_left$loss
+          child_left$cv_test_loss <-  cv_loss_left$test_loss
           child_left$cv_lambda_opt <- cv_loss_left$lambda_opt
-          cv_loss_right<- cv_loss(x[split_point : end, ], n_obs = n_obs, method = method, NA_method = NA_method, control = control)
-          child_right$cv_loss <-  cv_loss_right$train_loss
+          child_right$cv_train_loss <-  cv_loss_right$train_loss
+          child_right$cv_loss <- cv_loss_right$loss
+          child_right$cv_test_loss <-  cv_loss_right$test_loss
           child_right$cv_lambda_opt <- cv_loss_right$lambda_opt
-          node$cv_improvement <- (node$cv_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / n_selected_obs
+          node$cv_train_improvement <- (node$cv_train_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / n_selected_obs
+          node$cv_train_improvement_biased <- max(node$cv_loss - cv_loss_left$loss - cv_loss_right$loss) / n_selected_obs
+
+          node$cv_test_improvement <- (node$cv_test_loss - cv_loss_left$test_loss - cv_loss_right$test_loss) / (test_inds[end] - test_inds[start])
         }
 
-        if(!stop_early || !cv_inner || node$cv_improvement > 0){
+        if(!stop_early || !cv_inner || node$cv_train_improvement > 0){
           BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
           BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
         }

@@ -42,6 +42,8 @@ hdcd <- function(x,
                  control = list(),
                  ...) {
 
+  verbose <- control_get(control, "verbose", F)
+
   if(!is.matrix(x)){
     x <- as.matrix(x)
     warning("Input data x has been coerced to matrix by hdcd.")
@@ -55,13 +57,14 @@ hdcd <- function(x,
   }
 
   cv_inner <- control_get(control, "cv_inner", FALSE)
-  if(is.null(control$lambda_inner) & cv_inner){
+  if(is.null(control[["lambda_inner"]]) & cv_inner){
     lambda_inner_min_ratio = control_get(control, "lambda_inner_min_ratio", 0.01)
     lambda_inner_grid_size = control_get(control, "lambda_inner_grid_size", 4)
     # choose lambda as grid around the asymptotic value
     cov_mat <- get_cov_mat(x, NA_method)$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
     control$lambda_inner <- LogSpace(lambda_inner_min_ratio * lambda_max, lambda_max, length.out = lambda_inner_grid_size)
+    if (verbose) cat('lambda inner set by asymptotic theory \n')
   }
 
   # If a individual loss function is supplied, check that it has the required form

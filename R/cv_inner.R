@@ -19,10 +19,13 @@ cv_loss <- function(x_train, n_obs,
                     control = NULL){
   # TODO: after implementing control lambda should be passed as the current lambda value
   # such that for n_fold_inner the outer lambda is chosen.
+
+  stopifnot(length(n_obs) == 1)
+
   n_cur_train <- nrow(x_train)
   n_folds_inner <- control_get(control, "n_folds_inner", 4)
   randomize_inner <- control_get(control, "randomize_inner", FALSE)
-  lambda_inner <- control_get(control, "lambda_inner", 0) ### ADAPT THIS
+  lambda_inner <- control_get(control, "lambda_inner", 1) ### ADAPT THIS
 
   folds_inner <- sample_folds(n_cur_train, n_folds_inner, randomize_inner)
 
@@ -33,14 +36,14 @@ cv_loss <- function(x_train, n_obs,
     x_train_train <- x_train[folds_inner != inner, , drop = F]
     x_train_test <- x_train[folds_inner == inner, , drop = F]
 
-    loss <- loss + cv_fit(x_train_train, x_train_test, lambda = lambda_inner, method = method, NA_method = NA_method, n_obs_train = n_obs, control = control)
+    loss <- loss + cv_fit(x_train_train, x_train_test, lambda = lambda_inner, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
   }
 
   lambda_opt <- lambda_inner[which.min(loss)]
   train_loss <- min(loss)
 
   if (!is.null(x_test)){
-    test_loss <- cv_fit(x_train, x_test, lambda = lambda_opt, method = method, NA_method = NA_method, n_obs_train = n_obs_train, control = control)
+    test_loss <- cv_fit(x_train, x_test, lambda = lambda_opt, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
     list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
   } else {
     list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss)
@@ -48,7 +51,7 @@ cv_loss <- function(x_train, n_obs,
 }
 
 
-cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, control = list()){
+cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs, control = list()){
 
   if(nrow(x_test) == 0){
     return(0)
@@ -65,7 +68,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
   nrep_em <- control_get(control, "nrep_em", 5)
 
   n_cur_train <- nrow(x_train)
-  obs_share_train <- n_cur_train / n_obs_train
+  obs_share_train <- n_cur_train / n_obs
 
   if (mth %in% c("nodewise_regression", "summed_regression", "glasso", "ratio_regression")){
 
@@ -129,6 +132,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs_train, cont
   for (i in seq_along(lambda)){
     loss[i] <- loglikelihood(x_test, mu, cov_mat[,,i], cov_mat_inv[,,i])
   }
+
   loss
 
   } else if (mth == 'elastic_net'){
@@ -159,7 +163,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
   inds <- is.na(x) # missingness structure of x
   na_order <- do.call(order, lapply(1:ncol(inds), function(i) inds[, i])) # order x by missingness structure
   cov_mat_inv_cur <- cov_mat_inv
-  log_det_cur <- log(abs(det(cov_mat_inv_cur)))
+  log_det_cur <- log(det(cov_mat_inv_cur))
   loss <- 0
 
   inds_old <- rep(F, ncol(x))
@@ -176,7 +180,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
       V[1 : k, ][as.logical(t(A))] <- 0
       V[1 : k, ][as.logical(t(A[, k : 1]))] <- 0
       cov_mat_inv_cur <- (cov_mat_inv - cov_mat_inv %*% U %*% solve(-diag(2 * k) + V %*% cov_mat_inv %*% U) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
-      log_det_cur <- log(abs(det(cov_mat_inv_cur)))
+      log_det_cur <- log(det(cov_mat_inv_cur))
     }
     v <- (x[na_order[i], ] - mu)[!inds_cur]
     loss <- loss + t(v) %*% cov_mat_inv_cur %*% v - log_det_cur
