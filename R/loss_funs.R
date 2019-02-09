@@ -41,7 +41,7 @@ SegmentLoss <- function(x,
     # load parameters for glasso from control
     penalize_diagonal <-  control_get(control, "penalize_diagonal", FALSE)
     standardize <-  control_get(control, "standardize", TRUE)
-    threshold <-  control_get(control, "threshold", 1e-07)
+    threshold <-  control_get(control, "threshold", 1e-04)
 
     function(start, end, ...) {
 
@@ -55,12 +55,21 @@ SegmentLoss <- function(x,
 
       obs_share <- cov_mat_output$n_eff_obs / n_obs # for rescaling of lambda
 
-      glasso_output <- glasso::glasso(
-        cov_mat,
-        rho = lambda / sqrt(obs_share) * diag(cov_mat),
-        penalize.diagonal = penalize_diagonal,
-        thr = threshold
-      )
+      if (standardize){
+        glasso_output <- glasso::glasso(
+          cov_mat,
+          rho = lambda / sqrt(obs_share) * diag(cov_mat),
+          penalize.diagonal = penalize_diagonal,
+          thr = threshold
+        )
+      } else {
+        glasso_output <- glasso::glasso(
+          cov_mat,
+          rho = lambda / sqrt(obs_share),
+          penalize.diagonal = penalize_diagonal,
+          thr = threshold
+        )
+      }
       # The following is to compute the test error using the glasso output
       if (!penalize_diagonal){
         diag(glasso_output$wi) <- 0
@@ -70,8 +79,13 @@ SegmentLoss <- function(x,
       #- 2 * glasso_output$loglik / n_p
       #      - lambda  / sqrt(obs_share) * as.numeric(sqrt(diag(cov_mat)) %*% abs(glasso_output$wi) %*% sqrt(diag(cov_mat) ))
       # MESS!!! TODO: cleanup!
-      p / p_cur * (((glasso_output$loglik / (-p_cur / 2) # Needed to undo transformation of likelihood in glasso package
-        - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share)) # Remove regularizer added in glasso package
+      if (!standardize){
+        ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * glasso_output$wi))) * obs_share
+      } else {
+        ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * sqrt((diag(cov_mat) %*% t(diag(cov_mat)))) * glasso_output$wi))) * obs_share
+      }
+      # p / p_cur * (((glasso_output$loglik / (-p_cur / 2) # Needed to undo transformation of likelihood in glasso package
+      #   - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share)) # Remove regularizer added in glasso package
       #n_p * 2 * -glasso_output$loglik - (n_p / cur_p) * lambda * log(cur_p) / log(n_p) * sum(abs(glasso_output$wi)) * sqrt(obs_share)
     }
 
@@ -199,12 +213,12 @@ SegmentLoss <- function(x,
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance',
                                         'loh_wainwright_bias_correction', 'average_imputation',
                                         'expectation_maximisation')){
-  n_obs <- nrow(x)
   NA_mth <- match.arg(NA_method)
   if(NA_mth == "complete_observations"){
-    list(mat = cov(x, use = 'na.or.complete'), inds = rep(T, ncol(x)), n_eff_obs = n_obs)
+    n_obs <- sum(complete.cases(x))
+    list(mat = (n_obs - 1) / n_obs * cov(x, use = 'na.or.complete'), inds = rep(T, ncol(x)), n_eff_obs = n_obs)
   } else {
-    available_obs <- n_obs - apply(is.na(x), 2, sum)
+    available_obs <- apply(!is.na(x), 2, sum)
     inds <- (available_obs >= 2)
     cov_mat <- calc_cov_mat(x[, inds], NA_mth)
     list(mat = cov_mat, inds = inds, n_eff_obs = sum(available_obs[inds]) / sum(inds))

@@ -199,6 +199,7 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
   if (NA_method == "complete_observations" & mean(complete.cases(x)) < 0.5){
     warning("Less than 50% of observations are complete. Consider using a different NA_method")
   }
+
   if (!is.null(y) & method == "elastic_net"){
     x <- cbind(y,x)
   }
