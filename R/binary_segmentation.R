@@ -122,7 +122,10 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
   verbose <- control_get(control, "verbose", TRUE)
   cv_outer <- control_get(control, "cv_outer", FALSE)
   cv_inner <- control_get(control, "cv_inner", FALSE)
+  n_folds_inner <- control_get(control, "n_folds_inner", 4)
+  randomize_inner <- control_get(control, "randomize_inner", FALSE)### ADAPT THIS
   stop_early <- control_get(control, "stop_early", FALSE)
+
   n_obs <- NROW(x)
 
   if (is.null(FUN)) {
@@ -144,10 +147,11 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
   class(tree) <- c("bs_tree", class(tree))
 
   if(cv_inner){
+    folds_inner <- sample_folds(n_obs, n_folds_inner, randomize = randomize_inner)
     # calculates cv_loss for whole training data
-    cv_loss_global_output <- cv_loss(x, n_obs = n_obs, x_test = x_test,  method = method, NA_method = NA_method, control = control)
+    cv_loss_global_output <- cv_loss(x_train = x, n_obs = n_obs, x_test = x_test, folds = folds_inner, method = method, NA_method = NA_method, control = control)
     tree$cv_train_loss <- cv_loss_global_output$train_loss
-    tree$cv_loss <-  cv_loss_global_output$loss
+    tree$cv_loss_array <-  cv_loss_global_output$loss_array
     tree$cv_test_loss <- cv_loss_global_output$test_loss
     tree$cv_lambda_opt <- cv_loss_global_output$lambda_opt
   }
@@ -198,23 +202,25 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
             x_test_left <- x_test_right <- NULL
           }
           cv_loss_left <- cv_loss(x[start : (split_point - 1), ],
-                                               n_obs = n_obs,
-                                               x_test = x_test_left,
-                                               method = method, NA_method = NA_method, control = control)
+                                  n_obs = n_obs,
+                                  folds_inner = folds_inner[start : (split_point - 1)],
+                                  x_test = x_test_left,
+                                  method = method, NA_method = NA_method, control = control)
           cv_loss_right<- cv_loss(x[split_point : end, ],
-                                    n_obs = n_obs,
-                                    x_test =  x_test_right,
-                                    method = method, NA_method = NA_method, control = control)
+                                  n_obs = n_obs,
+                                  folds_inner = folds_inner[split_point : end],
+                                  x_test =  x_test_right,
+                                  method = method, NA_method = NA_method, control = control)
           child_left$cv_train_loss <-  cv_loss_left$train_loss
-          child_left$cv_loss <- cv_loss_left$loss
+          child_left$cv_loss_array <- cv_loss_left$loss_array
           child_left$cv_test_loss <-  cv_loss_left$test_loss
           child_left$cv_lambda_opt <- cv_loss_left$lambda_opt
           child_right$cv_train_loss <-  cv_loss_right$train_loss
-          child_right$cv_loss <- cv_loss_right$loss
+          child_right$cv_loss_array <- cv_loss_right$loss_array
           child_right$cv_test_loss <-  cv_loss_right$test_loss
           child_right$cv_lambda_opt <- cv_loss_right$lambda_opt
           node$cv_train_improvement <- (node$cv_train_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / n_selected_obs
-          node$cv_train_improvement_biased <- max(node$cv_loss - cv_loss_left$loss - cv_loss_right$loss) / n_selected_obs
+          node$cv_train_improvement_sd <- sd(node$cv_loss_array - child_left$cv_loss_array - child_right$cv_loss_array) / n_selected_obs
 
           node$cv_test_improvement <- (node$cv_test_loss - cv_loss_left$test_loss - cv_loss_right$test_loss) / (test_inds[end] - test_inds[start])
         }

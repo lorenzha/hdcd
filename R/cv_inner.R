@@ -13,6 +13,7 @@
 #'
 #' @return list of train error, best lambda and possibly test error
 cv_loss <- function(x_train, n_obs,
+                    folds_inner,
                     x_test = NULL,
                     method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                     NA_method = c("complete_observations", "average_imputation", "pairwise_covariance_estimation", 'loh_wainwright_bias_correction'),
@@ -20,33 +21,35 @@ cv_loss <- function(x_train, n_obs,
   # TODO: after implementing control lambda should be passed as the current lambda value
   # such that for n_fold_inner the outer lambda is chosen.
 
+  n_folds_inner <- control_get(control, "n_folds_inner", 4)
+
+  lambda_inner <- control_get(control, "lambda_inner", 1)
+
   stopifnot(length(n_obs) == 1)
 
   n_cur_train <- nrow(x_train)
-  n_folds_inner <- control_get(control, "n_folds_inner", 4)
-  randomize_inner <- control_get(control, "randomize_inner", FALSE)
-  lambda_inner <- control_get(control, "lambda_inner", 1) ### ADAPT THIS
-
-  folds_inner <- sample_folds(n_cur_train, n_folds_inner, randomize_inner)
 
   # to store information about cv
-  loss <- numeric(length(lambda_inner))
+  loss <- array(NA, dim = c(length(lambda_inner), n_folds_inner))
 
-  for (inner in 1:n_folds_inner){
+  for (inner in 1 : n_folds_inner){
     x_train_train <- x_train[folds_inner != inner, , drop = F]
     x_train_test <- x_train[folds_inner == inner, , drop = F]
 
-    loss <- loss + cv_fit(x_train_train, x_train_test, lambda = lambda_inner, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
+    loss[, inner] <- cv_fit(x_train_train, x_train_test, lambda = lambda_inner, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
   }
 
-  lambda_opt <- lambda_inner[which.min(loss)]
-  train_loss <- min(loss)
+  loss_sum <- apply(loss, 1, sum)
+  i <- which.min(loss_sum)
+  train_loss_sd <- sd(loss[i, ])
+  lambda_opt <- lambda_inner[i]
+  train_loss <- loss_sum[i]
 
   if (!is.null(x_test)){
     test_loss <- cv_fit(x_train, x_test, lambda = lambda_opt, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
-    list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
+    list(loss_array = loss[i, ], train_loss_sd = train_loss_sd, lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
   } else {
-    list(loss = loss, lambda_opt = lambda_opt, train_loss = train_loss)
+    list(loss_array = loss[i, ], train_loss_sd = train_loss_sd, lambda_opt = lambda_opt, train_loss = train_loss)
   }
 }
 
