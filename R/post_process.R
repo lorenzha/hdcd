@@ -1,4 +1,3 @@
-
 #' PostProcess
 #'
 #' Adjust the position of each changepoint by refitting the model in the respective segments.

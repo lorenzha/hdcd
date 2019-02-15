@@ -19,20 +19,20 @@
 #' @importFrom methods is
 #'
 #' @export
-PruneTreeGamma <- function(x, gamma = seq(0, 3, length.out = 50)) {
+PruneTreeGamma <- function(x, value = seq(0, 3, length.out = 50), name = 'max_gain') {
   stopifnot(is(x, "bs_tree"))
 
   cpts <- list()
   pruned_tree <- list()
-  for (gam in gamma) {
-    FUN <- PenalizeSplitsFUN(gam)
+  for (v in value) {
+    FUN <- PenalizeSplitsFUN(value = v, name = name)
 
     clone_tree <- data.tree::Clone(x, pruneFun = FUN) # TODO: Check if copy can be avoided
 
-    cpts[[as.character(gam)]] <- GetChangePointsFromLeafs(clone_tree)
-    pruned_tree[[as.character(gam)]] <- clone_tree
+    cpts[[as.character(v)]] <- GetChangePointsFromLeafs(clone_tree)
+    pruned_tree[[as.character(v)]] <- clone_tree
   }
-  list(cpts = cpts, gamma = gamma, pruned_tree = pruned_tree)
+  list(cpts = cpts, value = value, pruned_tree = pruned_tree)
 }
 
 #' GetChangePointsFromLeafs
@@ -67,14 +67,14 @@ GetChangePointsFromLeafs <- function(x) {
 #' @param gamma Split penality
 #'
 #' @return FALSE if the node should be pruned from tree
-PenalizeSplitsFUN <- function(gamma) {
+PenalizeSplitsFUN <- function(value, name = 'max_gain') {
   function(node) {
     node <- data.tree::Navigate(node, "..") # We want to prune the parent tree where the split would've occured
 
-    if (is.null(node$max_gain)) {
+    if (is.null(node[[name]])) {
       TRUE
     } else {
-      node$max_gain - gamma > 0
+      node[[name]] - value > 0
     }
   }
 }

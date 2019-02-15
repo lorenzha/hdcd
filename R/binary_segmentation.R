@@ -110,7 +110,7 @@
 #' optimizer = "line_search")
 #' print(res)
 #'
-BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL, gamma = NULL, delta = NULL,
+BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL, delta = NULL,
                                method = c("nodewise_regression", "summed_regression", "ratio_regression"),
                                NA_method = 'complete_observations',
                                optimizer = c("line_search", "section_search"),
@@ -118,41 +118,70 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
                                FUN = NULL,
                                ...) {
 
+
+  if(!is.null(test_inds)){
+    if (is.logical(test_inds)){
+      train_inds <- which(!test_inds)
+      test_inds <- which(test_inds)
+    } else {
+      train_inds <- setdiff(1 : nrow(x), test_inds)
+    }
+    x_train <- x[-test_inds, ]
+    x_test <- x[test_inds, ]
+
+    cv_outer <- TRUE
+
+  } else {
+    x_train <- x
+    x_test <- NULL
+    cv_outer <- FALSE
+    train_inds <- 1 : nrow(x)
+  }
+
   max_depth <- control_get(control, "max_depth", Inf)
   verbose <- control_get(control, "verbose", TRUE)
-  cv_outer <- control_get(control, "cv_outer", FALSE)
   cv_inner <- control_get(control, "cv_inner", FALSE)
   n_folds_inner <- control_get(control, "n_folds_inner", 4)
-  randomize_inner <- control_get(control, "randomize_inner", FALSE)### ADAPT THIS
+  randomize_inner <- control_get(control, "randomize_inner", FALSE)
   stop_early <- control_get(control, "stop_early", FALSE)
 
-  n_obs <- NROW(x)
+  if(is.null(lambda) & cv_inner){
+    warning('Since no lambda is supplied, lambda will be chosen adaptively on each segment using the optimal lambda from cross validation')
+  }
+
+  if(is.null(lambda) & !cv_inner & is.null(FUN)){
+    stop('No lambda supplied and cv_inner is set to FALSE. Please supply a lambda to be used or set the control parameter cv_inner = TRUE')
+  }
+
+  n_obs <- NROW(x_train)
 
   if (is.null(FUN)) {
     SegmentLossFUN <- SegmentLoss(
-      x, lambda = lambda, method = method, NA_method = NA_method, ...
+      x_train, lambda = lambda, method = method, NA_method = NA_method, control = control, ...
     )
   } else {
     stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
     if ("lambda" %in% methods::formalArgs(FUN)){
-      SegmentLossFUN <- FUN(x, lambda = lambda)
+      SegmentLossFUN <- FUN(x_train, lambda = lambda)
     } else {
-      SegmentLossFUN <- FUN(x)
+      SegmentLossFUN <- FUN(x_train)
     }
   }
-  stopifnot(c("start", "end") %in% methods::formalArgs(SegmentLossFUN))
+  stopifnot(c("start", "end", "lambda") %in% methods::formalArgs(SegmentLossFUN))
 
   # initiate tree
-  tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x))
+  tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x_train), start_global = 1, end_global = nrow(x))
   class(tree) <- c("bs_tree", class(tree))
 
   if(cv_inner){
+    #use the same folds structure throughout whole tree to be able to compare error on folds & thus get sd
     folds_inner <- sample_folds(n_obs, n_folds_inner, randomize = randomize_inner)
+
     # calculates cv_loss for whole training data
-    cv_loss_global_output <- cv_loss(x_train = x, n_obs = n_obs, x_test = x_test, folds = folds_inner, method = method, NA_method = NA_method, control = control)
-    tree$cv_train_loss <- cv_loss_global_output$train_loss
-    tree$cv_loss_array <-  cv_loss_global_output$loss_array
-    tree$cv_test_loss <- cv_loss_global_output$test_loss
+    cv_loss_global_output <- cv_loss(x_train = x_train, n_obs = n_obs, x_test = x_test, folds = folds_inner, method = method, NA_method = NA_method, control = control)
+    tree$cv_train_loss <- cv_loss_global_output$train_loss # min of the losses (by lambda)
+    tree$cv_loss_array <-  cv_loss_global_output$loss_array # vector of length n_fold_inner, loss by fold for best lambda
+    tree$cv_test_loss <- cv_loss_global_output$test_loss # If x_test is supplied
     tree$cv_lambda_opt <- cv_loss_global_output$lambda_opt
   }
 
@@ -165,7 +194,7 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
       return(NA)
     } else {
       res <- FindBestSplit(
-        node$start, node$end, delta, n_obs,
+        node$start, node$end, node$cv_lambda_opt, delta, n_obs,
         SegmentLossFUN, control, optimizer,
         gamma
       )
@@ -185,28 +214,32 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
         child_left <- node$AddChild(
           as.character(start),
           start = start,
-          end = split_point - 1
+          end = split_point - 1,
+          start_global = train_inds[start],
+          end_global = train_inds[split_point - 1]
         )
 
         child_right <- node$AddChild(
           as.character(split_point),
           start = split_point,
-          end = end
+          end = end,
+          start_global = train_inds[split_point],
+          end_global = train_inds[end]
         )
 
         if(cv_inner){
           if(cv_outer){
-            x_test_left <- x_test[test_inds[start] : test_inds[split_point - 1], ]
-            x_test_right <- x_test[test_inds[split_point] : test_inds[end], ]
+            x_test_left <- x_test[test_inds %in% child_left$start_global : child_left$end_global, , drop = F]
+            x_test_right <- x_test[test_inds %in% child_right$start_global : child_right$end_global, , drop = F]
           } else {
             x_test_left <- x_test_right <- NULL
           }
-          cv_loss_left <- cv_loss(x[start : (split_point - 1), ],
+          cv_loss_left <- cv_loss(x_train[start : (split_point - 1), ],
                                   n_obs = n_obs,
                                   folds_inner = folds_inner[start : (split_point - 1)],
                                   x_test = x_test_left,
                                   method = method, NA_method = NA_method, control = control)
-          cv_loss_right<- cv_loss(x[split_point : end, ],
+          cv_loss_right <- cv_loss(x_train[split_point : end, ],
                                   n_obs = n_obs,
                                   folds_inner = folds_inner[split_point : end],
                                   x_test =  x_test_right,
@@ -219,10 +252,10 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
           child_right$cv_loss_array <- cv_loss_right$loss_array
           child_right$cv_test_loss <-  cv_loss_right$test_loss
           child_right$cv_lambda_opt <- cv_loss_right$lambda_opt
-          node$cv_train_improvement <- (node$cv_train_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / n_selected_obs
-          node$cv_train_improvement_sd <- sd(node$cv_loss_array - child_left$cv_loss_array - child_right$cv_loss_array) / n_selected_obs
-
-          node$cv_test_improvement <- (node$cv_test_loss - cv_loss_left$test_loss - cv_loss_right$test_loss) / (test_inds[end] - test_inds[start])
+          node$cv_train_improvement <- (node$cv_train_loss - cv_loss_left$train_loss - cv_loss_right$train_loss) / nrow(x_train)
+          node$heuristic <- node$cv_train_improvement + node$max_gain
+          node$cv_train_improvement_sd <- n_folds_inner * sd(node$cv_loss_array - child_left$cv_loss_array - child_right$cv_loss_array) / nrow(x_train)
+          node$cv_test_improvement <- (node$cv_test_loss - cv_loss_left$test_loss - cv_loss_right$test_loss) / nrow(x_test)
         }
 
         if(!stop_early || !cv_inner || node$cv_train_improvement > 0){
@@ -259,7 +292,7 @@ BinarySegmentation <- function(x, x_test = NULL, test_inds = NULL, lambda = NULL
 #'  \code{control} parameter list and approximately finds an index at a local
 #'  maximum. See Haubner (2018) for details. }
 #'  @param gamma Tuning parameter that controls sensitivity to finding splits.
-FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
+FindBestSplit <- function(start, end, lambda, delta, n_obs, SegmentLossFUN,
                           control = NULL,
                           optimizer = c("line_search", "section_search"),
                           gamma = 0
@@ -288,10 +321,11 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
         function(y) SplitLoss(y,
             SegmentLossFUN = SegmentLossFUN,
             start = start,
-            end = end
+            end = end,
+            lambda = lambda
           )
       )
-      gain <- SegmentLossFUN(start, end) - split_loss
+      gain <- SegmentLossFUN(start, end, lambda) - split_loss
       result <- list(opt_split = catch(which.max(gain)), gain = gain) #this will return NA if all(is.na(gain))
     },
     "section_search" = {
@@ -310,7 +344,7 @@ FindBestSplit <- function(start, end, delta, n_obs, SegmentLossFUN,
       } # set default value if necessary
 
       result <- SectionSearch(split_candidates = split_candidates, n_obs = n_obs,
-                              SegmentLossFUN = SegmentLossFUN, start = start, end = end,
+                              SegmentLossFUN = SegmentLossFUN, start = start, end = end, lambda = lambda,
                               min_points = min_points, stepsize = stepsize, k_sigma = k_sigma)
     }
   )

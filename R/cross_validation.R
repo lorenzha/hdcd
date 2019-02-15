@@ -229,7 +229,8 @@ cv_hdcd <- function(x, y = NULL, method = "glasso", NA_method = "complete_observ
       for (del in delta){
 
         if (verbose) cat(c(outer, lam), "\n", sep = "") # only for test purposes
-        test_inds <- pmax(1, cumsum(folds_outer == outer)[folds_outer != outer])
+        test_inds <- cumsum(folds_outer == outer)
+        test_inds <- c(test_inds[folds_outer != outer], test_inds[n])
 
         tree <- BinarySegmentation(x[folds_outer != outer, , drop = F],
                                    x_test = x[folds_outer == outer, ], test_inds = test_inds,

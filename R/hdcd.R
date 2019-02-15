@@ -31,7 +31,8 @@
 #' hdcd(dat, 0.1, 0.1, 0.05, method = "summed_regression", verbose = T)
 #' }
 hdcd <- function(x,
-                 lambda,
+                 lambda = NULL,
+                 test_inds = NULL,
                  y= NULL,
                  delta = 0.1,
                  gamma = 0,
@@ -68,10 +69,9 @@ hdcd <- function(x,
   }
 
   # If a individual loss function is supplied, check that it has the required form
-  if( !is.null(FUN) ){
+
+  if(!is.null(FUN) ){
     stopifnot('x' %in% methods::formalArgs(FUN))
-    if ( is.null(lambda) && !('lambda' %in% methods::formalArgs(FUN(x))))
-      lambda <- 0 #don't do lambda CV if FUN doesn't depend on lambda
   }
 
   # NA_mth <- match.arg(NA_method)
@@ -87,7 +87,7 @@ hdcd <- function(x,
   # }
 
   tree <- BinarySegmentation(
-    x = x, delta = delta, lambda = lambda, method = method, NA_method = NA_method,
+    x = x, test_inds = test_inds, delta = delta, lambda = lambda, method = method, NA_method = NA_method,
     optimizer = optimizer, control = control, FUN = FUN,
     ...
   )

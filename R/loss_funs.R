@@ -6,8 +6,8 @@
 #' @param split_point Index on which to split the segment
 #'
 #' @return Sum of the loss for both new segments after split.
-SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
-  SegmentLossFUN(start = start, end = split_point - 1) + SegmentLossFUN(start = split_point, end = end)
+SplitLoss <- function(split_point, SegmentLossFUN, start, end, lambda) {
+  SegmentLossFUN(start = start, end = split_point - 1, lambda = lambda) + SegmentLossFUN(start = split_point, end = end, lambda = lambda)
 }
 
 
@@ -27,7 +27,7 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end) {
 #'
 #' @return A parametrized loss function
 SegmentLoss <- function(x,
-                        lambda = 0,
+                        lambda = NULL,
                         NA_method = "complete_observations",
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                         control = NULL,
@@ -36,16 +36,22 @@ SegmentLoss <- function(x,
   mth <- match.arg(method)
   n_obs <- nrow(x)
   p <- NCOL(x)
+  lambda_global <- lambda
 
   if (mth == "glasso") {
     # load parameters for glasso from control
     penalize_diagonal <-  control_get(control, "penalize_diagonal", FALSE)
     standardize <-  control_get(control, "standardize", TRUE)
     threshold <-  control_get(control, "threshold", 1e-04)
+    min_frac <- control_get(control, "min_frac", 0.1)
 
-    function(start, end, ...) {
+    function(start, end, lambda, ...) {
 
-      cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method)
+      if(!is.null(lambda_global)){
+        lambda <- lambda_global
+      }
+
+      cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method, min_frac = min_frac)
       cov_mat <- cov_mat_output$mat
       p_cur <- sum(cov_mat_output$inds) # which predictors have sufficient non-missing values
 
@@ -74,19 +80,13 @@ SegmentLoss <- function(x,
       if (!penalize_diagonal){
         diag(glasso_output$wi) <- 0
       }
-      # Needed to undo transformation of likelihood in glasso package
-      # equivalent to ' - log(det(glasso_output$wi)) + psych::tr(cov_mat %*% glasso_output$wi)' before setting diag() <- 0
-      #- 2 * glasso_output$loglik / n_p
-      #      - lambda  / sqrt(obs_share) * as.numeric(sqrt(diag(cov_mat)) %*% abs(glasso_output$wi) %*% sqrt(diag(cov_mat) ))
-      # MESS!!! TODO: cleanup!
+
+      # Returns the loglikelihood divided by n_obs. Needed to undo transformation done by glasso package
       if (!standardize){
-        ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * glasso_output$wi))) * obs_share
+        ((-2 / p) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * glasso_output$wi))) * obs_share
       } else {
-        ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * sqrt((diag(cov_mat) %*% t(diag(cov_mat)))) * glasso_output$wi))) * obs_share
+        ((-2 / p) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * sqrt((diag(cov_mat) %*% t(diag(cov_mat)))) * glasso_output$wi))) * obs_share
       }
-      # p / p_cur * (((glasso_output$loglik / (-p_cur / 2) # Needed to undo transformation of likelihood in glasso package
-      #   - lambda / sqrt(obs_share) * sum(abs(glasso_output$wi))) * obs_share)) # Remove regularizer added in glasso package
-      #n_p * 2 * -glasso_output$loglik - (n_p / cur_p) * lambda * log(cur_p) / log(n_p) * sum(abs(glasso_output$wi)) * sqrt(obs_share)
     }
 
   } else if (mth == "nodewise_regression") {
@@ -212,14 +212,14 @@ SegmentLoss <- function(x,
 # estimate of covariance matrix
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance',
                                         'loh_wainwright_bias_correction', 'average_imputation',
-                                        'expectation_maximisation')){
+                                        'expectation_maximisation'), min_frac = 0.2){
   NA_mth <- match.arg(NA_method)
   if(NA_mth == "complete_observations"){
     n_obs <- sum(complete.cases(x))
     list(mat = (n_obs - 1) / n_obs * cov(x, use = 'na.or.complete'), inds = rep(T, ncol(x)), n_eff_obs = n_obs)
   } else {
     available_obs <- apply(!is.na(x), 2, sum)
-    inds <- (available_obs >= 2)
+    inds <- (available_obs >= max(2, max(available_obs) * min_frac))
     cov_mat <- calc_cov_mat(x[, inds], NA_mth)
     list(mat = cov_mat, inds = inds, n_eff_obs = sum(available_obs[inds]) / sum(inds))
   }

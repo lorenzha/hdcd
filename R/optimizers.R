@@ -26,12 +26,12 @@
 #' @return Returns a function with arguments left, mid, right, RecFUN where
 #'   RecFun should always be set to the object name of the function has been
 #'   assigned so the function can call itself recursively.
-SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
+SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end, lambda,
                           min_points = 4,
                           stepsize = 0.5,
                           k_sigma = 0) {
 
-  seg_loss <- SegmentLossFUN(start, end) #loss over whole segment
+  seg_loss <- SegmentLossFUN(start, end, lambda) #loss over whole segment
   loss <-  rep(NA, n_obs)
 
   if(is.na(seg_loss)){
@@ -41,7 +41,7 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
   tol <- k_sigma * sqrt(log(n_obs) / n_obs) # for splitting via variance
 
   select_via_variance <- function(start1, end1, start2, end2){
-    if (SegmentLossFUN(start1, end1) / (end1 - start1) >= SegmentLossFUN(start2, end2) / (end2 - start2)){
+    if (SegmentLossFUN(start1, end1, lambda) / (end1 - start1) >= SegmentLossFUN(start2, end2, lambda) / (end2 - start2)){
       SectionSearch_recursive_1(start1, end1, start2)
     } else {
       SectionSearch_recursive_1(end1, start2, end2)
@@ -53,12 +53,12 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
     # In that case, increase w_left by one and try again
     if (is.na(loss[w_left])){
       w_left <- w_left + 1
-      loss[w_left] <<- SplitLoss(w_left, SegmentLossFUN, start, end)
+      loss[w_left] <<- SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
     # Same for segment [w_right, cur_right)
     } else if (is.na(loss[w_right])){
       w_right <- w_right - 1
-      loss[w_right] <<- SplitLoss(w_right, SegmentLossFUN, start, end)
+      loss[w_right] <<- SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
     } else if (w_right - w_left >= min_points){ # Check that Segment is long enough
       # if loss[w_left] <= loss[w_right], the inverse is true for gain & thus discard [w_right, cur_right)
@@ -72,7 +72,7 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
       }
     } else {
       #If Segment is sufficiently small, choose splitpoint via line_search
-      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end))
+      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, function(y) SplitLoss(y, SegmentLossFUN, start, end, lambda))
       return(list(gain = seg_loss - loss, opt_split = catch(which.min(loss))))
     }
   }
@@ -91,11 +91,11 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
     # select new midpoint in smaller segment
     if (cur_right - cur_middle > cur_middle - cur_left){
       w <- cur_right - ceiling((cur_right - cur_middle) * stepsize)
-      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
+      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, cur_middle, w, cur_right)
     } else {
       w <- cur_left + ceiling((cur_middle - cur_left) * stepsize)
-      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end)
+      loss[w] <<- SplitLoss(w, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w, cur_middle, cur_right)
     }
   }
@@ -104,8 +104,8 @@ SectionSearch <- function(split_candidates, n_obs, SegmentLossFUN, start, end,
   cur_right <- split_candidates[length(split_candidates)]
   w_left <- ceiling((cur_left + stepsize * cur_right) / (1 + stepsize))
   w_right <- floor((stepsize * cur_left + cur_right) / (1 + stepsize))
-  loss[w_left] <- SplitLoss(w_left, SegmentLossFUN, start, end)
-  loss[w_right] <- SplitLoss(w_right, SegmentLossFUN, start, end)
+  loss[w_left] <- SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
+  loss[w_right] <- SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
 
   SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
 }

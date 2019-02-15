@@ -133,7 +133,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs, control = 
   loss <- numeric(length(lambda))
 
   for (i in seq_along(lambda)){
-    loss[i] <- loglikelihood(x_test, mu, cov_mat[,,i], cov_mat_inv[,,i])
+    loss[i] <- loglikelihood(x_test[, inds, drop = F], mu, cov_mat[,,i], cov_mat_inv[,,i])
   }
 
   loss
@@ -182,7 +182,12 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
       V <- rbind(cov_mat[inds_cur, ], t(A))
       V[1 : k, ][as.logical(t(A))] <- 0
       V[1 : k, ][as.logical(t(A[, k : 1]))] <- 0
-      cov_mat_inv_cur <- (cov_mat_inv - cov_mat_inv %*% U %*% solve(-diag(2 * k) + V %*% cov_mat_inv %*% U) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
+      S <- -diag(2 * k) + V %*% cov_mat_inv %*% U
+      if (rcond(S) > 1e-12) {
+        cov_mat_inv_cur <- (cov_mat_inv - cov_mat_inv %*% U %*% solve(S) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
+      } else {
+        cov_mat_inv_cur <- solve(cov_mat_inv[!inds_cur, !inds_cur])
+      }
       log_det_cur <- log(det(cov_mat_inv_cur))
     }
     v <- (x[na_order[i], ] - mu)[!inds_cur]
