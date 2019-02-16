@@ -22,7 +22,6 @@ cv_loss <- function(x_train, n_obs,
   # such that for n_fold_inner the outer lambda is chosen.
 
   n_folds_inner <- control_get(control, "n_folds_inner", 4)
-
   lambda_inner <- control_get(control, "lambda_inner", 1)
 
   stopifnot(length(n_obs) == 1)
@@ -41,15 +40,14 @@ cv_loss <- function(x_train, n_obs,
 
   loss_sum <- apply(loss, 1, sum)
   i <- which.min(loss_sum)
-  train_loss_sd <- sd(loss[i, ])
   lambda_opt <- lambda_inner[i]
   train_loss <- loss_sum[i]
 
   if (!is.null(x_test)){
     test_loss <- cv_fit(x_train, x_test, lambda = lambda_opt, method = method, NA_method = NA_method, n_obs = n_obs, control = control)
-    list(loss_array = loss[i, ], train_loss_sd = train_loss_sd, lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
+    list(loss_array = loss[i, ], lambda_opt = lambda_opt, train_loss = train_loss, test_loss = test_loss)
   } else {
-    list(loss_array = loss[i, ], train_loss_sd = train_loss_sd, lambda_opt = lambda_opt, train_loss = train_loss)
+    list(loss_array = loss[i, ], lambda_opt = lambda_opt, train_loss = train_loss)
   }
 }
 
@@ -73,72 +71,56 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs, control = 
   n_cur_train <- nrow(x_train)
   obs_share_train <- n_cur_train / n_obs
 
+  loss <- numeric(length(lambda))
+
   if (mth %in% c("nodewise_regression", "summed_regression", "glasso", "ratio_regression")){
 
     cov_mat_output <- get_cov_mat(x_train, NA_method = NA_method)
     inds <- cov_mat_output$inds
-    cov_mat <- cov_mat_output$mat
 
-    if(any(is.na(cov_mat))){
+    if(standardize){
+      standardisation <- diag(cov_mat_output$mat)
+    } else {
+      standardisation <- 1
+    }
+
+    if(any(is.na(cov_mat_output$mat))){
       warning('Not enough observations in training set to fit, loss 0 returned')
       return(0)
     }
 
     mu <- colMeans(x_train[, inds, drop = F], na.rm = T)
 
-    if (standardize == TRUE){ #apparently glassopath doesn't do standardisation
-      cov_mat <- cov_mat_inv <- array(NA, dim = c(dim(cov_mat_output$mat), length(lambda)))
-      for(j in seq_along(lambda)){
-        glasso_output <- glasso::glasso(
-          cov_mat_output$mat,
-          rho = lambda[j] / sqrt(obs_share_train) * diag(cov_mat_output$mat),
-          penalize.diagonal = penalize_diagonal,
-          thr = threshold,
-          trace = FALSE
-        )
-        cov_mat[, , j] <- glasso_output$w
-        cov_mat_inv[, , j] <- glasso_output$wi
-      }
-    } else {
-      glasso_output <- glasso::glassopath(
-        cov_mat,
-        rho = lambda / sqrt(obs_share_train) * mean(diag(cov_mat)),
+    for(j in seq_along(lambda)){
+      # do a glasso fit
+      glasso_output <- glasso::glasso(
+        cov_mat_output$mat,
+        rho = lambda[j] / sqrt(obs_share_train) * standardisation,
         penalize.diagonal = penalize_diagonal,
-        thr = threshold,
-        trace = FALSE
+        thr = threshold
       )
-      cov_mat <- glasso_output$w
-      cov_mat_inv <- glasso_output$wi
-    }
 
-
-  if (NA_mth %in% c('average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction') & any(is.na(x_train))){
-
-    for (j in seq_along(lambda)){
-      for (i in seq_len(nrep_em)) {
-        x_impute <- t(apply(x_train[, inds, drop = F], 1, impute_em, mu = mu, cov_mat = cov_mat[, , j]))
-        cov_mat[, , j] <- cov(x_impute)
-        glasso_output <- glasso::glasso(
-          cov_mat[, , j],
-          rho = lambda[j] / sqrt(obs_share_train) * mean(diag(cov_mat[, , j])),
-          penalize.diagonal = penalize_diagonal,
-          thr = threshold
-        )
-        cov_mat[, , j] <- glasso_output$w
-        cov_mat_inv[, , j] <- glasso_output$wi
+      if (NA_mth %in% c('average_imputation', 'pairwise_covariance_estimation', 'loh_wainwright_bias_correction') & any(is.na(x_train))){
+        # do em to improve fit
+        for (i in seq_len(nrep_em)) {
+          x_impute <- t(apply(x_train[, inds, drop = F], 1, impute_em, mu = mu, cov_mat = glasso_output$w))
+          glasso_output$w <- crossprod(x_impute) / nrow(x_impute)
+          if(standardize) standardisation <- diag(glasso_output$w)
+          glasso_output <- glasso::glasso(
+            glasso_output$w,
+            rho = lambda[j] / sqrt(obs_share_train) * standardisation,
+            penalize.diagonal = penalize_diagonal,
+            thr = threshold
+          )
+        }
       }
+      loss[j] <- loglikelihood(x_test[, inds, drop = F], mu, glasso_output$w, glasso_output$wi)
     }
-  }
-
-  loss <- numeric(length(lambda))
-
-  for (i in seq_along(lambda)){
-    loss[i] <- loglikelihood(x_test[, inds, drop = F], mu, cov_mat[,,i], cov_mat_inv[,,i])
-  }
-
-  loss
+    loss
 
   } else if (mth == 'elastic_net'){
+
+    stop('cv_inner with elastic net is not implemented yet')
 
     family <-  args[['family']]
     if(is.null(family)) family <- 'gaussian'
