@@ -239,7 +239,7 @@ calc_cov_mat <- function(x, NA_mth){
     M <- matrix(rep((1 - miss_frac), ncol(z)), ncol = ncol(z))
     M <- t(M) * M
     diag(M) <- 1 - miss_frac
-    as.matrix(Matrix::nearPD(crossprod(z,z)/nrow(z) / M)$mat)
+    as.matrix(Matrix::nearPD(cov(z) * (nrow(z) - 1) / nrow(z) / M)$mat)
     #z <- z %*% diag(1 / (1 - miss_frac), nrow = length(miss_frac)) # first step in the loh-wainwright bias correction
     #cov_mat <- cov(z)
     #cov_mat <- cov_mat - diag(miss_frac * diag(cov_mat), nrow = length(miss_frac)) # second step loh-wainwright correction
@@ -247,7 +247,7 @@ calc_cov_mat <- function(x, NA_mth){
   } else if (NA_mth == "average_imputation"){
     z <- scale(x, T, F) # center
     z[is.na(z)] <- 0 #impute mean
-    crossprod(z,z)/nrow(z)
+    cov(z) * (nrow(z) - 1) / nrow(z)
   }
 }
 
