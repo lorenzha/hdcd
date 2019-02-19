@@ -165,7 +165,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
       V[1 : k, ][as.logical(t(A))] <- 0
       V[1 : k, ][as.logical(t(A[, k : 1]))] <- 0
       S <- -diag(2 * k) + V %*% cov_mat_inv %*% U
-      if (rcond(S) > 1e-12) {
+      if (rcond(S) > 1e-8) {
         cov_mat_inv_cur <- (cov_mat_inv - cov_mat_inv %*% U %*% solve(S) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
       } else {
         cov_mat_inv_cur <- solve(cov_mat_inv[!inds_cur, !inds_cur])

@@ -28,11 +28,14 @@ SplitLoss <- function(split_point, SegmentLossFUN, start, end, lambda) {
 #' @return A parametrized loss function
 SegmentLoss <- function(x,
                         lambda = NULL,
-                        NA_method = "complete_observations",
+                        NA_method =c('complete_observations', 'pairwise_covariance',
+                                     'loh_wainwright_bias_correction', 'average_imputation',
+                                     'expectation_maximisation'),
                         method = c("nodewise_regression", "summed_regression", "ratio_regression", "glasso", "elastic_net"),
                         control = NULL,
                         ...) {
   args <- list(...)
+  NA_mth <- match.arg(NA_method)
   mth <- match.arg(method)
   n_obs <- nrow(x)
   p <- NCOL(x)
@@ -43,7 +46,7 @@ SegmentLoss <- function(x,
     penalize_diagonal <-  control_get(control, "penalize_diagonal", FALSE)
     standardize <-  control_get(control, "standardize", TRUE)
     threshold <-  control_get(control, "threshold", 1e-04)
-    min_frac <- control_get(control, "min_frac", 0.1)
+    min_frac <- control_get(control, "min_frac", 0)
 
     function(start, end, lambda, ...) {
 
@@ -53,7 +56,8 @@ SegmentLoss <- function(x,
 
       cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method, min_frac = min_frac)
       cov_mat <- cov_mat_output$mat
-      p_cur <- sum(cov_mat_output$inds) # which predictors have sufficient non-missing values
+      inds <- cov_mat_output$inds
+      p_cur <- sum(inds) # which predictors have sufficient non-missing values
 
       if (p_cur == 0){
         return(NA)
@@ -76,16 +80,21 @@ SegmentLoss <- function(x,
           thr = threshold
         )
       }
-      # The following is to compute the test error using the glasso output
-      if (!penalize_diagonal){
-        diag(glasso_output$wi) <- 0
-      }
 
-      # Returns the loglikelihood divided by n_obs. Needed to undo transformation done by glasso package
-      if (!standardize){
-        ((-2 / p) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * glasso_output$wi))) * obs_share
+
+      if(any(is.na(x[start : end, inds])) & NA_mth != 'complete_observations'){
+        loglikelihood(x[start : end, cov_mat_output$inds], colMeans(x[start : end, cov_mat_output$inds], na.rm = T), glasso_output$w, glasso_output$wi) / n_obs
       } else {
-        ((-2 / p) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * sqrt((diag(cov_mat) %*% t(diag(cov_mat)))) * glasso_output$wi))) * obs_share
+        # The following is to compute the test error using the glasso output
+        if (!penalize_diagonal){
+          diag(glasso_output$wi) <- 0
+        }
+        # Returns the loglikelihood divided by n_obs. Needed to undo transformation done by glasso package
+        if (!standardize){
+          ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * glasso_output$wi))) * obs_share
+        } else {
+          ((-2 / p_cur) * glasso_output$l - sum(abs(lambda / sqrt(obs_share) * sqrt((diag(cov_mat) %*% t(diag(cov_mat)))) * glasso_output$wi))) * obs_share
+        }
       }
     }
 
@@ -212,7 +221,8 @@ SegmentLoss <- function(x,
 # estimate of covariance matrix
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance',
                                         'loh_wainwright_bias_correction', 'average_imputation',
-                                        'expectation_maximisation'), min_frac = 0.2){
+                                        'expectation_maximisation'), min_frac = 0){
+  min_frac <- 0
   NA_mth <- match.arg(NA_method)
   if(NA_mth == "complete_observations"){
     n_obs <- sum(complete.cases(x))
