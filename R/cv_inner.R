@@ -143,7 +143,7 @@ cv_fit <- function(x_train, x_test, lambda, method, NA_method, n_obs, control = 
 # calculates loglikelihood of x (with missing values) given mu, cov_mat. cov_mat_inv can be used to speed up calculaitons
 # of the inverse of the submatrix via the Woodbury matrix identity as a low rank update from cov_mat_inv
 # Maybe improve speed??
-loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
+loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
   p <- ncol(x)
   inds <- is.na(x) # missingness structure of x
   na_order <- do.call(order, lapply(1:ncol(inds), function(i) inds[, i])) # order x by missingness structure
@@ -152,10 +152,11 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
   loss <- 0
 
   inds_old <- rep(F, ncol(x))
-
+  k <- 0
   for(i in 1:nrow(x)){
     inds_cur <- inds[na_order[i], ]
     if(any(inds_cur != inds_old)){
+      inds_old <- inds_cur
       # fast calculation of cov_mat_inv_cur as update from cov_mat_inv via Woodbury matrix identity
       k <- sum(inds[na_order[i], ]) # amount of missing values
       A <- diag(p)[, inds_cur, drop = F] # helper matrix
@@ -173,9 +174,13 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv){
       log_det_cur <- log(det(cov_mat_inv_cur))
     }
     v <- (x[na_order[i], ] - mu)[!inds_cur]
-    loss <- loss + t(v) %*% cov_mat_inv_cur %*% v - log_det_cur
+    if (standardize_loglik){
+      loss <- loss + (t(v) %*% cov_mat_inv_cur %*% v - p) / sqrt(p / (p - k))
+    } else {
+      loss <- loss + t(v) %*% cov_mat_inv_cur %*% v - log_det_cur - (p - k)*log(2*pi)
+    }
   }
-  loss
+  loss / 2
 }
 
 impute_em <- function(x, mu, cov_mat){
