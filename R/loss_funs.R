@@ -222,7 +222,6 @@ SegmentLoss <- function(x,
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance',
                                         'loh_wainwright_bias_correction', 'average_imputation',
                                         'expectation_maximisation'), min_frac = 0){
-  min_frac <- 0
   NA_mth <- match.arg(NA_method)
   if(NA_mth == "complete_observations"){
     n_obs <- sum(complete.cases(x))
