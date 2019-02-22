@@ -39,14 +39,16 @@ SimulateFromModel <- function(model) {
 #'
 #' @return An object to be used by \link{SimulateFromModel}
 #' @export
-CreateModel <- function(n_segments, n, p, modelFUN, equispaced = T, mean_vecs = NULL, ...) {
+CreateModel <- function(n_segments, n, p, modelFUN, changepoints = NULL, equispaced = T, mean_vecs = NULL, ...) {
   model_args <- list(...)
 
   if (equispaced) {
     segment_lengths <- c(rep(ceiling(n / n_segments), times = n_segments - 1), n - (n_segments - 1) * ceiling(n / n_segments))
     changepoints <- (cumsum(segment_lengths) + 1)[-length(segment_lengths)]
   } else {
-    changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
+    if(is.null(changepoints)){
+      changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
+    }
     segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
   }
 
