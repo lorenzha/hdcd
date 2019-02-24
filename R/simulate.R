@@ -67,3 +67,30 @@ CreateModel <- function(n_segments, n, p, modelFUN, changepoints = NULL, equispa
     true_changepoints = changepoints
   )
 }
+
+
+delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
+  n <- nrow(x)
+  p <- ncol(x)
+  if (missingness == 'mcar'){
+    inds <- sample(which(!is.na(x)), floor(m * n * p), replace = F)
+  } else if (missingness == 'mar'){
+    i <- min(ceiling(m * p * 2), p)
+    inds <- sample(1 : (n * i), floor(m * n * p), replace = F)
+  } else if (missingness == 'nmar'){
+    inds <- sample(1 : (n * p), floor(m * n * p), replace = F, prob = abs(c(x)))
+  } else if (missingness == 'blockwise'){
+
+  }
+
+  x_del <- x
+  x_del[inds] <- NA
+
+  if (x_comp) {
+    x_comp <- x
+    x_comp[sample(1 : n, ceiling(m * n), replace = F), ] <- NA
+    return(list(x_del = x_del, x_comp = x_comp))
+  } else {
+    return(x_del)
+  }
+}
