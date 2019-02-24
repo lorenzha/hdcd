@@ -35,9 +35,11 @@ cv_loss <- function(x_train, n_obs,
   stopifnot(length(n_obs) == 1)
 
   x_train_list <- lapply(1 : n_folds_inner, function(y) x_train[folds_inner != y, ])
-  x_test_list <- lapply(1 : n_folds_inner, function(y) x_train[folds_inner == y, ])
   cov_mat_output_list <- lapply(x_train_list, get_cov_mat, NA_method)
-  means_list <- lapply(x_train_list, colMeans, na.rm = T)
+  inds_list <- lapply(cov_mat_output_list, '[[', 'inds')
+  means_list <- mapply(function(x, j) list(colMeans(x[, j], na.rm = T)), x_train_list, inds_list)
+
+  x_test_list <- mapply( function(i, j) list(x_train[folds_inner == i, j]), as.list(1 : n_folds_inner), inds_list)
 
   f <- function(lambda){
     if(standardize){
@@ -263,7 +265,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
     inds_cur <- inds[na_order[i], ]
     if(any(inds_cur != inds_old)){
       inds_old <- inds_cur
-      if (sum(inds_cur) < length(inds_cur) / 2){
+      if (sum(inds_cur) < length(inds_cur) / 3){
         # fast calculation of cov_mat_inv_cur as update from cov_mat_inv via Woodbury matrix identity
         k <- sum(inds[na_order[i], ]) # amount of missing values
         A <- diag(p)[, inds_cur, drop = F] # helper matrix
