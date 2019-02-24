@@ -46,8 +46,3 @@ sample_folds <- function(n, k, randomize = FALSE){
     as.factor(rep(1:k, ceiling(n/k))[1:n])
   }
 }
-
-# adapt this
-hdcd_control <- function(){
-  control <- list()
-}

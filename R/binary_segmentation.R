@@ -138,12 +138,12 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
     train_inds <- 1 : nrow(x)
   }
 
-  max_depth <- control_get(control, "max_depth", Inf)
-  verbose <- control_get(control, "verbose", TRUE)
-  cv_inner <- control_get(control, "cv_inner", FALSE)
-  n_folds_inner <- control_get(control, "n_folds_inner", 4)
-  randomize_inner <- control_get(control, "randomize_inner", FALSE)
-  stop_early <- control_get(control, "stop_early", FALSE)
+  max_depth <- control$max_depth
+  verbose <- control$verbose
+  cv_inner <- control$cv_inner
+  n_folds_inner <- control$cv_inner_n_folds
+  randomize_inner <- control$cv_inner_randomize_folds
+  stop_early <- control$cv_inner_stop_early
 
   if(is.null(lambda) & cv_inner){
     warning('Since no lambda is supplied, lambda will be chosen adaptively on each segment using the optimal lambda from cross validation')
@@ -178,7 +178,7 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
     folds_inner <- sample_folds(n_obs, n_folds_inner, randomize = randomize_inner)
 
     # calculates cv_loss for whole training data
-    cv_loss_global_output <- cv_loss(x_train = x_train, n_obs = n_obs, x_test = x_test, folds = folds_inner, method = method, NA_method = NA_method, control = control)
+    cv_loss_global_output <- cv_loss(x_train = x_train, n_obs = n_obs, lambda0 = lambda, x_test = x_test, folds = folds_inner, method = method, NA_method = NA_method, control = control)
     tree$cv_train_loss <- cv_loss_global_output$train_loss # min of the losses (by lambda)
     tree$cv_loss_array <-  cv_loss_global_output$loss_array # vector of length n_fold_inner, loss by fold for best lambda
     tree$cv_test_loss <- cv_loss_global_output$test_loss # If x_test is supplied
@@ -236,11 +236,13 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
           }
           cv_loss_left <- cv_loss(x_train[start : (split_point - 1), ],
                                   n_obs = n_obs,
+                                  lambda0 = node$cv_lambda_opt,
                                   folds_inner = folds_inner[start : (split_point - 1)],
                                   x_test = x_test_left,
                                   method = method, NA_method = NA_method, control = control)
           cv_loss_right <- cv_loss(x_train[split_point : end, ],
                                   n_obs = n_obs,
+                                  lambda0 = node$cv_lambda_opt,
                                   folds_inner = folds_inner[split_point : end],
                                   x_test =  x_test_right,
                                   method = method, NA_method = NA_method, control = control)
@@ -257,11 +259,8 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
           node$cv_train_improvement_sd <- n_folds_inner * sd(node$cv_loss_array - child_left$cv_loss_array - child_right$cv_loss_array) / nrow(x_train)
           node$cv_test_improvement <- (node$cv_test_loss - cv_loss_left$test_loss - cv_loss_right$test_loss) / nrow(x_test)
         }
-
-        if(!stop_early || !cv_inner || node$cv_train_improvement > 0){
-          BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
-          BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
-        }
+        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_left, optimizer)
+        BinarySegmentation_recursive(delta, n_obs = n_obs, SegmentLossFUN, child_right, optimizer)
       }
     }
   }

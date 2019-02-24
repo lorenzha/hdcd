@@ -40,10 +40,10 @@ hdcd <- function(x,
                  NA_method = 'complete_observations',
                  optimizer = c("line_search", "section_search"),
                  FUN = NULL,
-                 control = list(),
+                 control = hdcd_control(),
                  ...) {
 
-  verbose <- control_get(control, "verbose", F)
+  verbose <- control$verbose
 
   if(!is.matrix(x)){
     x <- as.matrix(x)
@@ -57,15 +57,15 @@ hdcd <- function(x,
     x <- cbind(y, x)
   }
 
-  cv_inner <- control_get(control, "cv_inner", FALSE)
-  if(is.null(control[["lambda_inner"]]) & cv_inner){
-    lambda_inner_min_ratio = control_get(control, "lambda_inner_min_ratio", 0.01)
-    lambda_inner_grid_size = control_get(control, "lambda_inner_grid_size", 4)
+  if(is.null(control$cv_inner_lambda) & control$cv_inner & !(control$cv_inner_search_lambda)){
     # choose lambda as grid around the asymptotic value
     cov_mat <- get_cov_mat(x, NA_method)$mat
     lambda_max <- max(abs(cov_mat[upper.tri(cov_mat)]))
-    control$lambda_inner <- LogSpace(lambda_inner_min_ratio * lambda_max, lambda_max, length.out = lambda_inner_grid_size)
-    if (verbose) cat('lambda inner set by asymptotic theory \n')
+    control$cv_inner_lambda <- LogSpace(control$cv_inner_min_grid_ratio * lambda_max,
+                                        lambda_max,
+                                        length.out = control$cv_inner_n_lambda)
+    if (verbose) cat('lambda for inner cv is set by asymptotic theory to ',
+                     paste(control$cv_inner_lambda, collapse = ', '), '\n')
   }
 
   # If a individual loss function is supplied, check that it has the required form

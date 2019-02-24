@@ -43,10 +43,10 @@ SegmentLoss <- function(x,
 
   if (mth == "glasso") {
     # load parameters for glasso from control
-    penalize_diagonal <-  control_get(control, "penalize_diagonal", FALSE)
-    standardize <-  control_get(control, "standardize", TRUE)
-    threshold <-  control_get(control, "threshold", 1e-04)
-    min_frac <- control_get(control, "min_frac", 0)
+    penalize_diagonal <-  control$glasso_penalize_diagonal
+    standardize <-  control$glasso_standardize
+    threshold <- control$glasso_threshold
+    min_frac <- control$segment_loss_min_frac
 
     function(start, end, lambda, ...) {
 
@@ -82,7 +82,7 @@ SegmentLoss <- function(x,
       }
 
 
-      if(any(is.na(x[start : end, inds])) & NA_mth != 'complete_observations'){
+      if(T | any(is.na(x[start : end, inds])) & NA_mth != 'complete_observations'){ # TODO ADAPT WHY DOES THIS WORK
         loglikelihood(x[start : end, cov_mat_output$inds], colMeans(x[start : end, cov_mat_output$inds], na.rm = T), glasso_output$w, glasso_output$wi) / n_obs
       } else {
         # The following is to compute the test error using the glasso output
@@ -100,7 +100,7 @@ SegmentLoss <- function(x,
 
   } else if (mth == "nodewise_regression") {
 
-    node = control_get(control, "node", 1)
+    node = control$nodewise_regression_node
     stopifnot(length(node) == 1 && is.numeric(node))
 
     function(start, end, ...) {
@@ -197,9 +197,9 @@ SegmentLoss <- function(x,
 
   } else if (mth == "elastic_net") {
 
-    alpha = control_get(control, "alpha", 1)
+    alpha = control$elastic_net_alpha
     stopifnot(is.numeric(alpha) && length(alpha) == 1 && 0 <= alpha && alpha <= 1)
-    family <- control_get(control, "family", "gaussian")
+    family <- control$elastic_net_family
 
     function(start, end, ...){
       n_cur <- end - start + 1
