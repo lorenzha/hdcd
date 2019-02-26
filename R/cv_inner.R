@@ -275,11 +275,12 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
         V[1 : k, ][as.logical(t(A))] <- 0
         V[1 : k, ][as.logical(t(A[, k : 1]))] <- 0
         S <- -diag(2 * k) + V %*% cov_mat_inv %*% U
-        tryCatch({
-          cov_mat_inv_cur <- (cov_mat_inv - cov_mat_inv %*% U %*% solve(S) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
+        cov_mat_inv_cur <- tryCatch({
+          #solve(cov_mat[!inds_cur, !inds_cur])
+          (cov_mat_inv - cov_mat_inv %*% U %*% solve(S) %*% V %*% cov_mat_inv)[!inds_cur, !inds_cur]
         }, condition = function(e){
           #warning('loglikelihood was not able to apply the Woodbury matrix identity')
-          cov_mat_inv_cur <- solve(cov_mat[!inds_cur, !inds_cur])
+          solve(cov_mat[!inds_cur, !inds_cur])
         })
       } else {
         cov_mat_inv_cur <- solve(cov_mat[!inds_cur, !inds_cur])
