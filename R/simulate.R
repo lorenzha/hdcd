@@ -85,9 +85,9 @@ delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
     m <- m + missing / total
     missing_max <- ceiling(m * total)
     while (missing < missing_max){
-      j <- sample(p, 1)
-      k <- sample(n, 1)
       l <- min(floor(rexp(1, 8/n)), missing_max - missing)
+      j <- sample(p, 1)
+      k <- sample((1 - floor(l/2)) : (n + floor(l/2) - 1), 1)
       int <- max((k - floor(l/2)), 1) : min((k + floor(l/2)), n)
       x[int, j] <- NA
       missing <- sum(is.na(x))
@@ -111,9 +111,8 @@ delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
 plot_missingness_structure <- function(x){
   dt <- data.table::data.table(is.na(x))
   colnames(dt) <-  as.character(1 : ncol(x))
-  dt[, index := 1 : nrow(x)]
+  dt[, index := 1 : nrow(x)] #
   dt <- data.table::melt(dt, id.vars = 'index')
-  dt[value, value := 'missing']
-  dt[value == F, value := 'not missing']
+  dt[, value:= ifelse(value, 'missing', 'not_missing')]
   ggplot2::ggplot(dt, ggplot2::aes(x = index, y = variable, col = value)) + ggplot2::geom_point()
 }

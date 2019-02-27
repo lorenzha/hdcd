@@ -155,19 +155,25 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
 
   n_obs <- NROW(x_train)
 
-  if (is.null(FUN)) {
-    SegmentLossFUN <- SegmentLoss(
-      x_train, lambda = lambda, method = method, NA_method = NA_method, control = control, ...
-    )
+  # if (is.null(FUN)) {
+  #   SegmentLossFUN <- SegmentLoss(
+  #     x_train, lambda = lambda, method = method, NA_method = NA_method, control = control, ...
+  #   )
+  # } else {
+  #   stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
+  #   if ("lambda" %in% methods::formalArgs(FUN)){
+  #     SegmentLossFUN <- FUN(x_train, lambda = lambda)
+  #   } else {
+  #     SegmentLossFUN <- FUN(x_train)
+  #   }
+  # }
+  # stopifnot(c("start", "end", "lambda") %in% methods::formalArgs(SegmentLossFUN))
+
+  if (is.null(FUN)){
+    gain_fun <- gain(x_train, lambda = lambda, method = method, NA_method = NA_method, control = control)
   } else {
-    stopifnot(c("x") %in% methods::formalArgs(FUN)) ###TODO adapt such that this works with regression
-    if ("lambda" %in% methods::formalArgs(FUN)){
-      SegmentLossFUN <- FUN(x_train, lambda = lambda)
-    } else {
-      SegmentLossFUN <- FUN(x_train)
-    }
+    stop('custom gain function currently not supported')
   }
-  stopifnot(c("start", "end", "lambda") %in% methods::formalArgs(SegmentLossFUN))
 
   # initiate tree
   tree <- data.tree::Node$new("bs_tree", start = 1, end = NROW(x_train), start_global = 1, end_global = nrow(x))
@@ -195,7 +201,7 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
     } else {
       res <- FindBestSplit(
         node$start, node$end, node$cv_lambda_opt, delta, n_obs,
-        SegmentLossFUN, control, optimizer,
+        gain_fun, control, optimizer,
         gamma
       )
 
@@ -291,7 +297,7 @@ BinarySegmentation <- function(x, test_inds = NULL, lambda = NULL, gamma = NULL,
 #'  \code{control} parameter list and approximately finds an index at a local
 #'  maximum. See Haubner (2018) for details. }
 #'  @param gamma Tuning parameter that controls sensitivity to finding splits.
-FindBestSplit <- function(start, end, lambda, delta, n_obs, SegmentLossFUN,
+FindBestSplit <- function(start, end, lambda, delta, n_obs, gain_fun,
                           control = NULL,
                           optimizer = c("line_search", "section_search"),
                           gamma = 0
@@ -311,39 +317,22 @@ FindBestSplit <- function(start, end, lambda, delta, n_obs, SegmentLossFUN,
     end - min_seg_length + 1, 1
   )
 
-  split_loss <- rep(NA, n_obs)
+  gain <- rep(NA, n_obs)
 
   switch(opt,
     "line_search" = {
-      split_loss[split_candidates] <- sapply(
-        split_candidates,
-        function(y) SplitLoss(y,
-            SegmentLossFUN = SegmentLossFUN,
-            start = start,
-            end = end,
-            lambda = lambda
-          )
+      gain[split_candidates] <- sapply(
+        split_candidates, gain_fun(start, end)
       )
-      gain <- SegmentLossFUN(start, end, lambda) - split_loss
       result <- list(opt_split = catch(which.max(gain)), gain = gain) #this will return NA if all(is.na(gain))
     },
     "section_search" = {
-      min_points <- control[["min_points"]]
-      stepsize <- control[["stepsize"]]
-      k_sigma <- control[["k_sigma"]]
-
-      if (is.null(stepsize) || stepsize <= 0) {
-        stepsize <- 0.5
-      } # set default value if necessary
-      if (is.null(min_points) || min_points < 3) {
-        min_points <- 3
-      } # set default value if necessary
-      if (is.null(k_sigma) || k_sigma < 0) {
-        k_sigma <- 0
-      } # set default value if necessary
+      min_points <- control[["section_search_min_points"]]
+      stepsize <- control[["section_search_stepsize"]]
+      k_sigma <- control[["section_search_k_sigma"]]
 
       result <- SectionSearch(split_candidates = split_candidates, n_obs = n_obs,
-                              SegmentLossFUN = SegmentLossFUN, start = start, end = end, lambda = lambda,
+                              split_fun = gain_fun(start, end, lambda = lambda),
                               min_points = min_points, stepsize = stepsize, k_sigma = k_sigma)
     }
   )
