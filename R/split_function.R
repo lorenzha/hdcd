@@ -169,6 +169,8 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
   p <- ncol(x)
   loss <- numeric(n)
 
+  log_det_full <- determinant(cov_mat, logarithm = TRUE)$modulus
+
   for (i in 1 : nrow(x)){
     inds <- !is.na(x[i, ])
     if(any(!inds)){
