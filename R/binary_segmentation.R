@@ -332,7 +332,7 @@ FindBestSplit <- function(start, end, lambda, delta, n_obs, gain_fun,
       k_sigma <- control[["section_search_k_sigma"]]
 
       result <- SectionSearch(split_candidates = split_candidates, n_obs = n_obs,
-                              split_fun = gain_fun(start, end, lambda = lambda),
+                              gain_fun = gain_fun(start, end, lambda = lambda),
                               min_points = min_points, stepsize = stepsize, k_sigma = k_sigma)
     }
   )

@@ -37,7 +37,7 @@ gain <- function(x, lambda = NULL,
           glasso_output_left <- make_glasso_fit(x[start  : (split_point - 1) , , drop = F], lambda, n_obs, NA_method, control)
           glasso_output_right <- make_glasso_fit(x[split_point  : end, , drop = F], lambda, n_obs, NA_method, control)
 
-          loglikelihood(x[start : (split_point - 1), glasso_output_left$inds, drop = F],
+          (loglikelihood(x[start : (split_point - 1), glasso_output_left$inds, drop = F],
                         glasso_output_full$mu[glasso_output_left$inds, drop = F],
                         glasso_output_full$w[glasso_output_left$inds, glasso_output_left$inds, drop = F],
                         glasso_output_full$wi[glasso_output_left$inds, glasso_output_left$inds, drop = F]) +
@@ -53,6 +53,7 @@ gain <- function(x, lambda = NULL,
                           glasso_output_right$mu[glasso_output_right$inds, drop = F],
                           glasso_output_right$w[glasso_output_right$inds, glasso_output_right$inds, drop = F],
                           glasso_output_right$wi[glasso_output_right$inds, glasso_output_right$inds, drop = F])
+            )/n_obs
         }
       }
     }
@@ -151,6 +152,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
       loss <- loss + (t(v) %*% cov_mat_inv_cur %*% v - p) / sqrt(p / (p - k))
     } else {
       loss <- loss + t(v) %*% cov_mat_inv_cur %*% v + log_det_cur #+ (p - k) * log(2*pi)  #This p+k is essential. WHY??
+      #cat(i, ', addition to loss = ',  t(v) %*% cov_mat_inv_cur %*% v, ' + ', log_det_cur, '\n')
     }
   }
   loss / 2

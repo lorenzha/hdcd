@@ -26,13 +26,13 @@
 #' @return Returns a function with arguments left, mid, right, RecFUN where
 #'   RecFun should always be set to the object name of the function has been
 #'   assigned so the function can call itself recursively.
-SectionSearch <- function(split_candidates, n_obs, split_fun,
+SectionSearch <- function(split_candidates, n_obs, gain_fun,
                           min_points = 4,
                           stepsize = 0.5,
                           k_sigma = 0) {
 
   #seg_loss <- SegmentLossFUN(start, end, lambda) #loss over whole segment
-  loss <-  rep(NA, n_obs)
+  gain <-  rep(NA, n_obs)
 
   # if(is.na(seg_loss)){
   #   return(list(gain = loss, opt_split = NA))
@@ -42,7 +42,7 @@ SectionSearch <- function(split_candidates, n_obs, split_fun,
 
   select_via_variance <- function(start1, end1, start2, end2){
     stop('select via variance currently not supported')
-    if (split_fun(start1, start2, no_split = T) / (end1 - start1) >= split_fun(start2, end2, no_split = T) / (end2 - start2)){
+    if (split_fun(start1, start2, no_split = T) / (end1 - start1) >= slpit_fun(start2, end2, no_split = T) / (end2 - start2)){
       SectionSearch_recursive_1(start1, end1, start2)
     } else {
       SectionSearch_recursive_1(end1, start2, end2)
@@ -52,36 +52,36 @@ SectionSearch <- function(split_candidates, n_obs, split_fun,
   SectionSearch_recursive_2 <- function(cur_left, w_left, w_right, cur_right){
     # If segment [cur_left, w_left) doesn't have enough non-missing observations, loss[w_left] might be NA.
     # In that case, increase w_left by one and try again
-    if (is.na(loss[w_left])){
+    if (is.na(gain[w_left])){
       w_left <- w_left + 1
-      loss[w_left] <<- split_fun(w_left) #SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
+      gain[w_left] <<- gain_fun(w_left) #SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
     # Same for segment [w_right, cur_right)
-    } else if (is.na(loss[w_right])){
+    } else if (is.na(gain[w_right])){
       w_right <- w_right - 1
-      loss[w_right] <<- split_fun(w_right) # SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
+      gain[w_right] <<- gain_fun(w_right) # SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
     } else if (w_right - w_left >= min_points){ # Check that Segment is long enough
       # if loss[w_left] <= loss[w_right], the inverse is true for gain & thus discard [w_right, cur_right)
       # TODO: This in not symmetrical for tol = 0.
-      if(loss[w_left] + tol <= loss[w_right]){
+      if(gain[w_left] >= gain[w_right] + tol){
         SectionSearch_recursive_1(cur_left, w_left, w_right)
-      } else if (loss[w_right] +tol <= loss[w_left]){
+      } else if (gain[w_right] >=  gain[w_left] + tol){
         SectionSearch_recursive_1(w_left, w_right, cur_right)
       } else {
         select_via_variance(cur_left, w_left, w_right, cur_right)
       }
     } else {
       #If Segment is sufficiently small, choose splitpoint via line_search
-      loss[cur_left : cur_right] <- sapply(cur_left : cur_right, split_fun) #function(y) SplitLoss(y, SegmentLossFUN, start, end, lambda))
-      return(list(gain = seg_loss - loss, opt_split = catch(which.min(loss))))
+      gain[cur_left : cur_right] <- sapply(cur_left : cur_right, gain_fun) #function(y) SplitLoss(y, SegmentLossFUN, start, end, lambda))
+      return(list(gain = gain, opt_split = catch(which.max(gain))))
     }
   }
 
 
   SectionSearch_recursive_1 <- function(cur_left, cur_middle, cur_right){
 
-    stopifnot(!is.na(loss[cur_middle]))
+    stopifnot(!is.na(gain[cur_middle]))
 
     # # if segment has less than min_points points, do line search
     # if (cur_right - cur_left + 1 <= min_points){ #this can be optimized, as loss[cur_middle was already calculated]
@@ -92,11 +92,11 @@ SectionSearch <- function(split_candidates, n_obs, split_fun,
     # select new midpoint in smaller segment
     if (cur_right - cur_middle > cur_middle - cur_left){
       w <- cur_right - ceiling((cur_right - cur_middle) * stepsize)
-      loss[w] <<- split_fun(w) #SplitLoss(w, SegmentLossFUN, start, end, lambda)
+      gain[w] <<- gain_fun(w) #SplitLoss(w, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, cur_middle, w, cur_right)
     } else {
       w <- cur_left + ceiling((cur_middle - cur_left) * stepsize)
-      loss[w] <<- split_fun(w) #SplitLoss(w, SegmentLossFUN, start, end, lambda)
+      gain[w] <<- gain_fun(w) #SplitLoss(w, SegmentLossFUN, start, end, lambda)
       SectionSearch_recursive_2(cur_left, w, cur_middle, cur_right)
     }
   }
@@ -105,8 +105,8 @@ SectionSearch <- function(split_candidates, n_obs, split_fun,
   cur_right <- split_candidates[length(split_candidates)]
   w_left <- ceiling((cur_left + stepsize * cur_right) / (1 + stepsize))
   w_right <- floor((stepsize * cur_left + cur_right) / (1 + stepsize))
-  loss[w_left] <- split_fun(w_left) #SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
-  loss[w_right] <- split_fun(w_left) #SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
+  gain[w_left] <- gain_fun(w_left) #SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
+  gain[w_right] <- gain_fun(w_left) #SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
 
   SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
 }
