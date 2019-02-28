@@ -19,7 +19,7 @@ hdcd_control <- function(cv_inner = FALSE,
                          section_search_min_points = 4,
                          section_search_stepsize = 0.5,
                          section_search_k_sigma = 0,
-                         segment_loss_min_frac = 0
+                         segment_loss_min_points = 2
                          ){
   structure(list(
     cv_inner = cv_inner,
@@ -43,6 +43,6 @@ hdcd_control <- function(cv_inner = FALSE,
     section_search_min_points = section_search_min_points,
     section_search_stepsize = section_search_stepsize,
     section_search_k_sigma = section_search_k_sigma,
-    segment_loss_min_frac = segment_loss_min_frac
+    segment_loss_min_points = segment_loss_min_points
   ), class = "hdcd.control")
 }

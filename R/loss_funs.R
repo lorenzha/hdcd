@@ -46,7 +46,7 @@ SegmentLoss <- function(x,
     penalize_diagonal <-  control$glasso_penalize_diagonal
     standardize <-  control$glasso_standardize
     threshold <- control$glasso_threshold
-    min_frac <- control$segment_loss_min_frac
+    min_points <- control$segment_loss_min_points
 
     function(start, end, lambda, ...) {
 
@@ -54,7 +54,7 @@ SegmentLoss <- function(x,
         lambda <- lambda_global
       }
 
-      cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method, min_frac = min_frac)
+      cov_mat_output <- get_cov_mat(x[start  : end , , drop = F], NA_method, min_points = min_points)
       cov_mat <- cov_mat_output$mat
       inds <- cov_mat_output$inds
       p_cur <- sum(inds) # which predictors have sufficient non-missing values
@@ -221,14 +221,14 @@ SegmentLoss <- function(x,
 # estimate of covariance matrix
 get_cov_mat <- function(x, NA_method = c('complete_observations', 'pairwise_covariance',
                                         'loh_wainwright_bias_correction', 'average_imputation',
-                                        'expectation_maximisation'), min_frac = 0){
+                                        'expectation_maximisation'), min_points = 2){
   NA_mth <- match.arg(NA_method)
   if(NA_mth == "complete_observations"){
     n_obs <- sum(complete.cases(x))
     list(mat = (n_obs - 1) / n_obs * cov(x, use = 'na.or.complete'), inds = rep(T, ncol(x)), n_eff_obs = n_obs)
   } else {
     available_obs <- apply(!is.na(x), 2, sum)
-    inds <- (available_obs >= max(2, max(available_obs) * min_frac))
+    inds <- (available_obs >= max(2, min_points))
     cov_mat <- calc_cov_mat(x[, inds], NA_mth)
     list(mat = cov_mat, inds = inds, n_eff_obs = sum(available_obs[inds]) / sum(inds))
   }

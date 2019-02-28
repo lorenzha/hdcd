@@ -66,10 +66,10 @@ make_glasso_fit <- function(x, lambda, n_obs, NA_method, control){
   penalize_diagonal <-  control$glasso_penalize_diagonal
   standardize <-  control$glasso_standardize
   threshold <- control$glasso_threshold
-  min_frac <- control$segment_loss_min_frac
+  min_points <- control$segment_loss_min_points
 
   p <- ncol(x)
-  cov_mat_output <- get_cov_mat(x, NA_method, min_frac = min_frac)
+  cov_mat_output <- get_cov_mat(x, NA_method, min_points = min_points)
 
   stopifnot(any(cov_mat_output$inds))
 

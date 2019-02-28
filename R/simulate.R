@@ -111,7 +111,7 @@ delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
 plot_missingness_structure <- function(x){
   dt <- data.table::data.table(is.na(x))
   colnames(dt) <-  as.character(1 : ncol(x))
-  dt[, index := 1 : nrow(x)] #
+  dt$index <- 1 : nrow(x)
   dt <- data.table::melt(dt, id.vars = 'index')
   dt[, value:= ifelse(value, 'missing', 'not_missing')]
   ggplot2::ggplot(dt, ggplot2::aes(x = index, y = variable, col = value)) + ggplot2::geom_point()
