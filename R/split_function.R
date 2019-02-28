@@ -182,5 +182,9 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
     }
   }
 
+<<<<<<< HEAD
   sum(loss) / 2
+=======
+  loss / 2
+>>>>>>> 9ac69ed5c79a5f04fe7196a5cf7ba762d9e51868
 }
