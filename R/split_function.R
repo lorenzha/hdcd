@@ -164,6 +164,7 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
     x <- as.matrix(x)
     warning('non matrix input into loglikelihood')
   }
+
   n <- nrow(x)
   p <- ncol(x)
   loss <- numeric(n)
@@ -176,12 +177,10 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
       distance <- t(v) %*% solve(cov_mat[inds, inds], v) ##vectorize, b = matrix, for rows of same missingness structure
       loss[i] <- distance + log_det + sum(inds) * log(2*pi)
     } else {
-      v <- x - mu
+      v <- x[i, ] - mu
       distance <- t(v) %*% cov_mat_inv %*% v
       loss[i] <- distance + log_det_full + p * log(2*pi)
     }
   }
-
-
   sum(loss) / 2
 }
