@@ -49,7 +49,11 @@ CreateModel <- function(n_segments, n, p, modelFUN, changepoints = NULL, equispa
     if(is.null(changepoints)){
       changepoints <- sort(sample(2:(n - 1), size = n_segments - 1, replace = F))
     }
-    segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
+    if(length(changepoints) == 0){
+      segment_lengths <- n
+    } else {
+      segment_lengths <- c(changepoints - c(0, changepoints[-length(changepoints)]), n - changepoints[length(changepoints)])
+    }
   }
 
   if (is.null(mean_vecs)) {
