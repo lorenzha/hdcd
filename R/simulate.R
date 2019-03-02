@@ -97,6 +97,26 @@ delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
       missing <- sum(is.na(x))
     }
     return(x)
+  } else if (missingness == 'both'){
+    x <- delete_values(x, m/2, 'blockwise')
+    return(delete_values(x, m/2))
+  } else if (missingness == 'groundwater'){
+    total <- prod(dim(x))
+    missing <- sum(is.na(x))
+    m <- m + missing / total
+    missing_max <- ceiling(m * total)
+    while (missing < missing_max){
+      o <- rpois(1, p / 20)
+      l <- min(floor(rexp(1, 8/n)), ceiling((missing_max - missing)/o))
+      j <- sample(p, o)###lala
+      k <- sample((1 - floor(l/2)) : (n + floor(l/2) - 1), 1)
+      int <- max((k - floor(l/2)), 1) : min((k + floor(l/2)), n)
+      x[int, j] <- NA
+      missing <- sum(is.na(x))
+    }
+    return(x)
+  } else if (missingness == 'none'){
+    inds <- numeric(0)
   }
 
   x_del <- x
@@ -117,6 +137,6 @@ plot_missingness_structure <- function(x){
   colnames(dt) <-  as.character(1 : ncol(x))
   dt$index <- 1 : nrow(x)
   dt <- data.table::melt(dt, id.vars = 'index')
-  dt[, value:= ifelse(value, 'missing', 'not_missing')]
+  dt$value <-  ifelse(dt$value, 'missing', 'not_missing')
   ggplot2::ggplot(dt, ggplot2::aes(x = index, y = variable, col = value)) + ggplot2::geom_point()
 }
