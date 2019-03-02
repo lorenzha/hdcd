@@ -172,12 +172,14 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
   log_det_full <- determinant(cov_mat, logarithm = TRUE)$modulus
 
   for (i in 1 : nrow(x)){
-    inds <- !is.na(x[i, ])
+    inds <- !is.na(x[i, , drop = F])
     if(any(!inds)){
       log_det <- determinant(cov_mat[inds, inds], logarithm = TRUE)$modulus
       v <- x[i, inds] - mu[inds]
       distance <- t(v) %*% solve(cov_mat[inds, inds], v) ##vectorize, b = matrix, for rows of same missingness structure
       loss[i] <- distance + log_det + sum(inds) * log(2*pi)
+    } else if (!any(inds)) {
+      loss[i] <- 0
     } else {
       v <- x[i, ] - mu
       distance <- t(v) %*% cov_mat_inv %*% v

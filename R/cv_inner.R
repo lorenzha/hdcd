@@ -39,7 +39,7 @@ cv_loss <- function(x_train, n_obs,
   inds_list <- lapply(cov_mat_output_list, '[[', 'inds')
   means_list <- mapply(function(x, j) list(colMeans(x[, j], na.rm = T)), x_train_list, inds_list)
 
-  x_test_list <- mapply( function(i, j) list(x_train[folds_inner == i, j]), as.list(1 : n_folds_inner), inds_list)
+  x_test_list <- mapply( function(i, j) list(x_train[folds_inner == i, j, drop = F]), as.list(1 : n_folds_inner), inds_list)
 
   f <- function(lambda){
     if(standardize){
