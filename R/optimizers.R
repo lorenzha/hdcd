@@ -106,7 +106,7 @@ SectionSearch <- function(split_candidates, n_obs, gain_fun,
   w_left <- ceiling((cur_left + stepsize * cur_right) / (1 + stepsize))
   w_right <- floor((stepsize * cur_left + cur_right) / (1 + stepsize))
   gain[w_left] <- gain_fun(w_left) #SplitLoss(w_left, SegmentLossFUN, start, end, lambda)
-  gain[w_right] <- gain_fun(w_left) #SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
+  gain[w_right] <- gain_fun(w_right) #SplitLoss(w_right, SegmentLossFUN, start, end, lambda)
 
   SectionSearch_recursive_2(cur_left, w_left, w_right, cur_right)
 }
