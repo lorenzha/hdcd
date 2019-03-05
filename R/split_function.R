@@ -167,24 +167,42 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
 
   n <- nrow(x)
   p <- ncol(x)
-  loss <- numeric(n)
+  loss <- 0
 
-  log_det_full <- determinant(cov_mat, logarithm = TRUE)$modulus
+  ranks <- data.table::frank(data.table::data.table(is.na(x)))
 
-  for (i in 1 : nrow(x)){
-    inds <- !is.na(x[i, , drop = F])
-    if(any(!inds)){
-      log_det <- determinant(cov_mat[inds, inds], logarithm = TRUE)$modulus
-      v <- x[i, inds] - mu[inds]
-      distance <- t(v) %*% solve(cov_mat[inds, inds], v) ##vectorize, b = matrix, for rows of same missingness structure
-      loss[i] <- distance + log_det + sum(inds) * log(2*pi)
-    } else if (!any(inds)) {
-      loss[i] <- 0
-    } else {
-      v <- x[i, ] - mu
-      distance <- t(v) %*% cov_mat_inv %*% v
-      loss[i] <- distance + log_det_full + p * log(2*pi)
+  for (j in unique(ranks)){
+    x_cur <- x[ranks == j, , drop = F]
+    inds_cur <- !is.na(x_cur[1, ])
+
+    if(any(!inds) & any(inds)){
+      log_det <- nrow(x_cur) * determinant(cov_mat[inds_cur, inds_cur], logarithm = TRUE)$modulus
+      v <- t(x_cur[, inds_cur, drop = F]) - mu[inds_cur, drop = F]
+      distance <- sum(diag(t(v) %*% solve(cov_mat[inds_cur, inds_cur, drop = F], v))) ##vectorize, b = matrix, for rows of same missingness structure
+      loss <- loss +  distance + log_det + sum(inds) * log(2*pi)
+    } else if (!any(!inds)){
+      log_det <- nrow(x_cur) * determinant(cov_mat, logarithm = TRUE)$modulus
+      v <- t(x_cur) - mu
+      distance <- sum(diag(t(v) %*% cov_mat_inv %*% v))
     }
   }
-  sum(loss) / 2
+  attributes(loss) <- NULL
+  loss/2
+  #
+  # for (i in 1 : nrow(x)){
+  #   inds <- !is.na(x[i, , drop = F])
+  #   if(any(!inds)){
+  #     log_det <- determinant(cov_mat[inds, inds], logarithm = TRUE)$modulus
+  #     v <- x[i, inds] - mu[inds]
+  #     distance <- t(v) %*% solve(cov_mat[inds, inds], v) ##vectorize, b = matrix, for rows of same missingness structure
+  #     loss[i] <- distance + log_det + sum(inds) * log(2*pi)
+  #   } else if (!any(inds)) {
+  #     loss[i] <- 0
+  #   } else {
+  #     v <- x[i, ] - mu
+  #     distance <- t(v) %*% cov_mat_inv %*% v
+  #     loss[i] <- distance + log_det_full + p * log(2*pi)
+  #   }
+  # }
+  # sum(loss) / 2
 }
