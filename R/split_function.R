@@ -175,15 +175,16 @@ loglikelihood <- function(x, mu, cov_mat, cov_mat_inv, standardize_loglik = F){
     x_cur <- x[ranks == j, , drop = F]
     inds_cur <- !is.na(x_cur[1, ])
 
-    if(any(!inds) & any(inds)){
+    if(any(!inds_cur) & any(inds_cur)){
       log_det <- nrow(x_cur) * determinant(cov_mat[inds_cur, inds_cur], logarithm = TRUE)$modulus
       v <- t(x_cur[, inds_cur, drop = F]) - mu[inds_cur, drop = F]
       distance <- sum(diag(t(v) %*% solve(cov_mat[inds_cur, inds_cur, drop = F], v))) ##vectorize, b = matrix, for rows of same missingness structure
-      loss <- loss +  distance + log_det + sum(inds) * log(2*pi)
-    } else if (!any(!inds)){
+      loss <- loss +  distance + log_det + sum(inds_cur) * log(2*pi)
+    } else if (!any(!inds_cur)){
       log_det <- nrow(x_cur) * determinant(cov_mat, logarithm = TRUE)$modulus
       v <- t(x_cur) - mu
       distance <- sum(diag(t(v) %*% cov_mat_inv %*% v))
+      loss <- loss + distance + log_det + sum(inds_cur) * log(2*pi)
     }
   }
   attributes(loss) <- NULL
