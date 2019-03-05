@@ -132,7 +132,13 @@ delete_values <- function(x, m, missingness = 'mcar', x_comp = F){
 }
 
 
-plot_missingness_structure <- function(x){
+plot_missingness_structure <- function(x, order = F){
+  if (order){
+    distance <- dist(t(is.na(x)))
+    tsp <- TSP::TSP(distance)
+    tour <- TSP::solve_TSP(tsp)
+    x <- x[, c(1, TSP::cut_tour(tour, 1))]
+  }
   dt <- data.table::data.table(is.na(x))
   colnames(dt) <-  as.character(1 : ncol(x))
   dt$index <- 1 : nrow(x)
